@@ -79,9 +79,15 @@
         </label>
       </div>
 
-      <button type="submit" class="w-full bg-contech-cyan hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+      <button type="submit" id="btn-login-submit" class="w-full bg-contech-cyan hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
         <i class="fa-solid fa-right-to-bracket"></i> Entrar no Sistema
       </button>
+
+      <div class="pt-1 text-center">
+        <button type="button" onclick="resetDefaultCredentials()" class="text-[11px] text-slate-400 hover:text-contech-cyan underline transition">
+          Restaurar acesso padrão (admin)
+        </button>
+      </div>
 
 
     </form>
@@ -2149,9 +2155,7 @@
             }
           });
         } else {
-          const lines = content.split(/
-?
-/).filter(l => l.trim());
+          const lines = content.split(/\r?\n/).filter(l => l.trim());
           const sep = lines[0] && lines[0].includes(';') ? ';' : ',';
           for (let i = 1; i < lines.length; i++) {
             const cols = lines[i].split(sep).map(c => c.replace(/^"|"$/g, '').trim());
@@ -2626,18 +2630,26 @@
     return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
   }
 
+  let memoryFallbackUsers = null;
+
   function ensureDefaultUser() {
+    const defaultHash = hashPassword('contech2026');
+    const fallback = [{ nome: 'Administrador CONTECH', login: 'admin', hash: defaultHash }];
     let users = null;
     try {
-      users = JSON.parse(localStorage.getItem(USERS_KEY) || 'null');
+      const raw = localStorage.getItem(USERS_KEY);
+      users = raw ? JSON.parse(raw) : null;
     } catch (e) {
-      users = null;
+      users = memoryFallbackUsers;
     }
-    // Se havia hash antigo do WebCrypto incompatível com file://, reinicia com o padrão seguro
     if (!users || !Array.isArray(users) || !users.length || (users[0].hash && users[0].hash.length === 64)) {
-      const defaultHash = hashPassword('contech2026');
-      users = [{ nome: 'Administrador CONTECH', login: 'admin', hash: defaultHash }];
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      users = fallback;
+      memoryFallbackUsers = fallback;
+      try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      } catch (e) {}
+    } else {
+      memoryFallbackUsers = users;
     }
     return users;
   }
@@ -3279,8 +3291,17 @@
   // INICIALIZAÇÃO
   // =========================================================================
   window.addEventListener('DOMContentLoaded', async () => {
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+      loginForm.addEventListener('submit', handleLogin);
+    }
     ensureDefaultUser();
-    const activeSession = JSON.parse(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || 'null');
+    let activeSession = null;
+    try {
+      activeSession = JSON.parse(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || 'null');
+    } catch (e) {
+      activeSession = null;
+    }
     if (activeSession && activeSession.login) {
       unlockApp(activeSession);
     }
