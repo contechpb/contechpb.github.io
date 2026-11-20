@@ -1439,6 +1439,9 @@
       setSyncIndicator('syncing', 'Sincronizando...');
       try {
         await sendAbaToGoogleSheets(aba, db[aba]);
+        if (aba === 'Clientes_Contabeis' || aba === 'Clientes_Gerais') {
+          await sendAbaToGoogleSheets('Certificados', db.Certificados);
+        }
         setSyncIndicator('connected', 'Google Sheets Conectado');
       } catch (err) {
         console.error('Erro ao sincronizar aba:', aba, err);
@@ -1602,7 +1605,7 @@
       } catch (e) {}
     }
     setSyncIndicator('connected', 'Google Sheets Conectado');
-    showToast('Todas as 9 abas foram enviadas para o Google Sheets!');
+    showToast('Todas as 12 abas foram enviadas para o Google Sheets!');
   }
 
   // =========================================================================
