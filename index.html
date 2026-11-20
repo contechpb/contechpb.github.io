@@ -712,9 +712,9 @@
                 <thead>
                   <tr class="bg-contech-navy text-white uppercase">
                     <th class="p-3 whitespace-nowrap">Data</th>
-                    <th class="p-3 min-w-[260px] w-[28%]">Secretaria</th>
+                    <th class="p-3 min-w-[182px] w-[20%]">Secretaria</th>
                     <th class="p-3">Serviço</th>
-                    <th class="p-3 max-w-[130px] w-[12%]">Complemento</th>
+                    <th class="p-3 max-w-[240px] w-[20%]">Complemento</th>
                     <th class="p-3 whitespace-nowrap">Valor</th>
                     <th class="p-3 whitespace-nowrap">Status do Pagamento</th>
                     <th class="p-3 text-right whitespace-nowrap">Ações</th>
@@ -735,9 +735,9 @@
                 <thead>
                   <tr class="bg-slate-700 text-white uppercase">
                     <th class="p-3 whitespace-nowrap">Data</th>
-                    <th class="p-3 min-w-[260px] w-[28%]">Secretaria</th>
+                    <th class="p-3 min-w-[182px] w-[20%]">Secretaria</th>
                     <th class="p-3">Serviço</th>
-                    <th class="p-3 max-w-[130px] w-[12%]">Complemento</th>
+                    <th class="p-3 max-w-[240px] w-[20%]">Complemento</th>
                     <th class="p-3 whitespace-nowrap">Valor</th>
                     <th class="p-3 whitespace-nowrap">Status do Pagamento</th>
                     <th class="p-3 text-right whitespace-nowrap">Ações</th>
@@ -806,10 +806,10 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
             <div class="lg:col-span-2">
               <label class="font-bold text-slate-600 block mb-1">Tipo de Relatório *</label>
-              <select id="rel-tipo" onchange="generateReportPreview()" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white font-semibold text-contech-navy">
+              <select id="rel-tipo" onchange="onRelTipoChange()" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white font-semibold text-contech-navy">
                 <option value="financeiro_geral">1. Fluxo Financeiro (Contas a Receber x Contas a Pagar)</option>
                 <option value="contas_receber">2. Relatório de Contas a Receber</option>
                 <option value="contas_pagar">3. Relatório de Contas a Pagar</option>
@@ -836,6 +836,12 @@
                 <option value="TODOS">Todos os Registros</option>
                 <option value="ABERTOS">Apenas Pendentes / Em Aberto</option>
                 <option value="CONCLUIDOS">Apenas Pagos / Recebidos / Concluídos</option>
+              </select>
+            </div>
+            <div id="rel-secretaria-wrap">
+              <label class="font-bold text-slate-600 block mb-1">Secretaria</label>
+              <select id="rel-secretaria" onchange="generateReportPreview()" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white font-semibold text-contech-navy">
+                <option value="">Todas as Secretarias</option>
               </select>
             </div>
           </div>
@@ -3044,9 +3050,9 @@
     return `
       <tr class="hover:bg-slate-50 ${isPago ? 'bg-slate-50/50' : ''}">
         <td class="p-3 whitespace-nowrap">${formatDateBR(p.data)}</td>
-        <td class="p-3 min-w-[260px] font-bold text-contech-navy">${p.secretaria}</td>
+        <td class="p-3 min-w-[182px] w-[20%] font-bold text-contech-navy">${p.secretaria}</td>
         <td class="p-3 font-semibold">${p.servico}</td>
-        <td class="p-3 max-w-[130px] truncate text-slate-600" title="${String(compText).replace(/"/g, '&quot;')}">${compText}</td>
+        <td class="p-3 max-w-[240px] w-[20%] truncate text-slate-600" title="${String(compText).replace(/"/g, '&quot;')}">${compText}</td>
         <td class="p-3 font-bold whitespace-nowrap">${formatBRL(p.valor)}</td>
         <td class="p-3">
           <select onchange="setPmiStatus(${p._idx}, this.value)" aria-label="Status do Pagamento" class="px-2.5 py-1 rounded-lg border font-bold text-xs cursor-pointer focus:outline-none ${selectStyle}">
@@ -3115,11 +3121,11 @@
     const statusAtual = p.status_pagamento || 'Pendente';
     form.innerHTML = `
       <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-        <div class="sm:col-span-4">
+        <div class="sm:col-span-3">
           <label class="font-semibold block mb-1">Data *</label>
           <input type="date" id="pmi-f-data" value="${p.data ? String(p.data).split('T')[0] : addDaysISO(0)}" required class="w-full px-3 py-2 border rounded-lg bg-white" />
         </div>
-        <div class="sm:col-span-8">
+        <div class="sm:col-span-6">
           <label class="font-semibold block mb-1">Secretaria *</label>
           <select id="pmi-f-secretaria" class="w-full px-3 py-2 border rounded-lg bg-white font-semibold text-contech-navy">
             ${secretarias.map(s => `<option value="${s}" ${p.secretaria === s ? 'selected' : ''}>${s}</option>`).join('')}
@@ -3127,13 +3133,13 @@
         </div>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-        <div class="sm:col-span-8">
+        <div class="sm:col-span-5">
           <label class="font-semibold block mb-1">Serviço *</label>
           <input type="text" id="pmi-f-servico" value="${(p.servico || '').replace(/"/g, '&quot;')}" required class="w-full px-3 py-2 border rounded-lg bg-white" />
         </div>
-        <div class="sm:col-span-4">
+        <div class="sm:col-span-7">
           <label class="font-semibold block mb-1">Complemento</label>
-          <input type="text" id="pmi-f-complemento" value="${(p.complemento || '').replace(/"/g, '&quot;')}" placeholder="Breve..." class="w-full px-2.5 py-2 border rounded-lg bg-white" />
+          <input type="text" id="pmi-f-complemento" value="${(p.complemento || '').replace(/"/g, '&quot;')}" placeholder="Detalhes do complemento..." class="w-full px-3 py-2 border rounded-lg bg-white" />
         </div>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3723,11 +3729,42 @@
     return true;
   }
 
+  function syncRelSecretariasOptions() {
+    const sel = document.getElementById('rel-secretaria');
+    if (!sel) return;
+    const prevVal = sel.value;
+    const baseSecretarias = [
+      'Secretaria Municipal de Administração',
+      'Secretaria Municipal de Finanças',
+      'Secretaria Municipal de Saúde',
+      'Secretaria Municipal de Educação',
+      'Secretaria Municipal de Assistência Social',
+      'Secretaria Municipal de Infraestrutura',
+      'Gabinete do Prefeito'
+    ];
+    const setSecs = new Set(baseSecretarias);
+    (db.Servicos_PMI || []).forEach(p => {
+      if (p && p.secretaria) setSecs.add(String(p.secretaria).trim());
+    });
+    const sorted = Array.from(setSecs).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    sel.innerHTML = `<option value="">Todas as Secretarias</option>` + sorted.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
+    if (prevVal && Array.from(sel.options).some(o => o.value === prevVal)) {
+      sel.value = prevVal;
+    }
+  }
+
+  function onRelTipoChange() {
+    syncRelSecretariasOptions();
+    generateReportPreview();
+  }
+
   function generateReportPreview() {
+    syncRelSecretariasOptions();
     const tipo = document.getElementById('rel-tipo').value;
     const ini = document.getElementById('rel-data-ini').value;
     const fim = document.getElementById('rel-data-fim').value;
     const statusFilter = document.getElementById('rel-status').value;
+    const secFilter = (document.getElementById('rel-secretaria')?.value || '').trim().toLowerCase();
 
     let title = '';
     let headers = [];
@@ -3740,21 +3777,21 @@
       let totRec = 0, totPag = 0;
 
       db.Contas_Receber.forEach(r => {
-        const liq = r.status === 'Pago' || r.status === 'Recebido';
+        const liq = isReceivedOrPaidStatus(r.status);
         if (statusFilter === 'ABERTOS' && liq) return;
         if (statusFilter === 'CONCLUIDOS' && !liq) return;
         if (!inDateRange(r.vencimento, ini, fim)) return;
-        const val = parseFloat(r.valor) || 0;
+        const val = parseMoneyValue(r.valor);
         totRec += val;
         rows.push(['Entrada (Receber)', r.cliente, r.descricao, formatDateBR(r.vencimento), formatBRL(val), liq ? 'Recebido' : 'Pendente']);
       });
 
       db.Contas_Pagar.forEach(p => {
-        const liq = p.status === 'Pago';
+        const liq = isReceivedOrPaidStatus(p.status);
         if (statusFilter === 'ABERTOS' && liq) return;
         if (statusFilter === 'CONCLUIDOS' && !liq) return;
         if (!inDateRange(p.vencimento, ini, fim)) return;
-        const val = parseFloat(p.valor) || 0;
+        const val = parseMoneyValue(p.valor);
         totPag += val;
         rows.push(['Saída (Pagar)', p.descricao, p.categoria, formatDateBR(p.vencimento), formatBRL(val), p.status]);
       });
@@ -3771,11 +3808,11 @@
       headers = ['Cliente', 'Descrição', 'Vencimento', 'Valor (R$)', 'Status'];
       let total = 0;
       db.Contas_Receber.forEach(r => {
-        const liq = r.status === 'Pago' || r.status === 'Recebido';
+        const liq = isReceivedOrPaidStatus(r.status);
         if (statusFilter === 'ABERTOS' && liq) return;
         if (statusFilter === 'CONCLUIDOS' && !liq) return;
         if (!inDateRange(r.vencimento, ini, fim)) return;
-        const val = parseFloat(r.valor) || 0;
+        const val = parseMoneyValue(r.valor);
         total += val;
         rows.push([r.cliente, r.descricao, formatDateBR(r.vencimento), formatBRL(val), liq ? 'Recebido' : 'Pendente']);
       });
@@ -3785,11 +3822,11 @@
       headers = ['Descrição', 'Categoria', 'Vencimento', 'Valor (R$)', 'Status'];
       let total = 0;
       db.Contas_Pagar.forEach(p => {
-        const liq = p.status === 'Pago';
+        const liq = isReceivedOrPaidStatus(p.status);
         if (statusFilter === 'ABERTOS' && liq) return;
         if (statusFilter === 'CONCLUIDOS' && !liq) return;
         if (!inDateRange(p.vencimento, ini, fim)) return;
-        const val = parseFloat(p.valor) || 0;
+        const val = parseMoneyValue(p.valor);
         total += val;
         rows.push([p.descricao, p.categoria, formatDateBR(p.vencimento), formatBRL(val), p.status]);
       });
@@ -3815,19 +3852,31 @@
       });
       summaryHtml = `<div class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs"><strong>Total de Certificados no Filtro:</strong> <span class="text-base font-extrabold text-amber-800 ml-2">${rows.length}</span></div>`;
     } else if (tipo === 'servicos_pmi') {
-      title = 'Relatório de Serviços PMI — Prefeitura Municipal de Itaporanga';
+      const secLabel = document.getElementById('rel-secretaria')?.value || 'Todas as Secretarias';
+      title = `Relatório de Serviços PMI — Prefeitura Municipal de Itaporanga (${secLabel})`;
       headers = ['Data', 'Secretaria', 'Serviço', 'Complemento', 'Valor (R$)', 'Status'];
       let total = 0;
+      let totalPago = 0;
+      let totalAberto = 0;
       db.Servicos_PMI.forEach(p => {
-        const liq = p.status_pagamento === 'Pago';
+        const liq = isReceivedOrPaidStatus(p.status_pagamento);
         if (statusFilter === 'ABERTOS' && liq) return;
         if (statusFilter === 'CONCLUIDOS' && !liq) return;
         if (!inDateRange(p.data, ini, fim)) return;
-        const val = parseFloat(p.valor) || 0;
+        const itemSec = String(p.secretaria || '').trim().toLowerCase();
+        if (secFilter && itemSec !== secFilter) return;
+        const val = parseMoneyValue(p.valor);
         total += val;
-        rows.push([formatDateBR(p.data), p.secretaria, p.servico, p.complemento || '-', formatBRL(val), p.status_pagamento]);
+        if (liq) totalPago += val;
+        else totalAberto += val;
+        rows.push([formatDateBR(p.data), p.secretaria, p.servico, p.complemento || '-', formatBRL(val), p.status_pagamento || 'Pendente']);
       });
-      summaryHtml = `<div class="bg-indigo-50 border border-indigo-200 p-3 rounded-lg text-xs"><strong>Total Serviços PMI (${rows.length} registros):</strong> <span class="text-base font-extrabold text-indigo-800 ml-2">${formatBRL(total)}</span></div>`;
+      summaryHtml = `
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="bg-indigo-50 border border-indigo-200 p-3 rounded-lg"><span class="text-indigo-700 font-semibold block">Total Serviços PMI (${rows.length} registros)</span><strong class="text-base text-indigo-900">${formatBRL(total)}</strong></div>
+          <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg"><span class="text-emerald-700 font-semibold block">Total Serviços Pagos</span><strong class="text-base text-emerald-800">${formatBRL(totalPago)}</strong></div>
+          <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg"><span class="text-amber-700 font-semibold block">Total Em Aberto / Pendente</span><strong class="text-base text-amber-800">${formatBRL(totalAberto)}</strong></div>
+        </div>`;
     } else if (tipo === 'ordens_servico') {
       title = 'Relatório de Ordens de Serviço (OS)';
       headers = ['Nº OS', 'Data', 'Cliente', 'Equipamento', 'Serviço', 'Valor (R$)', 'Status'];
@@ -3837,7 +3886,7 @@
         if (statusFilter === 'ABERTOS' && liq) return;
         if (statusFilter === 'CONCLUIDOS' && !liq) return;
         if (!inDateRange(o.data, ini, fim)) return;
-        const val = parseFloat(o.valor) || 0;
+        const val = parseMoneyValue(o.valor);
         total += val;
         rows.push([o.id, formatDateBR(o.data), o.cliente, o.equipamento || '-', o.servico, formatBRL(val), o.status]);
       });
@@ -3890,6 +3939,18 @@
               : `<tr><td colspan="${headers.length}" class="p-6 text-center text-slate-400">Nenhum registro encontrado para os filtros selecionados.</td></tr>`}
           </tbody>
         </table>
+      </div>
+      <div class="pt-10 pb-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-3xl mx-auto text-center text-xs">
+          <div class="pt-2 border-t border-slate-400">
+            <p class="font-bold text-contech-navy">CONTECH Contabilidade &amp; Informática</p>
+            <p class="text-slate-500 text-[11px]">Responsável / Emitente</p>
+          </div>
+          <div class="pt-2 border-t border-slate-400">
+            <p class="font-bold text-contech-navy">Assinatura / Recebedor</p>
+            <p class="text-slate-500 text-[11px]">Data: ____/____/________</p>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -3953,6 +4014,16 @@
             ${rows.length ? rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${headers.length}">Nenhum registro encontrado.</td></tr>`}
           </tbody>
         </table>
+        <div style="display:flex;justify-content:space-around;gap:40px;margin-top:64px;text-align:center;font-size:12px;">
+          <div style="border-top:1px solid #334155;width:260px;padding-top:6px;">
+            <strong>CONTECH Contabilidade &amp; Informática</strong><br/>
+            <span style="color:#64748b;font-size:11px;">Responsável / Emitente</span>
+          </div>
+          <div style="border-top:1px solid #334155;width:260px;padding-top:6px;">
+            <strong>Assinatura / Recebedor</strong><br/>
+            <span style="color:#64748b;font-size:11px;">Data: ____/____/________</span>
+          </div>
+        </div>
       </body>
       </html>
     `);
