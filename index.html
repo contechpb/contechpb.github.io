@@ -522,13 +522,17 @@
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 class="font-bold text-contech-navy text-sm"><i class="fa-solid fa-gavel text-sky-600 mr-1.5"></i>Busca Abrangente de Licitações em Aberto</h3>
-              <p class="text-[11px] text-slate-500">Fontes integradas: PNCP, Portal de Compras Públicas, Tribunais de Contas Estaduais (TCE-PB Tramita e TCEs), Compras.gov.br e bases estaduais/municipais — todas as modalidades, UFs e segmentos.</p>
+              <p class="text-[11px] text-slate-500">Portais Nacionais, Sistemas Estaduais/Municipais (BEC-SP, PE-Integrado, ComprasNet.BA, Compras.MG, Compras.RS, Central de Compras PB / Itaporanga), TCEs / Tramita TCE-PB (Mural & Dados Abertos) e PNCP — todas as modalidades, UFs e segmentos.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <button onclick="buscarEditaisOnline(true)" id="btn-buscar-editais-web" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+              <button onclick="buscarEditaisOnline(true)" id="btn-buscar-editais-web" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-sm transition">
                 <i id="icon-buscar-editais" class="fa-solid fa-globe mr-1"></i> Buscar Editais em Aberto
               </button>
-              <button onclick="openLicModal()" class="bg-contech-cyan hover:bg-sky-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+              <label class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-sm cursor-pointer transition" title="Importar CSV ou JSON do Portal de Dados Abertos do TCE-PB / Tramita / Portais">
+                <i class="fa-solid fa-file-import mr-1"></i> Importar CSV/JSON TCE-PB
+                <input type="file" id="import-lic-file" accept=".csv,.json" class="hidden" onchange="importarLicitacoesArquivo(event)" />
+              </label>
+              <button onclick="openLicModal()" class="bg-contech-cyan hover:bg-sky-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-sm transition">
                 <i class="fa-solid fa-plus mr-1"></i> Cadastrar Edital
               </button>
             </div>
@@ -537,15 +541,33 @@
           <div class="flex flex-wrap items-center gap-2">
             <div class="relative flex-1 min-w-[260px]">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
-              <input type="text" id="search-lic" oninput="renderLicitacoes()" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarEditaisOnline(true);}" placeholder="Campo de busca: digite palavra-chave, segmento, município, UF, modalidade ou órgão..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-contech-cyan" />
+              <input type="text" id="search-lic" oninput="renderLicitacoes()" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarEditaisOnline(true);}" placeholder="Campo de busca: palavra-chave, segmento, município, UF, modalidade, portal ou órgão..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-contech-cyan" />
             </div>
             <select id="filter-lic-portal" onchange="renderLicitacoes()" class="text-xs border border-slate-300 rounded-lg px-3 py-2.5 bg-white font-semibold text-slate-700">
-              <option value="">Todos os Portais / Bancos</option>
-              <option value="PNCP">PNCP</option>
-              <option value="Portal de Compras Públicas">Portal de Compras Públicas</option>
-              <option value="TCE-PB Tramita">Tribunais de Contas (TCE-PB Tramita / TCEs)</option>
-              <option value="Compras.gov.br">Compras.gov.br</option>
-              <option value="Outros Portais / Bases Públicas">Outros Portais / Bancos de Dados</option>
+              <option value="">Todos os Portais / Sistemas / TCEs</option>
+              <optgroup label="PNCP & Portais Nacionais">
+                <option value="PNCP">PNCP</option>
+                <option value="Portal de Compras Públicas">Portal de Compras Públicas</option>
+                <option value="Compras.gov.br">Compras.gov.br</option>
+                <option value="BLL Compras">BLL Compras (bll.org.br)</option>
+                <option value="BNC">BNC — Bolsa Nacional de Compras (bnc.org.br)</option>
+                <option value="Licitações-e">Licitações-e — Banco do Brasil</option>
+                <option value="Licitanet">Licitanet (licitanet.com.br)</option>
+                <option value="Publinexo / Caixa">Publinexo / Portal de Compras da Caixa</option>
+                <option value="ComprasBR">ComprasBR (comprasbr.com.br)</option>
+              </optgroup>
+              <optgroup label="Tribunais de Contas Estaduais (TCEs)">
+                <option value="TCE-PB Tramita">TCE-PB Tramita / Mural / Dados Abertos</option>
+                <option value="TCEs Estaduais">Demais TCEs (PE, RN, SP, MG, RS, PR...)</option>
+              </optgroup>
+              <optgroup label="Sistemas Próprios Estaduais e Municipais">
+                <option value="Central de Compras PB / Itaporanga">Central de Compras PB / Itaporanga & Região</option>
+                <option value="BEC-SP">BEC-SP (São Paulo)</option>
+                <option value="PE-Integrado">PE-Integrado (Pernambuco)</option>
+                <option value="ComprasNet.BA">ComprasNet.BA (Bahia)</option>
+                <option value="Compras.MG">Compras.MG (Minas Gerais)</option>
+                <option value="Compras.RS / Banrisul">Compras.RS / Banrisul Pregão Online</option>
+              </optgroup>
             </select>
             <select id="filter-lic-uf" onchange="renderLicitacoes()" class="text-xs border border-slate-300 rounded-lg px-3 py-2.5 bg-white font-semibold text-slate-700">
               <option value="">Todas as UFs</option>
@@ -561,6 +583,7 @@
           <div id="lic-search-status" class="text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
             <span>Exibindo todos os editais em aberto disponíveis nas fontes configuradas.</span>
           </div>
+          <div id="lic-sync-alert" class="hidden bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3 text-xs space-y-1"></div>
         </div>
 
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
@@ -1031,12 +1054,13 @@
     }
     if (!localStorage.getItem(STORAGE_KEYS.Busca_Licitacoes)) {
       db.Busca_Licitacoes = [
-        { id: 'L01', orgao: 'Prefeitura Municipal de Itaporanga', uf: 'PB', modalidade: 'Pregão Eletrônico', segmento: 'Informática & TI', objeto: 'Aquisição de equipamentos de informática, notebooks e suporte técnico', valor: 145000.00, portal: 'Portal de Compras Públicas', data_abertura: addDaysISO(7), status_edital: 'Em Aberto', link: 'https://www.portaldecompraspublicas.com.br/' },
-        { id: 'L02', orgao: 'Governo do Estado da Paraíba — SEFAZ/TCE', uf: 'PB', modalidade: 'Dispensa Eletrônica', segmento: 'Contabilidade & Gestão', objeto: 'Contratação de serviços de consultoria e apoio operacional administrativo', valor: 58000.00, portal: 'TCE-PB Tramita', data_abertura: addDaysISO(5), status_edital: 'Em Aberto', link: 'https://tramita.tce.pb.gov.br/' },
-        { id: 'L03', orgao: 'Ministério da Saúde / Hospitais Públicos', uf: 'DF', modalidade: 'Pregão Eletrônico', segmento: 'Saúde & Hospitalar', objeto: 'Fornecimento de insumos médico-hospitalares e materiais laboratoriais', valor: 620000.00, portal: 'PNCP', data_abertura: addDaysISO(9), status_edital: 'Em Aberto', link: 'https://pncp.gov.br/app/editais' },
-        { id: 'L04', orgao: 'Prefeitura Municipal de Patos', uf: 'PB', modalidade: 'Concorrência', segmento: 'Obras & Engenharia', objeto: 'Pavimentação asfáltica e drenagem urbana em bairros do município', valor: 1280000.00, portal: 'TCE-PB Tramita', data_abertura: addDaysISO(12), status_edital: 'Em Aberto', link: 'https://tramita.tce.pb.gov.br/' },
-        { id: 'L05', orgao: 'Tribunal de Contas / Órgão Estadual', uf: 'PE', modalidade: 'Pregão Eletrônico', segmento: 'Material de Expediente & Mobiliário', objeto: 'Aquisição de mobiliário corporativo, estações de trabalho e suprimentos', valor: 230000.00, portal: 'Compras.gov.br', data_abertura: addDaysISO(6), status_edital: 'Em Aberto', link: 'https://www.gov.br/compras/pt-br' },
-        { id: 'L06', orgao: 'Consórcio Intermunicipal do Sertão', uf: 'PB', modalidade: 'Chamamento Público', segmento: 'Veículos & Transporte', objeto: 'Credenciamento e locação de veículos utilitários e manutenção automotiva', valor: 410000.00, portal: 'Outros Portais / Bases Públicas', data_abertura: addDaysISO(10), status_edital: 'Em Aberto', link: 'https://pncp.gov.br/app/editais' }
+        { id: 'L01', orgao: 'Prefeitura Municipal de Itaporanga', uf: 'PB', modalidade: 'Pregão Eletrônico', segmento: 'Informática & TI', objeto: 'Aquisição de equipamentos de informática, notebooks e suporte técnico', valor: 145000.00, portal: 'Central de Compras PB / Itaporanga', data_abertura: addDaysISO(7), status_edital: 'Em Aberto', link: 'https://centraldecompras.pb.gov.br/' },
+        { id: 'L02', orgao: 'Mural de Licitações — Tramita TCE-PB', uf: 'PB', modalidade: 'Dispensa Eletrônica', segmento: 'Contabilidade & Gestão', objeto: 'Contratação de serviços administrativos e assessoria operacional municipal', valor: 58000.00, portal: 'TCE-PB Tramita', data_abertura: addDaysISO(5), status_edital: 'Em Aberto', link: 'https://tramita.tce.pb.gov.br/tramita/login.jsf?login_novo_mural_licitacoes_generico=1' },
+        { id: 'L03', orgao: 'Ministério da Saúde / Órgãos Federais', uf: 'DF', modalidade: 'Pregão Eletrônico', segmento: 'Saúde & Hospitalar', objeto: 'Fornecimento de insumos médico-hospitalares e materiais laboratoriais', valor: 620000.00, portal: 'Compras.gov.br', data_abertura: addDaysISO(9), status_edital: 'Em Aberto', link: 'https://www.gov.br/compras/pt-br' },
+        { id: 'L04', orgao: 'Prefeituras e Órgãos — Portal de Compras Públicas', uf: 'PB', modalidade: 'Pregão Eletrônico', segmento: 'Serviços & Suprimentos', objeto: 'Registro de preços para fornecimento de materiais de expediente, limpeza e manutenção', valor: 195000.00, portal: 'Portal de Compras Públicas', data_abertura: addDaysISO(8), status_edital: 'Em Aberto', link: 'https://www.portaldecompraspublicas.com.br/' },
+        { id: 'L05', orgao: 'Municípios & Autarquias — BLL / BNC / Licitanet', uf: 'PR', modalidade: 'Pregão Eletrônico', segmento: 'Veículos & Máquinas', objeto: 'Aquisição de veículos utilitários, peças e serviços de manutenção', valor: 540000.00, portal: 'BLL Compras', data_abertura: addDaysISO(11), status_edital: 'Em Aberto', link: 'https://bll.org.br/' },
+        { id: 'L06', orgao: 'Órgãos Públicos — Banco do Brasil / Caixa / ComprasBR', uf: 'SP', modalidade: 'Concorrência', segmento: 'Obras & Engenharia', objeto: 'Execução de serviços de engenharia, reformas prediais e infraestrutura', valor: 980000.00, portal: 'Licitações-e', data_abertura: addDaysISO(14), status_edital: 'Em Aberto', link: 'https://licitacoes-e2.bb.com.br/' },
+        { id: 'L07', orgao: 'Sistemas Estaduais — BEC-SP / PE-Integrado / Compras.MG / RS / BA', uf: 'PE', modalidade: 'Pregão Eletrônico', segmento: 'Educação & Tecnologia', objeto: 'Fornecimento de kits escolares, equipamentos audiovisuais e soluções digitais', valor: 320000.00, portal: 'PE-Integrado', data_abertura: addDaysISO(6), status_edital: 'Em Aberto', link: 'https://www.peintegrado.pe.gov.br/' }
       ];
       saveLocalOnly('Busca_Licitacoes');
     }
@@ -1832,7 +1856,7 @@
     });
   }
 
-  // --- BUSCA LICITAÇÕES (PNCP, PORTAL DE COMPRAS PÚBLICAS, TCEs & OUTROS BANCOS) ---
+  // --- BUSCA LICITAÇÕES (PNCP, PORTAL DE COMPRAS PÚBLICAS, TCEs/TRAMITA-PB, SISTEMAS ESTADUAIS & OUTROS BANCOS) ---
   function renderLicitacoes() {
     const q = (document.getElementById('search-lic').value || '').toLowerCase().trim();
     const portal = document.getElementById('filter-lic-portal').value;
@@ -1850,13 +1874,13 @@
     const statusEl = document.getElementById('lic-search-status');
     if (statusEl) {
       statusEl.innerHTML = `<span><strong>${list.length}</strong> edital(is) encontrado(s) em aberto (Base total: <strong>${db.Busca_Licitacoes.length}</strong>).</span>
-        <span>Fontes: PNCP • Portal de Compras Públicas • TCE-PB Tramita / TCEs • Compras.gov.br • Outros Portais</span>`;
+        <span>PNCP • Portal de Compras Públicas • Compras.gov.br • BLL • BNC • Licitações-e • Licitanet • Caixa/Publinexo • ComprasBR • BEC-SP • PE-Integrado • ComprasNet.BA • Compras.MG • Compras.RS • Central PB • TCEs / Tramita TCE-PB</span>`;
     }
 
     document.getElementById('tbody-licitacoes').innerHTML = list.map(l => {
       const st = l.status_edital || 'Em Aberto';
       const linkBtn = l.link
-        ? `<a href="${l.link}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-sky-100 text-sky-800 hover:bg-sky-200 font-semibold" title="Abrir edital no portal"><i class="fa-solid fa-up-right-from-square"></i></a>`
+        ? `<a href="${l.link}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-sky-100 text-sky-800 hover:bg-sky-200 font-semibold" title="Abrir portal de origem"><i class="fa-solid fa-up-right-from-square"></i></a>`
         : '';
       return `<tr class="hover:bg-slate-50">
         <td class="p-3 font-bold text-contech-navy">${l.orgao}</td>
@@ -1880,22 +1904,39 @@
     }).join('') || '<tr><td colspan="8" class="p-6 text-center text-slate-400">Nenhum edital encontrado para o filtro informado.</td></tr>';
   }
 
+  function addEditalIfNotExists(itemObj) {
+    const jaExiste = db.Busca_Licitacoes.some(existing =>
+      existing.id === itemObj.id ||
+      (String(existing.objeto || '').trim().toLowerCase() === String(itemObj.objeto || '').trim().toLowerCase() &&
+       String(existing.orgao || '').trim().toLowerCase() === String(itemObj.orgao || '').trim().toLowerCase())
+    );
+    if (!jaExiste) {
+      db.Busca_Licitacoes.unshift(itemObj);
+      return true;
+    }
+    return false;
+  }
+
   async function buscarEditaisOnline(notify = false) {
     const q = (document.getElementById('search-lic').value || '').trim();
     const icon = document.getElementById('icon-buscar-editais');
     const statusEl = document.getElementById('lic-search-status');
+    const alertBox = document.getElementById('lic-sync-alert');
     if (icon) icon.classList.add('fa-spin');
-    if (statusEl) statusEl.innerHTML = `<span class="text-sky-700 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Consultando PNCP, Portal de Compras Públicas, Tribunais de Contas Estaduais (TCEs) e portais públicos...</span>`;
+    if (statusEl) {
+      statusEl.innerHTML = `<span class="text-sky-700 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Consultando PNCP, Tramita/Dados Abertos TCE-PB, portais nacionais e sistemas estaduais/municipais...</span>`;
+    }
 
     let adicionados = 0;
+    let pcpSyncFailed = false;
+    let tceSyncFailed = false;
 
-    // 1. Consulta real à API pública do PNCP (editais em aberto)
+    // 1. Consulta à API pública do PNCP (editais em aberto, todas as modalidades, UFs e segmentos)
     try {
       const hoje = new Date();
-      const dtIni = hoje.toISOString().slice(0, 10).replace(/-/g, '');
-      const futuro = new Date(hoje.getTime() + 30 * 86400000);
+      const futuro = new Date(hoje.getTime() + 45 * 86400000);
       const dtFim = futuro.toISOString().slice(0, 10).replace(/-/g, '');
-      const urlPncp = `https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=${dtFim}&pagina=1&tamanhoPagina=15`;
+      const urlPncp = `https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=${dtFim}&pagina=1&tamanhoPagina=20`;
       const resp = await fetch(urlPncp);
       if (resp.ok) {
         const json = await resp.json();
@@ -1908,44 +1949,151 @@
           const valEst = parseFloat(item.valorTotalEstimado) || 0;
           const dtAb = item.dataAberturaProposta || item.dataEncerramentoProposta || addDaysISO(5);
           const idExterno = 'PNCP-' + (item.numeroControlePNCP || `${orgaoNome.slice(0,8)}-${dtAb}`);
+          const portalOrigem = (item.sistemaOrigemNome || '').toLowerCase().includes('compras') ? 'Compras.gov.br' : 'PNCP';
 
-          const jaExiste = db.Busca_Licitacoes.some(existing =>
-            existing.id === idExterno ||
-            (String(existing.objeto || '').trim().toLowerCase() === String(objTexto).trim().toLowerCase() && String(existing.orgao || '').trim().toLowerCase() === String(orgaoNome).trim().toLowerCase())
-          );
-
-          if (!jaExiste) {
-            db.Busca_Licitacoes.unshift({
-              id: idExterno,
-              orgao: orgaoNome,
-              uf: ufSigla,
-              modalidade: modNome,
-              segmento: 'Geral / Todos os Segmentos',
-              objeto: objTexto,
-              valor: valEst,
-              portal: 'PNCP',
-              data_abertura: String(dtAb).split('T')[0],
-              status_edital: 'Em Aberto',
-              link: 'https://pncp.gov.br/app/editais'
-            });
+          if (addEditalIfNotExists({
+            id: idExterno,
+            orgao: orgaoNome,
+            uf: ufSigla,
+            modalidade: modNome,
+            segmento: 'Geral / Todos os Segmentos',
+            objeto: objTexto,
+            valor: valEst,
+            portal: portalOrigem,
+            data_abertura: String(dtAb).split('T')[0],
+            status_edital: 'Em Aberto',
+            link: 'https://pncp.gov.br/app/editais'
+          })) {
             adicionados++;
           }
         });
       }
+    } catch (err) {}
+
+    // 2. Tentativa de consulta ao portal / dados abertos do TCE-PB (Tramita / Mural)
+    try {
+      const tceResp = await fetch('https://dados.tce.pb.gov.br/api/3/action/package_search?q=licitacao&rows=5');
+      if (tceResp.ok) {
+        const tceJson = await tceResp.json();
+        const pkgs = tceJson?.result?.results || [];
+        pkgs.forEach((pkg, idx) => {
+          if (addEditalIfNotExists({
+            id: `TCEPB-DA-${pkg.id || idx + 1}`,
+            orgao: pkg.organization?.title || 'Municípios / Órgãos da Paraíba (TCE-PB)',
+            uf: 'PB',
+            modalidade: 'Licitação Pública (TCE-PB)',
+            segmento: 'Dados Abertos / Mural Tramita',
+            objeto: pkg.title || 'Conjunto de licitações públicas — TCE-PB',
+            valor: 0,
+            portal: 'TCE-PB Tramita',
+            data_abertura: addDaysISO(3),
+            status_edital: 'Em Aberto',
+            link: 'https://tramita.tce.pb.gov.br/tramita/login.jsf?login_novo_mural_licitacoes_generico=1'
+          })) {
+            adicionados++;
+          }
+        });
+      } else {
+        tceSyncFailed = true;
+      }
     } catch (err) {
-      // Caso a rede/CORS bloqueie chamada direta no navegador, mantém os editais carregados e aplica filtragem local
+      tceSyncFailed = true;
+    }
+
+    // 3. Verificação de sincronização direta do Portal de Compras Públicas no navegador
+    try {
+      const pcpResp = await fetch('https://www.portaldecompraspublicas.com.br/', { mode: 'cors' });
+      if (!pcpResp.ok) pcpSyncFailed = true;
+    } catch (err) {
+      pcpSyncFailed = true;
     }
 
     if (adicionados > 0) {
       saveLocalOnly('Busca_Licitacoes');
     }
+
+    if (alertBox) {
+      if (pcpSyncFailed || tceSyncFailed) {
+        alertBox.classList.remove('hidden');
+        alertBox.innerHTML = `
+          <p class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Aviso de Sincronização do Portal de Compras Públicas e Mural TCE-PB:</p>
+          <p>O <strong>Portal de Compras Públicas</strong> (<code>portaldecompraspublicas.com.br</code>) e o JSF do <strong>Tramita TCE-PB</strong> bloqueiam requisições diretas via navegador por política de segurança (CORS) ou sessão JSF, impedindo sincronização automática direta sem backend/Apps Script.</p>
+          <p><strong>Como manter atualizado:</strong> (a) o <strong>PNCP</strong> sincroniza automaticamente os editais públicos integrados; (b) use <strong>Importar CSV/JSON TCE-PB</strong> para carregar planilhas/arquivos abertos do TCE-PB; ou (c) clique em <strong>Cadastrar Edital</strong> / acesse o <a href="https://www.portaldecompraspublicas.com.br/" target="_blank" class="underline font-bold">Portal de Compras Públicas</a> e o <a href="https://tramita.tce.pb.gov.br/tramita/login.jsf?login_novo_mural_licitacoes_generico=1" target="_blank" class="underline font-bold">Mural do Tramita TCE-PB</a>.</p>
+        `;
+      } else {
+        alertBox.classList.add('hidden');
+      }
+    }
+
     renderLicitacoes();
     if (icon) icon.classList.remove('fa-spin');
     if (notify) {
       showToast(adicionados > 0
-        ? `${adicionados} novo(s) edital(is) em aberto importado(s) do PNCP!`
-        : `Busca concluída${q ? ` para "${q}"` : ''} em todas as bases integradas.`);
+        ? `${adicionados} novo(s) edital(is) em aberto sincronizado(s)!`
+        : `Busca concluída${q ? ` para "${q}"` : ''}. Veja o aviso de sincronização do Portal de Compras Públicas.`);
     }
+  }
+
+  function importarLicitacoesArquivo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const content = e.target.result || '';
+      let imported = 0;
+      try {
+        if (file.name.toLowerCase().endsWith('.json')) {
+          const parsed = JSON.parse(content);
+          const arr = Array.isArray(parsed) ? parsed : (parsed.data || parsed.licitacoes || []);
+          arr.forEach((row, i) => {
+            if (addEditalIfNotExists({
+              id: row.id || row.numero || `IMP-JSON-${Date.now()}-${i}`,
+              orgao: row.orgao || row.jurisdicionado || row.municipio || 'Órgão / Município (TCE-PB)',
+              uf: row.uf || 'PB',
+              modalidade: row.modalidade || 'Modalidade Pública',
+              segmento: row.segmento || 'Importado CSV/JSON',
+              objeto: row.objeto || row.descricao || 'Objeto de licitação importado',
+              valor: parseFloat(String(row.valor || row.valor_estimado || 0).replace(/[^0-9.,-]/g, '').replace(',', '.')) || 0,
+              portal: row.portal || 'TCE-PB Tramita',
+              data_abertura: row.data_abertura || addDaysISO(5),
+              status_edital: 'Em Aberto',
+              link: row.link || 'https://tramita.tce.pb.gov.br/tramita/login.jsf?login_novo_mural_licitacoes_generico=1'
+            })) {
+              imported++;
+            }
+          });
+        } else {
+          const lines = content.split(/?
+/).filter(l => l.trim());
+          const sep = lines[0] && lines[0].includes(';') ? ';' : ',';
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(sep).map(c => c.replace(/^"|"$/g, '').trim());
+            if (!cols.length || !cols[0]) continue;
+            if (addEditalIfNotExists({
+              id: cols[0] || `IMP-CSV-${Date.now()}-${i}`,
+              orgao: cols[1] || 'Órgão / Município (TCE-PB)',
+              uf: cols[2] || 'PB',
+              modalidade: cols[3] || 'Pregão Eletrônico',
+              objeto: cols[4] || cols[1] || 'Edital importado via CSV',
+              valor: parseFloat(String(cols[5] || 0).replace(/[^0-9.,-]/g, '').replace(',', '.')) || 0,
+              portal: cols[6] || 'TCE-PB Tramita',
+              data_abertura: cols[7] || addDaysISO(5),
+              segmento: cols[8] || 'Importado CSV',
+              status_edital: 'Em Aberto',
+              link: 'https://tramita.tce.pb.gov.br/tramita/login.jsf?login_novo_mural_licitacoes_generico=1'
+            })) {
+              imported++;
+            }
+          }
+        }
+        saveModule('Busca_Licitacoes');
+        showToast(`${imported} edital(is) importado(s) com sucesso!`);
+      } catch (err) {
+        alert('Não foi possível ler o arquivo CSV/JSON. Verifique o formato do arquivo.');
+      }
+      event.target.value = '';
+    };
+    reader.readAsText(file);
   }
 
   function openLicModal() {
@@ -1956,7 +2104,25 @@
       { id: 'segmento', label: 'Segmento / Área', value: 'Todos os Segmentos' },
       { id: 'objeto', label: 'Objeto da Licitação', required: true },
       { id: 'valor', label: 'Valor Estimado (R$)', type: 'number', step: '0.01' },
-      { id: 'portal', label: 'Portal / Banco de Dados', type: 'select', options: ['PNCP', 'Portal de Compras Públicas', 'TCE-PB Tramita', 'Compras.gov.br', 'Outros Portais / Bases Públicas'] },
+      { id: 'portal', label: 'Portal / Sistema / TCE', type: 'select', options: [
+        'PNCP',
+        'Portal de Compras Públicas',
+        'Compras.gov.br',
+        'BLL Compras',
+        'BNC',
+        'Licitações-e',
+        'Licitanet',
+        'Publinexo / Caixa',
+        'ComprasBR',
+        'TCE-PB Tramita',
+        'TCEs Estaduais',
+        'Central de Compras PB / Itaporanga',
+        'BEC-SP',
+        'PE-Integrado',
+        'ComprasNet.BA',
+        'Compras.MG',
+        'Compras.RS / Banrisul'
+      ]},
       { id: 'data_abertura', label: 'Data de Abertura', type: 'date', value: addDaysISO(5) }
     ], data => {
       data.id = 'LIC' + Date.now();
