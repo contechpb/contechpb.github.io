@@ -53,6 +53,21 @@
     .compact-density table td {
       padding: 0.45rem 0.6rem !important;
     }
+    .clientes-table-scroll {
+      overflow-x: scroll !important;
+      scrollbar-gutter: stable;
+      padding-bottom: 4px;
+    }
+    .clientes-table-scroll::-webkit-scrollbar {
+      height: 11px;
+    }
+    .clientes-table-scroll::-webkit-scrollbar-thumb {
+      background: #64748b;
+      border-radius: 9999px;
+    }
+    .clientes-table-scroll::-webkit-scrollbar-thumb:hover {
+      background: #000E4E;
+    }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased">
@@ -357,19 +372,36 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm clientes-table-scroll">
+          <table class="min-w-[2350px] w-full text-left border-collapse text-xs">
             <thead>
               <tr class="bg-contech-navy text-white uppercase tracking-wider">
-                <th class="p-3">ID</th>
-                <th class="p-3">Nome / Razão Social</th>
-                <th class="p-3">CNPJ / CPF</th>
-                <th class="p-3">Regime / Prod.</th>
-                <th class="p-3">Venc. Cert.</th>
-                <th class="p-3">Parcelamentos</th>
-                <th class="p-3">Obrigações (EFD/MIT/DEFIS/DASN)</th>
-                <th class="p-3">Celular</th>
-                <th class="p-3 text-right">Ações</th>
+                <th class="p-3 whitespace-nowrap">ID</th>
+                <th class="p-3 whitespace-nowrap">Nome / Razão Social</th>
+                <th class="p-3 whitespace-nowrap">CPF</th>
+                <th class="p-3 whitespace-nowrap">Senha GOV</th>
+                <th class="p-3 whitespace-nowrap">CNPJ</th>
+                <th class="p-3 whitespace-nowrap">Insc. Estadual</th>
+                <th class="p-3 whitespace-nowrap">Insc. Municipal</th>
+                <th class="p-3 whitespace-nowrap">Data Abertura</th>
+                <th class="p-3 whitespace-nowrap">Data Nascimento</th>
+                <th class="p-3 whitespace-nowrap">Venc. Certificado</th>
+                <th class="p-3 whitespace-nowrap">Regime</th>
+                <th class="p-3 whitespace-nowrap">Capital Social</th>
+                <th class="p-3 whitespace-nowrap">Produções</th>
+                <th class="p-3 whitespace-nowrap">Parcelamento</th>
+                <th class="p-3 whitespace-nowrap">EFD</th>
+                <th class="p-3 whitespace-nowrap">MIT</th>
+                <th class="p-3 whitespace-nowrap">DEFIS</th>
+                <th class="p-3 whitespace-nowrap">DASN</th>
+                <th class="p-3 whitespace-nowrap">Celular</th>
+                <th class="p-3 whitespace-nowrap">RG</th>
+                <th class="p-3 whitespace-nowrap">CNH</th>
+                <th class="p-3 whitespace-nowrap">Título</th>
+                <th class="p-3 whitespace-nowrap">E-mail</th>
+                <th class="p-3 whitespace-nowrap">Senha NFSe</th>
+                <th class="p-3 whitespace-nowrap">Senha E-mail</th>
+                <th class="p-3 whitespace-nowrap text-right">Ações</th>
               </tr>
             </thead>
             <tbody id="tbody-contabeis" class="divide-y divide-slate-200"></tbody>
@@ -405,19 +437,36 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm clientes-table-scroll">
+          <table class="min-w-[2350px] w-full text-left border-collapse text-xs">
             <thead>
               <tr class="bg-contech-navy text-white uppercase tracking-wider">
-                <th class="p-3">ID</th>
-                <th class="p-3">Nome / Razão Social</th>
-                <th class="p-3">CNPJ / CPF</th>
-                <th class="p-3">Regime / Prod.</th>
-                <th class="p-3">Venc. Cert.</th>
-                <th class="p-3">Parcelamentos</th>
-                <th class="p-3">Obrigações (EFD/MIT/DEFIS/DASN)</th>
-                <th class="p-3">Celular</th>
-                <th class="p-3 text-right">Ações</th>
+                <th class="p-3 whitespace-nowrap">ID</th>
+                <th class="p-3 whitespace-nowrap">Nome / Razão Social</th>
+                <th class="p-3 whitespace-nowrap">CPF</th>
+                <th class="p-3 whitespace-nowrap">Senha GOV</th>
+                <th class="p-3 whitespace-nowrap">CNPJ</th>
+                <th class="p-3 whitespace-nowrap">Insc. Estadual</th>
+                <th class="p-3 whitespace-nowrap">Insc. Municipal</th>
+                <th class="p-3 whitespace-nowrap">Data Abertura</th>
+                <th class="p-3 whitespace-nowrap">Data Nascimento</th>
+                <th class="p-3 whitespace-nowrap">Venc. Certificado</th>
+                <th class="p-3 whitespace-nowrap">Regime</th>
+                <th class="p-3 whitespace-nowrap">Capital Social</th>
+                <th class="p-3 whitespace-nowrap">Produções</th>
+                <th class="p-3 whitespace-nowrap">Parcelamento</th>
+                <th class="p-3 whitespace-nowrap">EFD</th>
+                <th class="p-3 whitespace-nowrap">MIT</th>
+                <th class="p-3 whitespace-nowrap">DEFIS</th>
+                <th class="p-3 whitespace-nowrap">DASN</th>
+                <th class="p-3 whitespace-nowrap">Celular</th>
+                <th class="p-3 whitespace-nowrap">RG</th>
+                <th class="p-3 whitespace-nowrap">CNH</th>
+                <th class="p-3 whitespace-nowrap">Título</th>
+                <th class="p-3 whitespace-nowrap">E-mail</th>
+                <th class="p-3 whitespace-nowrap">Senha NFSe</th>
+                <th class="p-3 whitespace-nowrap">Senha E-mail</th>
+                <th class="p-3 whitespace-nowrap text-right">Ações</th>
               </tr>
             </thead>
             <tbody id="tbody-gerais" class="divide-y divide-slate-200"></tbody>
@@ -1745,37 +1794,95 @@
     showToast(`Cliente transferido para ${rotuloDestino}!`);
   }
 
+  function normalizeCliente25Campos(c, fallbackId = '') {
+    const raw = c && typeof c === 'object' ? c : {};
+    const docRaw = raw.cpf_cnpj || '';
+    const isCnpj = docRaw.replace(/\D/g, '').length > 11;
+    const parcs = Array.isArray(raw.parcelamento)
+      ? raw.parcelamento
+      : (raw.parcelamento ? String(raw.parcelamento).split(/[|,;]+/).map(s => s.trim()).filter(Boolean) : []);
+
+    return {
+      id: raw.id || fallbackId,
+      id_alterdata: raw.id_alterdata || '',
+      nome: raw.nome || '',
+      cpf: raw.cpf || (!isCnpj ? docRaw : ''),
+      senha_gov: raw.senha_gov || '',
+      cnpj: raw.cnpj || (isCnpj ? docRaw : ''),
+      inscricao_estadual: raw.inscricao_estadual || '',
+      inscricao_municipal: raw.inscricao_municipal || '',
+      data_abertura: raw.data_abertura || '',
+      data_nascimento: raw.data_nascimento || '',
+      vencimento_certificado: raw.vencimento_certificado || '',
+      regime: raw.regime || 'Simples Nacional',
+      capital_social: raw.capital_social || '',
+      producoes: raw.producoes || '',
+      parcelamento: parcs,
+      efd: raw.efd || 'Não se aplica',
+      mit: raw.mit || 'Não se aplica',
+      defis: raw.defis || 'Não se aplica',
+      dasn: raw.dasn || 'Não se aplica',
+      celular: raw.celular || raw.telefone || '',
+      rg: raw.rg || '',
+      cnh: raw.cnh || '',
+      titulo: raw.titulo || '',
+      email: raw.email || '',
+      senha_nfse: raw.senha_nfse || '',
+      senha_email: raw.senha_email || ''
+    };
+  }
+
   function renderClientesTable(aba, tbodyId, searchId, filterId) {
     const q = (document.getElementById(searchId).value || '').toLowerCase();
     const reg = document.getElementById(filterId).value;
     const destinoLabel = aba === 'Clientes_Contabeis' ? 'Gerais' : 'Contábeis';
+    const isGerais = aba === 'Clientes_Gerais';
 
-    const list = db[aba].map((c, idx) => ({ ...c, _idx: idx })).filter(c => {
-      const matchQ = !q || [c.nome, c.cnpj, c.cpf, c.regime, c.id, c.id_alterdata].some(f => String(f || '').toLowerCase().includes(q));
-      const matchR = !reg || c.regime === reg;
+    const list = db[aba].map((rawItem, idx) => {
+      const c = normalizeCliente25Campos(rawItem, (isGerais ? 'G' : '') + String(idx + 1).padStart(3, '0'));
+      return { ...c, _idx: idx };
+    }).filter(c => {
+      const matchQ = !q || [
+        c.id, c.id_alterdata, c.nome, c.cpf, c.senha_gov, c.cnpj,
+        c.inscricao_estadual, c.inscricao_municipal, c.regime, c.capital_social,
+        c.producoes, c.celular, c.rg, c.cnh, c.titulo, c.email
+      ].some(f => String(f || '').toLowerCase().includes(q));
+      const matchR = !reg || String(c.regime || '').toLowerCase().includes(reg.toLowerCase());
       return matchQ && matchR;
     });
 
     const tbody = document.getElementById(tbodyId);
     tbody.innerHTML = list.map(c => {
-      const parcs = Array.isArray(c.parcelamento) ? c.parcelamento : (c.parcelamento ? String(c.parcelamento).split(',') : []);
+      const parcs = Array.isArray(c.parcelamento) ? c.parcelamento.join(', ') : (c.parcelamento || '-');
       const dCert = daysUntil(c.vencimento_certificado);
       const certClass = dCert < 0 ? 'text-rose-600 font-bold' : dCert <= 30 ? 'text-amber-600 font-bold' : 'text-slate-700';
 
       return `<tr class="hover:bg-slate-50">
-        <td class="p-3 font-mono font-bold text-slate-600">${c.id || '-'}${c.id_alterdata ? `<span class="block text-[10px] text-indigo-700 font-semibold">Alt: ${c.id_alterdata}</span>` : ''}</td>
-        <td class="p-3 font-bold text-contech-navy">${c.nome}</td>
-        <td class="p-3 font-mono text-slate-600">${c.cnpj || c.cpf || '-'}</td>
-        <td class="p-3"><span class="px-2 py-0.5 rounded bg-sky-50 text-sky-800 font-semibold">${c.regime || '-'}</span> ${c.producoes ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-slate-200 font-bold">${c.producoes}</span>` : ''}</td>
-        <td class="p-3 ${certClass}">${formatDateBR(c.vencimento_certificado)}</td>
-        <td class="p-3">${parcs.length ? parcs.map(p => `<span class="inline-block bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded mr-1 mb-0.5 font-semibold">${p.trim()}</span>`).join('') : '<span class="text-slate-400">Nenhum</span>'}</td>
-        <td class="p-3 space-x-1">
-          <span class="px-1.5 py-0.5 rounded ${c.efd === 'Entregue' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">EFD</span>
-          <span class="px-1.5 py-0.5 rounded ${c.mit === 'Entregue' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">MIT</span>
-          <span class="px-1.5 py-0.5 rounded ${c.defis === 'Entregue' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">DEFIS</span>
-          <span class="px-1.5 py-0.5 rounded ${c.dasn === 'Entregue' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">DASN</span>
-        </td>
-        <td class="p-3">${c.celular || '-'}</td>
+        <td class="p-3 whitespace-nowrap font-mono font-bold text-slate-600">${c.id || '-'}${c.id_alterdata ? ` <span class="text-[10px] text-indigo-700">(Alt: ${c.id_alterdata})</span>` : ''}</td>
+        <td class="p-3 whitespace-nowrap font-bold text-contech-navy">${c.nome || '-'}</td>
+        <td class="p-3 whitespace-nowrap font-mono text-slate-600">${c.cpf || '-'}</td>
+        <td class="p-3 whitespace-nowrap font-mono text-slate-700">${c.senha_gov || '-'}</td>
+        <td class="p-3 whitespace-nowrap font-mono text-slate-600">${c.cnpj || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.inscricao_estadual || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.inscricao_municipal || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${formatDateBR(c.data_abertura)}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${formatDateBR(c.data_nascimento)}</td>
+        <td class="p-3 whitespace-nowrap ${certClass}">${formatDateBR(c.vencimento_certificado)}</td>
+        <td class="p-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-sky-50 text-sky-800 font-semibold">${c.regime || '-'}</span></td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.capital_social || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.producoes || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-amber-900">${parcs || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.efd || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.mit || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.defis || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.dasn || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.celular || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.rg || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.cnh || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.titulo || '-'}</td>
+        <td class="p-3 whitespace-nowrap text-slate-700">${c.email || '-'}</td>
+        <td class="p-3 whitespace-nowrap font-mono text-slate-700">${c.senha_nfse || '-'}</td>
+        <td class="p-3 whitespace-nowrap font-mono text-slate-700">${c.senha_email || '-'}</td>
         <td class="p-3 text-right space-x-1 whitespace-nowrap">
           <button onclick="transferirClienteAba('${aba}', ${c._idx})" class="px-2 py-1 rounded bg-indigo-100 text-indigo-800 hover:bg-indigo-200 font-semibold" title="Transferir para ${destinoLabel}"><i class="fa-solid fa-right-left mr-1"></i>${destinoLabel}</button>
           <button onclick="viewFichaCliente('${aba}', ${c._idx})" class="px-2 py-1 rounded bg-contech-navy text-white hover:bg-slate-700" title="Ver ficha completa e senhas">Ficha</button>
@@ -1783,7 +1890,7 @@
           <button onclick="deleteRecord('${aba}', ${c._idx})" class="px-2 py-1 rounded bg-rose-100 text-rose-700 hover:bg-rose-200"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>`;
-    }).join('') || '<tr><td colspan="9" class="p-6 text-center text-slate-400">Nenhum cliente encontrado.</td></tr>';
+    }).join('') || '<tr><td colspan="26" class="p-6 text-center text-slate-400">Nenhum cliente encontrado.</td></tr>';
   }
 
   function renderContabeis() {
@@ -1803,7 +1910,7 @@
     const rotuloAba = aba === 'Clientes_Gerais' ? 'Cliente Geral' : 'Cliente Contábil';
 
     if (idx >= 0) {
-      const c = db[aba][idx];
+      const c = normalizeCliente25Campos(db[aba][idx], (aba === 'Clientes_Gerais' ? 'G' : '') + String(idx + 1).padStart(3, '0'));
       document.getElementById('modal-contabil-title').textContent = `Editar ${rotuloAba} — ${c.nome}`;
       document.getElementById('c-id').value = c.id || '';
       document.getElementById('c-id-alterdata').value = c.id_alterdata || '';
@@ -1885,7 +1992,7 @@
   }
 
   function viewFichaCliente(aba, idx) {
-    const c = db[aba][idx];
+    const c = normalizeCliente25Campos(db[aba][idx], (aba === 'Clientes_Gerais' ? 'G' : '') + String(idx + 1).padStart(3, '0'));
     const parcs = Array.isArray(c.parcelamento) ? c.parcelamento.join(', ') : (c.parcelamento || 'Nenhum');
     const fields = [
       ['ID', c.id], ['ID ALTERDATA', c.id_alterdata], ['NOME', c.nome], ['CPF', c.cpf], ['CNPJ', c.cnpj],
