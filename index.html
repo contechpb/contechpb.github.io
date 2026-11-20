@@ -3269,11 +3269,9 @@
     const passHash = hashPassword(passInp);
     let found = users.find(u => String(u.login || '').toLowerCase() === userInp && String(u.hash || '') === passHash);
 
-    // Liberação garantida para credencial padrão admin / contech2026
+    // Liberação direta para credencial padrão admin / contech2026
     if (!found && userInp === 'admin' && passInp === 'contech2026') {
-      try { localStorage.removeItem(USERS_KEY); } catch (err) {}
-      const freshUsers = ensureDefaultUser();
-      found = freshUsers[0] || { nome: 'Administrador CONTECH', login: 'admin' };
+      found = { nome: 'Administrador CONTECH', login: 'admin' };
     }
 
     if (!found) {
@@ -3307,14 +3305,6 @@
     if (userLabel && user && user.login) {
       userLabel.textContent = user.login;
     }
-  }
-
-  function unlockApp(user) {
-    document.getElementById('login-screen').classList.add('hidden');
-    const shell = document.getElementById('app-shell');
-    shell.classList.remove('hidden');
-    shell.classList.add('flex');
-    document.getElementById('current-user-label').textContent = user.login;
   }
 
   function logoutSystem() {
