@@ -76,13 +76,13 @@
 <!-- TELA DE LOGIN / AUTENTICAÇÃO -->
 <div id="login-screen" class="fixed inset-0 bg-gradient-to-br from-contech-dark via-contech-navy to-blue-950 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
-    <div class="p-7 pb-5 flex flex-col items-center text-center border-b border-slate-100">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 76" class="max-h-14 w-auto" role="img" aria-label="CONTECH Contabilidade e Informatica">
-  <rect x="0" y="4" width="320" height="68" rx="12" fill="#FFFFFF"/>
-  <rect x="12" y="14" width="48" height="48" rx="10" fill="#000E4E"/>
-  <text x="36" y="45" text-anchor="middle" fill="#FF8A00" font-family="Arial, sans-serif" font-weight="900" font-size="24">CT</text>
-  <text x="72" y="38" fill="#000E4E" font-family="Arial, sans-serif" font-weight="900" font-size="24" letter-spacing="0.5">CONTECH</text>
-  <text x="72" y="56" fill="#0044E3" font-family="Arial, sans-serif" font-weight="700" font-size="10.5" letter-spacing="0.6">CONTABILIDADE &amp; INFORMÁTICA</text>
+    <div class="p-7 pb-6 flex flex-col items-center text-center border-b border-slate-100 space-y-2">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" class="h-8 sm:h-9 w-auto max-w-full" role="img" aria-label="CONTECH Contabilidade e Informatica">
+  <rect x="1" y="2" width="238" height="44" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+  <rect x="7" y="7" width="34" height="34" rx="7" fill="#000E4E"/>
+  <text x="24" y="30" text-anchor="middle" fill="#FF8A00" font-family="Arial, sans-serif" font-weight="900" font-size="16">CT</text>
+  <text x="48" y="23" fill="#000E4E" font-family="Arial, sans-serif" font-weight="900" font-size="16" letter-spacing="0.4">CONTECH</text>
+  <text x="48" y="36" fill="#0044E3" font-family="Arial, sans-serif" font-weight="700" font-size="7.5" letter-spacing="0.4">CONTABILIDADE &amp; INFORMÁTICA</text>
 </svg>
       <span class="text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full bg-blue-950 text-[#FF8A00]">Acesso Restrito • CONTECH ERP</span>
       <p class="text-xs text-slate-500 mt-2">Informe suas credenciais para acessar o painel de gestão.</p>
@@ -176,13 +176,13 @@
   <aside id="sidebar" class="w-72 max-w-[85vw] bg-contech-navy text-slate-200 flex flex-col shrink-0 shadow-xl z-30 transition-all duration-300">
     <!-- Brand -->
     <div class="p-5 border-b border-white/15 bg-contech-dark">
-      <div class="bg-white rounded-xl p-2 shadow-md flex flex-col items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 76" class="max-h-14 w-auto" role="img" aria-label="CONTECH Contabilidade e Informatica">
-  <rect x="0" y="4" width="320" height="68" rx="12" fill="#FFFFFF"/>
-  <rect x="12" y="14" width="48" height="48" rx="10" fill="#000E4E"/>
-  <text x="36" y="45" text-anchor="middle" fill="#FF8A00" font-family="Arial, sans-serif" font-weight="900" font-size="24">CT</text>
-  <text x="72" y="38" fill="#000E4E" font-family="Arial, sans-serif" font-weight="900" font-size="24" letter-spacing="0.5">CONTECH</text>
-  <text x="72" y="56" fill="#0044E3" font-family="Arial, sans-serif" font-weight="700" font-size="10.5" letter-spacing="0.6">CONTABILIDADE &amp; INFORMÁTICA</text>
+      <div class="bg-white rounded-xl px-2.5 py-1.5 shadow-sm flex flex-col items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" class="h-8 sm:h-9 w-auto max-w-full" role="img" aria-label="CONTECH Contabilidade e Informatica">
+  <rect x="1" y="2" width="238" height="44" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+  <rect x="7" y="7" width="34" height="34" rx="7" fill="#000E4E"/>
+  <text x="24" y="30" text-anchor="middle" fill="#FF8A00" font-family="Arial, sans-serif" font-weight="900" font-size="16">CT</text>
+  <text x="48" y="23" fill="#000E4E" font-family="Arial, sans-serif" font-weight="900" font-size="16" letter-spacing="0.4">CONTECH</text>
+  <text x="48" y="36" fill="#0044E3" font-family="Arial, sans-serif" font-weight="700" font-size="7.5" letter-spacing="0.4">CONTABILIDADE &amp; INFORMÁTICA</text>
 </svg>
         <span class="mt-1.5 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-blue-950 text-[#FF8A00]">Sistema ERP Integrado</span>
       </div>
@@ -3254,11 +3254,12 @@
     }
   }
 
-  async function handleLogin(e) {
+  function handleLogin(e) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     const userEl = document.getElementById('login-user');
     const passEl = document.getElementById('login-pass');
     const remEl = document.getElementById('login-remember');
+    const errEl = document.getElementById('login-error');
 
     const userInp = (userEl ? userEl.value : '').trim().toLowerCase();
     const passInp = passEl ? passEl.value : '';
@@ -3268,26 +3269,44 @@
     const passHash = hashPassword(passInp);
     let found = users.find(u => String(u.login || '').toLowerCase() === userInp && String(u.hash || '') === passHash);
 
-    // Se o usuário digitou exatamente admin / contech2026 mas o hash salvo estava diferente, restaura e libera
+    // Liberação garantida para credencial padrão admin / contech2026
     if (!found && userInp === 'admin' && passInp === 'contech2026') {
-      localStorage.removeItem(USERS_KEY);
+      try { localStorage.removeItem(USERS_KEY); } catch (err) {}
       const freshUsers = ensureDefaultUser();
-      found = freshUsers[0];
+      found = freshUsers[0] || { nome: 'Administrador CONTECH', login: 'admin' };
     }
 
     if (!found) {
-      document.getElementById('login-error').classList.remove('hidden');
+      if (errEl) errEl.classList.remove('hidden');
       return;
     }
 
-    document.getElementById('login-error').classList.add('hidden');
-    const sessionData = JSON.stringify({ login: found.login, nome: found.nome, at: Date.now() });
+    if (errEl) errEl.classList.add('hidden');
+    const sessionData = JSON.stringify({ login: found.login, nome: found.nome || 'Administrador CONTECH', at: Date.now() });
     try {
       if (remember) localStorage.setItem(SESSION_KEY, sessionData);
       else sessionStorage.setItem(SESSION_KEY, sessionData);
     } catch (err) {}
 
     unlockApp(found);
+  }
+
+  function unlockApp(user) {
+    const loginScreen = document.getElementById('login-screen');
+    const shell = document.getElementById('app-shell');
+    const userLabel = document.getElementById('current-user-label');
+    if (loginScreen) {
+      loginScreen.classList.add('hidden');
+      loginScreen.style.display = 'none';
+    }
+    if (shell) {
+      shell.classList.remove('hidden');
+      shell.classList.add('flex');
+      shell.style.display = 'flex';
+    }
+    if (userLabel && user && user.login) {
+      userLabel.textContent = user.login;
+    }
   }
 
   function unlockApp(user) {
@@ -3299,13 +3318,23 @@
   }
 
   function logoutSystem() {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
-    document.getElementById('login-pass').value = '';
+    try {
+      localStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch (e) {}
+    const passEl = document.getElementById('login-pass');
+    if (passEl) passEl.value = '';
     const shell = document.getElementById('app-shell');
-    shell.classList.add('hidden');
-    shell.classList.remove('flex');
-    document.getElementById('login-screen').classList.remove('hidden');
+    const loginScreen = document.getElementById('login-screen');
+    if (shell) {
+      shell.classList.add('hidden');
+      shell.classList.remove('flex');
+      shell.style.display = 'none';
+    }
+    if (loginScreen) {
+      loginScreen.classList.remove('hidden');
+      loginScreen.style.display = 'flex';
+    }
   }
 
   async function openUsersModal() {
@@ -3586,7 +3615,7 @@
         <style>
           body { font-family: Arial, sans-serif; color: #1e293b; padding: 30px; }
           .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0A2463; padding-bottom: 14px; margin-bottom: 20px; }
-          .header img { max-height: 70px; }
+          .header svg { height: 38px; width: auto; max-width: 220px; }
           .company { font-size: 12px; color: #475569; text-align: right; }
           .os-box { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px 16px; border-radius: 8px; display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 18px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 13px; }
@@ -3602,12 +3631,12 @@
           <button onclick="window.print()" style="background:#0044E3;color:#fff;border:none;padding:10px 18px;border-radius:6px;font-weight:bold;cursor:pointer;">Imprimir / Salvar PDF</button>
         </div>
         <div class="header">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 76" class="max-h-14 w-auto" role="img" aria-label="CONTECH Contabilidade e Informatica">
-  <rect x="0" y="4" width="320" height="68" rx="12" fill="#FFFFFF"/>
-  <rect x="12" y="14" width="48" height="48" rx="10" fill="#000E4E"/>
-  <text x="36" y="45" text-anchor="middle" fill="#FF8A00" font-family="Arial, sans-serif" font-weight="900" font-size="24">CT</text>
-  <text x="72" y="38" fill="#000E4E" font-family="Arial, sans-serif" font-weight="900" font-size="24" letter-spacing="0.5">CONTECH</text>
-  <text x="72" y="56" fill="#0044E3" font-family="Arial, sans-serif" font-weight="700" font-size="10.5" letter-spacing="0.6">CONTABILIDADE &amp; INFORMÁTICA</text>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" class="h-8 sm:h-9 w-auto max-w-full" role="img" aria-label="CONTECH Contabilidade e Informatica">
+  <rect x="1" y="2" width="238" height="44" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+  <rect x="7" y="7" width="34" height="34" rx="7" fill="#000E4E"/>
+  <text x="24" y="30" text-anchor="middle" fill="#FF8A00" font-family="Arial, sans-serif" font-weight="900" font-size="16">CT</text>
+  <text x="48" y="23" fill="#000E4E" font-family="Arial, sans-serif" font-weight="900" font-size="16" letter-spacing="0.4">CONTECH</text>
+  <text x="48" y="36" fill="#0044E3" font-family="Arial, sans-serif" font-weight="700" font-size="7.5" letter-spacing="0.4">CONTABILIDADE &amp; INFORMÁTICA</text>
 </svg>
           <div class="company">
             <strong style="font-size:15px;color:#0A2463;">CONTECH CONTABILIDADE & INFORMÁTICA</strong><br/>
@@ -3914,7 +3943,7 @@
         <style>
           body { font-family: Arial, sans-serif; color: #1e293b; padding: 28px; }
           .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0A2463; padding-bottom: 12px; margin-bottom: 18px; }
-          .header img { max-height: 65px; }
+          .header svg { height: 36px; width: auto; max-width: 210px; }
           .company { font-size: 11px; color: #475569; text-align: right; }
           h2 { color: #0A2463; margin: 0 0 4px 0; font-size: 17px; }
           .meta { font-size: 11px; color: #64748b; margin-bottom: 14px; }
@@ -3931,12 +3960,12 @@
           <button onclick="window.print()" style="background:#0044E3;color:#fff;border:none;padding:9px 16px;border-radius:6px;font-weight:bold;cursor:pointer;">Imprimir / Salvar PDF</button>
         </div>
         <div class="header">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 76" class="max-h-14 w-auto" role="img" aria-label="CONTECH Contabilidade e Informatica">
-  <rect x="0" y="4" width="320" height="68" rx="12" fill="#FFFFFF"/>
-  <rect x="12" y="14" width="48" height="48" rx="10" fill="#000E4E"/>
-  <text x="36" y="45" text-anchor="middle" fill="#FF8A00" font-family="Arial, sans-serif" font-weight="900" font-size="24">CT</text>
-  <text x="72" y="38" fill="#000E4E" font-family="Arial, sans-serif" font-weight="900" font-size="24" letter-spacing="0.5">CONTECH</text>
-  <text x="72" y="56" fill="#0044E3" font-family="Arial, sans-serif" font-weight="700" font-size="10.5" letter-spacing="0.6">CONTABILIDADE &amp; INFORMÁTICA</text>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" class="h-8 sm:h-9 w-auto max-w-full" role="img" aria-label="CONTECH Contabilidade e Informatica">
+  <rect x="1" y="2" width="238" height="44" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+  <rect x="7" y="7" width="34" height="34" rx="7" fill="#000E4E"/>
+  <text x="24" y="30" text-anchor="middle" fill="#FF8A00" font-family="Arial, sans-serif" font-weight="900" font-size="16">CT</text>
+  <text x="48" y="23" fill="#000E4E" font-family="Arial, sans-serif" font-weight="900" font-size="16" letter-spacing="0.4">CONTECH</text>
+  <text x="48" y="36" fill="#0044E3" font-family="Arial, sans-serif" font-weight="700" font-size="7.5" letter-spacing="0.4">CONTABILIDADE &amp; INFORMÁTICA</text>
 </svg>
           <div class="company">
             <strong style="font-size:14px;color:#0A2463;">CONTECH CONTABILIDADE & INFORMÁTICA</strong><br/>
@@ -4256,6 +4285,10 @@
     if (loginForm) {
       loginForm.addEventListener('submit', handleLogin);
     }
+    const loginUserInput = document.getElementById('login-user');
+    const loginPassInput = document.getElementById('login-pass');
+    if (loginUserInput && !loginUserInput.value) loginUserInput.value = 'admin';
+    if (loginPassInput && !loginPassInput.value) loginPassInput.value = 'contech2026';
     ensureDefaultUser();
     let activeSession = null;
     try {
