@@ -1372,21 +1372,75 @@
     }
   }
 
+  function normalizeCliente25Campos(raw, fallbackId = '') {
+    const c = raw || {};
+    const parcVal = Array.isArray(c.parcelamento)
+      ? c.parcelamento
+      : (c.parcelamento ? String(c.parcelamento).split(/[|,;]+/).map(s => s.trim()).filter(Boolean) : []);
+    return {
+      id: String(c.id || fallbackId || '').trim(),
+      id_alterdata: String(c.id_alterdata || '').trim(),
+      nome: String(c.nome || '').trim(),
+      cpf: String(c.cpf || '').trim(),
+      senha_gov: String(c.senha_gov || '').trim(),
+      cnpj: String(c.cnpj || '').trim(),
+      inscricao_estadual: String(c.inscricao_estadual || '').trim(),
+      inscricao_municipal: String(c.inscricao_municipal || '').trim(),
+      data_abertura: String(c.data_abertura || '').split('T')[0],
+      data_nascimento: String(c.data_nascimento || '').split('T')[0],
+      vencimento_certificado: String(c.vencimento_certificado || '').split('T')[0],
+      regime: String(c.regime || 'Simples Nacional').trim(),
+      capital_social: String(c.capital_social || '').trim(),
+      producoes: String(c.producoes || '').trim(),
+      parcelamento: parcVal,
+      efd: String(c.efd || 'Não se aplica').trim(),
+      mit: String(c.mit || 'Não se aplica').trim(),
+      defis: String(c.defis || 'Não se aplica').trim(),
+      dasn: String(c.dasn || 'Não se aplica').trim(),
+      celular: String(c.celular || '').trim(),
+      rg: String(c.rg || '').trim(),
+      cnh: String(c.cnh || '').trim(),
+      titulo: String(c.titulo || '').trim(),
+      email: String(c.email || '').trim(),
+      senha_nfse: String(c.senha_nfse || '').trim(),
+      senha_email: String(c.senha_email || '').trim()
+    };
+  }
+
+  async function sendAbaToGoogleSheets(aba, registros) {
+    if (!sheetsApiUrl || !sheetsApiUrl.startsWith('http')) return false;
+    const bodyStr = JSON.stringify({ aba: aba, registros: registros });
+    try {
+      await fetch(sheetsApiUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: bodyStr
+      });
+      return true;
+    } catch (e1) {
+      try {
+        if (navigator.sendBeacon) {
+          const okBeacon = navigator.sendBeacon(sheetsApiUrl, new Blob([bodyStr], { type: 'text/plain;charset=utf-8' }));
+          if (okBeacon) return true;
+        }
+      } catch (e2) {}
+      throw e1;
+    }
+  }
+
   async function saveModule(aba) {
     saveLocalOnly(aba);
     renderAll();
     if (sheetsApiUrl && sheetsApiUrl.startsWith('http')) {
       setSyncIndicator('syncing', 'Sincronizando...');
       try {
-        await fetch(sheetsApiUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ aba: aba, registros: db[aba] })
-        });
+        await sendAbaToGoogleSheets(aba, db[aba]);
         setSyncIndicator('connected', 'Google Sheets Conectado');
       } catch (err) {
+        console.error('Erro ao sincronizar aba:', aba, err);
         setSyncIndicator('error', 'Erro ao enviar (salvo local)');
+        showToast('Aviso: salvo localmente. Verifique a URL /exec do Apps Script.');
       }
     }
   }
@@ -1448,7 +1502,8 @@
     if (icon) icon.classList.add('fa-spin');
 
     try {
-      const resp = await fetch(sheetsApiUrl);
+      const sep = sheetsApiUrl.includes('?') ? '&' : '?';
+      const resp = await fetch(sheetsApiUrl + sep + '_ts=' + Date.now(), { cache: 'no-store' });
       const json = await resp.json();
       if (json.status === 'ok' && json.data) {
         Object.keys(STORAGE_KEYS).forEach(aba => {
@@ -1491,14 +1546,11 @@
     closeModal('modal-sheets');
     setSyncIndicator('syncing', 'Enviando todas as abas...');
 
+    let enviados = 0;
     for (const aba of Object.keys(STORAGE_KEYS)) {
       try {
-        await fetch(sheetsApiUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ aba: aba, registros: db[aba] })
-        });
+        await sendAbaToGoogleSheets(aba, db[aba]);
+        enviados++;
       } catch (e) {}
     }
     setSyncIndicator('connected', 'Google Sheets Conectado');
@@ -3873,6 +3925,11 @@
     if (!db.Busca_Licitacoes || db.Busca_Licitacoes.length === 0) {
       buscarEditaisOnline(false);
     }
+    setInterval(() => {
+      if (sheetsApiUrl && sheetsApiUrl.startsWith('http') && !document.hidden) {
+        syncAllWithGoogleSheets(false);
+      }
+    }, 60000);
   });
 </script>
 </body>
