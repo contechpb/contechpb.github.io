@@ -988,7 +988,10 @@
 
       <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
         <button onclick="disconnectGoogleSheets()" class="text-xs text-rose-600 hover:underline font-semibold">Desconectar Nuvem</button>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" onclick="testarConexaoSheets()" class="bg-slate-100 hover:bg-slate-200 text-contech-navy border border-slate-300 text-xs font-semibold px-3 py-2.5 rounded-lg">
+            <i class="fa-solid fa-stethoscope mr-1"></i> Testar Leitura
+          </button>
           <button onclick="pushAllLocalToSheets()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3.5 py-2.5 rounded-lg" title="Enviar os dados atuais deste navegador para a planilha">
             <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Enviar Local → Planilha
           </button>
@@ -1495,6 +1498,33 @@
     await syncAllWithGoogleSheets(true);
   }
 
+  async function testarConexaoSheets() {
+    const url = document.getElementById('input-sheets-url').value.trim();
+    if (!url.startsWith('http')) {
+      alert('Informe uma URL /exec válida antes de testar.');
+      return;
+    }
+    showToast('Testando leitura na URL do Apps Script...');
+    try {
+      const sep = url.includes('?') ? '&' : '?';
+      const resp = await fetch(url + sep + '_test=' + Date.now(), { redirect: 'follow', cache: 'no-store' });
+      const txt = await resp.text();
+      if (txt.trim().startsWith('<')) {
+        alert('Diagnóstico: O Google retornou uma página HTML (geralmente tela de login/permissão ou erro do script).\n\nVerifique:\n1. Implantar → Gerenciar implantações → Quem tem acesso: "Qualquer pessoa".\n2. Se alterou o Código.gs, crie uma "Nova versão" ao implantar.\n3. Abra a URL no navegador anônimo para ver se há erro no doGet().');
+        return;
+      }
+      const parsed = JSON.parse(txt);
+      if (parsed && (parsed.status === 'ok' || parsed.data)) {
+        const abasCount = parsed.data ? Object.keys(parsed.data).length : 0;
+        showToast('Conexão OK! JSON recebido com ' + abasCount + ' aba(s).');
+      } else {
+        alert('Resposta JSON recebida, mas sem campo "status: ok":\n' + txt.slice(0, 300));
+      }
+    } catch (e) {
+      alert('Falha ao testar leitura:\n' + (e && e.message ? e.message : e) + '\n\nDica: Se estiver abrindo o arquivo HTML localmente (file://) ou em rede com bloqueio de extensão/CORS, verifique se o Web App está publicado como "Qualquer pessoa".');
+    }
+  }
+
   async function syncAllWithGoogleSheets(notify = false) {
     if (!sheetsApiUrl || !sheetsApiUrl.startsWith('http')) return;
     setSyncIndicator('syncing', 'Sincronizando...');
@@ -1503,8 +1533,23 @@
 
     try {
       const sep = sheetsApiUrl.includes('?') ? '&' : '?';
-      const resp = await fetch(sheetsApiUrl + sep + '_ts=' + Date.now(), { cache: 'no-store' });
-      const json = await resp.json();
+      const targetUrl = sheetsApiUrl + sep + '_ts=' + Date.now();
+      const resp = await fetch(targetUrl, {
+        method: 'GET',
+        redirect: 'follow',
+        cache: 'no-store'
+      });
+      const rawText = await resp.text();
+      let json = null;
+      try {
+        json = JSON.parse(rawText);
+      } catch (parseErr) {
+        const trimmed = rawText.trim();
+        if (trimmed.startsWith('<')) {
+          throw new Error('O Apps Script retornou HTML em vez de JSON (verifique se o acesso do Web App está como "Qualquer pessoa" ou se há erro no doGet).');
+        }
+        throw new Error('Resposta não é um JSON válido: ' + trimmed.slice(0, 140));
+      }
       if (json.status === 'ok' && json.data) {
         Object.keys(STORAGE_KEYS).forEach(aba => {
           if (Array.isArray(json.data[aba])) {
@@ -1526,9 +1571,12 @@
         throw new Error('Resposta inválida da API');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Erro detalhado syncAllWithGoogleSheets:', err);
       setSyncIndicator('error', 'Falha na leitura (modo local)');
-      if (notify) showToast('Não foi possível ler da planilha. Verifique a permissão "Qualquer pessoa".');
+      if (notify) {
+        const detalhe = (err && err.message) ? err.message : 'Verifique a URL /exec e a permissão "Qualquer pessoa".';
+        showToast('Leitura falhou: ' + detalhe);
+      }
     } finally {
       if (icon) icon.classList.remove('fa-spin');
     }
