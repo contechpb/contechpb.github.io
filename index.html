@@ -701,21 +701,52 @@
             <button onclick="openPmiModal()" class="bg-contech-cyan hover:bg-sky-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg"><i class="fa-solid fa-plus mr-1"></i> Novo Serviço PMI</button>
           </div>
         </div>
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead>
-              <tr class="bg-contech-navy text-white uppercase">
-                <th class="p-3">Data</th>
-                <th class="p-3">Secretaria</th>
-                <th class="p-3">Serviço</th>
-                <th class="p-3">Complemento</th>
-                <th class="p-3">Valor</th>
-                <th class="p-3">Status do Pagamento</th>
-                <th class="p-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-pmi" class="divide-y divide-slate-200"></tbody>
-          </table>
+        <div class="space-y-4">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-contech-navy"><i class="fa-solid fa-clock text-amber-500 mr-1.5"></i>Pendentes / Em Aberto (Topo)</span>
+              <span id="pmi-count-abertos" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">0</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="bg-contech-navy text-white uppercase">
+                    <th class="p-3 whitespace-nowrap">Data</th>
+                    <th class="p-3 min-w-[260px] w-[28%]">Secretaria</th>
+                    <th class="p-3">Serviço</th>
+                    <th class="p-3 max-w-[130px] w-[12%]">Complemento</th>
+                    <th class="p-3 whitespace-nowrap">Valor</th>
+                    <th class="p-3 whitespace-nowrap">Status do Pagamento</th>
+                    <th class="p-3 text-right whitespace-nowrap">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-pmi-abertos" class="divide-y divide-slate-200"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-emerald-50/70 border-b border-emerald-200 flex items-center justify-between">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-800"><i class="fa-solid fa-circle-check text-emerald-600 mr-1.5"></i>Serviços Já Pagos (Parte Inferior)</span>
+              <span id="pmi-count-pagos" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">0</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="bg-slate-700 text-white uppercase">
+                    <th class="p-3 whitespace-nowrap">Data</th>
+                    <th class="p-3 min-w-[260px] w-[28%]">Secretaria</th>
+                    <th class="p-3">Serviço</th>
+                    <th class="p-3 max-w-[130px] w-[12%]">Complemento</th>
+                    <th class="p-3 whitespace-nowrap">Valor</th>
+                    <th class="p-3 whitespace-nowrap">Status do Pagamento</th>
+                    <th class="p-3 text-right whitespace-nowrap">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-pmi-pagos" class="divide-y divide-slate-200"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
       <!-- 11. ORDEM DE SERVIÇO -->
@@ -1075,6 +1106,26 @@
       <div class="pt-2 border-t border-slate-200 flex items-center justify-between">
         <span class="text-[11px] text-slate-500">Canal de atendimento CONTECH: (83) 98102-4203</span>
         <button onclick="closeModal('modal-lgpd')" class="bg-contech-navy hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg">Entendi e Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: CONFIRMAÇÃO DE EXCLUSÃO -->
+<div id="modal-confirm-delete" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-rose-200">
+    <div class="bg-rose-600 text-white px-6 py-4 flex items-center justify-between">
+      <h3 class="font-bold text-base"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Confirmar Exclusão</h3>
+      <button type="button" onclick="cancelDeleteAction()" class="text-rose-100 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div class="p-6 space-y-4 text-xs">
+      <p id="confirm-delete-message" class="text-sm text-slate-700 font-medium leading-relaxed">Deseja realmente excluir este item?</p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="cancelDeleteAction()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50">Cancelar</button>
+        <button type="button" id="btn-confirm-delete-action" onclick="executeConfirmedDelete()" class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-sm flex items-center gap-1.5">
+          <i class="fa-solid fa-trash"></i> Confirmar Exclusão
+        </button>
       </div>
     </div>
   </div>
@@ -2200,10 +2251,11 @@
   }
 
   function limparBaseLicitacoes() {
-    if (!confirm('Deseja limpar todos os editais listados atualmente?')) return;
-    db.Busca_Licitacoes = [];
-    saveModule('Busca_Licitacoes');
-    showToast('Lista de licitações limpa.');
+    requestDeleteConfirmation('Deseja realmente limpar todos os editais listados atualmente?', () => {
+      db.Busca_Licitacoes = [];
+      saveModule('Busca_Licitacoes');
+      showToast('Lista de licitações limpa.');
+    });
   }
 
   function resolveEditalUrl(l) {
@@ -2793,12 +2845,36 @@
     `).join('') || '<p class="p-4 text-center text-slate-400">Nenhuma matéria cadastrada ainda.</p>';
   }
 
+  let pendingDeleteCallback = null;
+
+  function requestDeleteConfirmation(message, onConfirm) {
+    pendingDeleteCallback = onConfirm;
+    const msgEl = document.getElementById('confirm-delete-message');
+    if (msgEl) msgEl.textContent = message || 'Deseja realmente excluir este registro?';
+    openModal('modal-confirm-delete');
+  }
+
+  function cancelDeleteAction() {
+    pendingDeleteCallback = null;
+    closeModal('modal-confirm-delete');
+  }
+
+  function executeConfirmedDelete() {
+    const fn = pendingDeleteCallback;
+    pendingDeleteCallback = null;
+    closeModal('modal-confirm-delete');
+    if (typeof fn === 'function') fn();
+  }
+
   function deleteEstudoCatalogItem(aba, idx) {
-    db[aba].splice(idx, 1);
-    saveModule(aba);
-    if (aba === 'Estudo_Cursos') renderCursosCatalogList();
-    else renderMateriasCatalogList();
-    showToast('Item removido.');
+    const nomeLabel = aba === 'Estudo_Cursos' ? 'este curso' : 'esta matéria';
+    requestDeleteConfirmation(`Deseja realmente excluir ${nomeLabel}?`, () => {
+      db[aba].splice(idx, 1);
+      saveModule(aba);
+      if (aba === 'Estudo_Cursos') renderCursosCatalogList();
+      else renderMateriasCatalogList();
+      showToast('Item removido.');
+    });
   }
 
   function renderEstudo() {
@@ -2916,6 +2992,48 @@
   }
 
   // --- SERVIÇOS PMI ---
+  function setPmiStatus(idx, novoStatus) {
+    if (!db.Servicos_PMI[idx]) return;
+    db.Servicos_PMI[idx].status_pagamento = novoStatus;
+    saveModule('Servicos_PMI');
+    showToast(`Status do pagamento atualizado para "${novoStatus}".`);
+  }
+
+  function renderPmiRow(p) {
+    const statusAtual = p.status_pagamento || 'Pendente';
+    const isPago = statusAtual === 'Pago';
+    const selectStyle = isPago
+      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+      : statusAtual === 'Empenhado'
+      ? 'bg-sky-100 text-sky-800 border-sky-300'
+      : statusAtual === 'Aguardando NF'
+      ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+      : 'bg-amber-100 text-amber-800 border-amber-300';
+
+    const opcoesStatus = ['Pendente', 'Empenhado', 'Aguardando NF', 'Pago'];
+    const optionsHtml = opcoesStatus.map(op => `<option value="${op}" ${statusAtual === op ? 'selected' : ''}>${op}</option>`).join('');
+
+    const compText = p.complemento || '-';
+    return `
+      <tr class="hover:bg-slate-50 ${isPago ? 'bg-slate-50/50' : ''}">
+        <td class="p-3 whitespace-nowrap">${formatDateBR(p.data)}</td>
+        <td class="p-3 min-w-[260px] font-bold text-contech-navy">${p.secretaria}</td>
+        <td class="p-3 font-semibold">${p.servico}</td>
+        <td class="p-3 max-w-[130px] truncate text-slate-600" title="${String(compText).replace(/"/g, '&quot;')}">${compText}</td>
+        <td class="p-3 font-bold whitespace-nowrap">${formatBRL(p.valor)}</td>
+        <td class="p-3">
+          <select onchange="setPmiStatus(${p._idx}, this.value)" aria-label="Status do Pagamento" class="px-2.5 py-1 rounded-lg border font-bold text-xs cursor-pointer focus:outline-none ${selectStyle}">
+            ${optionsHtml}
+          </select>
+        </td>
+        <td class="p-3 text-right space-x-1 whitespace-nowrap">
+          <button onclick="openPmiModal(${p._idx})" class="px-2 py-1 rounded bg-sky-100 text-sky-700 hover:bg-sky-200 font-semibold" title="Editar serviço PMI"><i class="fa-solid fa-pen mr-1"></i>Editar</button>
+          <button onclick="deleteRecord('Servicos_PMI', ${p._idx})" class="px-2 py-1 rounded bg-rose-100 text-rose-700 hover:bg-rose-200" title="Excluir serviço PMI"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+    `;
+  }
+
   function renderPMI() {
     const total = db.Servicos_PMI.reduce((s, p) => s + (parseFloat(p.valor) || 0), 0);
     const pago = db.Servicos_PMI.filter(p => p.status_pagamento === 'Pago').reduce((s, p) => s + (parseFloat(p.valor) || 0), 0);
@@ -2925,21 +3043,20 @@
     document.getElementById('pmi-pago').textContent = formatBRL(pago);
     document.getElementById('pmi-pendente').textContent = formatBRL(pendente);
 
-    document.getElementById('tbody-pmi').innerHTML = db.Servicos_PMI.map((p, idx) => `
-      <tr class="hover:bg-slate-50">
-        <td class="p-3">${formatDateBR(p.data)}</td>
-        <td class="p-3 font-bold text-contech-navy">${p.secretaria}</td>
-        <td class="p-3 font-semibold">${p.servico}</td>
-        <td class="p-3 text-slate-600">${p.complemento || '-'}</td>
-        <td class="p-3 font-bold">${formatBRL(p.valor)}</td>
-        <td class="p-3">
-          <button onclick="cyclePmiStatus(${idx})" class="px-2.5 py-0.5 rounded-full font-bold ${p.status_pagamento === 'Pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-            ${p.status_pagamento}
-          </button>
-        </td>
-        <td class="p-3 text-right"><button onclick="deleteRecord('Servicos_PMI', ${idx})" class="px-2 py-1 rounded bg-rose-100 text-rose-700"><i class="fa-solid fa-trash"></i></button></td>
-      </tr>
-    `).join('') || '<tr><td colspan="7" class="p-6 text-center text-slate-400">Nenhum serviço PMI registrado.</td></tr>';
+    const indexed = db.Servicos_PMI.map((p, idx) => ({ ...p, _idx: idx }));
+    const abertos = indexed.filter(p => (p.status_pagamento || 'Pendente') !== 'Pago');
+    const pagos = indexed.filter(p => (p.status_pagamento || 'Pendente') === 'Pago');
+
+    const countAbertosEl = document.getElementById('pmi-count-abertos');
+    const countPagosEl = document.getElementById('pmi-count-pagos');
+    if (countAbertosEl) countAbertosEl.textContent = abertos.length;
+    if (countPagosEl) countPagosEl.textContent = pagos.length;
+
+    document.getElementById('tbody-pmi-abertos').innerHTML = abertos.map(renderPmiRow).join('')
+      || '<tr><td colspan="7" class="p-5 text-center text-slate-400">Nenhum serviço PMI pendente ou em aberto no topo.</td></tr>';
+
+    document.getElementById('tbody-pmi-pagos').innerHTML = pagos.map(renderPmiRow).join('')
+      || '<tr><td colspan="7" class="p-5 text-center text-slate-400">Nenhum serviço PMI pago ainda.</td></tr>';
   }
 
   function cyclePmiStatus(idx) {
@@ -2949,27 +3066,85 @@
     saveModule('Servicos_PMI');
   }
 
-  function openPmiModal() {
-    openGenericForm('Novo Serviço PMI (Itaporanga)', [
-      { id: 'data', label: 'Data', type: 'date', value: addDaysISO(0), required: true },
-      { id: 'secretaria', label: 'Secretaria', type: 'select', options: [
-        'Secretaria Municipal de Administração',
-        'Secretaria Municipal de Finanças',
-        'Secretaria Municipal de Saúde',
-        'Secretaria Municipal de Educação',
-        'Secretaria Municipal de Assistência Social',
-        'Secretaria Municipal de Infraestrutura',
-        'Gabinete do Prefeito'
-      ]},
-      { id: 'servico', label: 'Serviço', required: true },
-      { id: 'complemento', label: 'Complemento' },
-      { id: 'valor', label: 'Valor (R$)', type: 'number', step: '0.01', required: true },
-      { id: 'status_pagamento', label: 'Status do Pagamento', type: 'select', options: ['Pendente', 'Empenhado', 'Aguardando NF', 'Pago'] }
-    ], data => {
-      data.id = 'PMI' + Date.now();
-      db.Servicos_PMI.push(data);
+  function openPmiModal(idx = -1) {
+    const isEdit = idx >= 0 && db.Servicos_PMI[idx];
+    const p = isEdit ? db.Servicos_PMI[idx] : {};
+    const modalBox = document.querySelector('#modal-generic > div');
+    if (modalBox) {
+      modalBox.classList.remove('max-w-lg');
+      modalBox.classList.add('max-w-2xl');
+    }
+    document.getElementById('generic-modal-title').textContent = isEdit ? 'Editar Serviço PMI (Itaporanga)' : 'Novo Serviço PMI (Itaporanga)';
+    const form = document.getElementById('form-generic');
+    const secretarias = [
+      'Secretaria Municipal de Administração',
+      'Secretaria Municipal de Finanças',
+      'Secretaria Municipal de Saúde',
+      'Secretaria Municipal de Educação',
+      'Secretaria Municipal de Assistência Social',
+      'Secretaria Municipal de Infraestrutura',
+      'Gabinete do Prefeito'
+    ];
+    const statusAtual = p.status_pagamento || 'Pendente';
+    form.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+        <div class="sm:col-span-4">
+          <label class="font-semibold block mb-1">Data *</label>
+          <input type="date" id="pmi-f-data" value="${p.data ? String(p.data).split('T')[0] : addDaysISO(0)}" required class="w-full px-3 py-2 border rounded-lg bg-white" />
+        </div>
+        <div class="sm:col-span-8">
+          <label class="font-semibold block mb-1">Secretaria *</label>
+          <select id="pmi-f-secretaria" class="w-full px-3 py-2 border rounded-lg bg-white font-semibold text-contech-navy">
+            ${secretarias.map(s => `<option value="${s}" ${p.secretaria === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+        <div class="sm:col-span-8">
+          <label class="font-semibold block mb-1">Serviço *</label>
+          <input type="text" id="pmi-f-servico" value="${(p.servico || '').replace(/"/g, '&quot;')}" required class="w-full px-3 py-2 border rounded-lg bg-white" />
+        </div>
+        <div class="sm:col-span-4">
+          <label class="font-semibold block mb-1">Complemento</label>
+          <input type="text" id="pmi-f-complemento" value="${(p.complemento || '').replace(/"/g, '&quot;')}" placeholder="Breve..." class="w-full px-2.5 py-2 border rounded-lg bg-white" />
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="font-semibold block mb-1">Valor (R$) *</label>
+          <input type="number" step="0.01" id="pmi-f-valor" value="${p.valor !== undefined ? p.valor : ''}" required class="w-full px-3 py-2 border rounded-lg bg-white" />
+        </div>
+        <div>
+          <label class="font-semibold block mb-1">Status do Pagamento</label>
+          <select id="pmi-f-status" class="w-full px-3 py-2 border rounded-lg bg-white">
+            ${['Pendente', 'Empenhado', 'Aguardando NF', 'Pago'].map(o => `<option value="${o}" ${statusAtual === o ? 'selected' : ''}>${o}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-3">
+        <button type="button" onclick="closeModal('modal-generic')" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 font-semibold">Cancelar</button>
+        <button type="submit" class="px-4 py-2 rounded-lg bg-contech-cyan text-white font-semibold hover:bg-sky-700">${isEdit ? 'Salvar Alterações' : 'Salvar'}</button>
+      </div>
+    `;
+    form.onsubmit = e => {
+      e.preventDefault();
+      const record = {
+        ...(isEdit ? p : {}),
+        id: isEdit && p.id ? p.id : ('PMI' + Date.now()),
+        data: document.getElementById('pmi-f-data').value,
+        secretaria: document.getElementById('pmi-f-secretaria').value,
+        servico: document.getElementById('pmi-f-servico').value.trim(),
+        complemento: document.getElementById('pmi-f-complemento').value.trim(),
+        valor: document.getElementById('pmi-f-valor').value,
+        status_pagamento: document.getElementById('pmi-f-status').value
+      };
+      if (isEdit) db.Servicos_PMI[idx] = record;
+      else db.Servicos_PMI.push(record);
       saveModule('Servicos_PMI');
-    });
+      closeModal('modal-generic');
+      showToast(isEdit ? 'Serviço PMI atualizado com sucesso!' : 'Registro salvo com sucesso!');
+    };
+    openModal('modal-generic');
   }
 
   // --- FORMULÁRIO GENÉRICO & EXCLUSÃO ---
@@ -3003,10 +3178,11 @@
   }
 
   function deleteRecord(aba, idx) {
-    if (!confirm('Deseja realmente excluir este registro?')) return;
-    db[aba].splice(idx, 1);
-    saveModule(aba);
-    showToast('Registro excluído.');
+    requestDeleteConfirmation('Deseja realmente excluir este registro?', () => {
+      db[aba].splice(idx, 1);
+      saveModule(aba);
+      showToast('Registro excluído.');
+    });
   }
 
   // =========================================================================
@@ -3222,10 +3398,15 @@
   async function removeUser(idx) {
     const users = ensureDefaultUser();
     if (users.length <= 1) return;
-    users.splice(idx, 1);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    await renderUsersList();
-    showToast('Usuário removido.');
+    const alvo = users[idx];
+    requestDeleteConfirmation(`Deseja realmente excluir o usuário "${alvo ? alvo.login : ''}"?`, async () => {
+      const updated = ensureDefaultUser();
+      if (updated.length <= 1) return;
+      updated.splice(idx, 1);
+      localStorage.setItem(USERS_KEY, JSON.stringify(updated));
+      await renderUsersList();
+      showToast('Usuário removido.');
+    });
   }
 
 
