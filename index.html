@@ -275,66 +275,66 @@
     <main class="flex-1 overflow-y-auto p-6 space-y-6">
 
       <!-- 1. DASHBOARD -->
-      <section id="tab-dashboard" class="tab-section space-y-6">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold uppercase text-slate-500">Clientes Contábeis</span>
-              <span class="w-9 h-9 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center"><i class="fa-solid fa-building"></i></span>
+      <section id="tab-dashboard" class="tab-section space-y-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-semibold uppercase text-slate-500">Clientes Contábeis</span>
+              <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs"><i class="fa-solid fa-building"></i></span>
             </div>
-            <p id="kpi-contabeis" class="text-2xl font-extrabold text-contech-navy mt-2">0</p>
-            <p class="text-xs text-slate-500 mt-1">Base ativa de empresas e MEIs</p>
+            <p id="kpi-contabeis" class="text-lg font-extrabold text-contech-navy mt-1">0</p>
+            <p class="text-[11px] text-slate-400">Empresas e MEIs</p>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold uppercase text-slate-500">Certificados (≤ 30d)</span>
-              <span class="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></span>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-semibold uppercase text-slate-500">Certificados (≤ 30d)</span>
+              <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs"><i class="fa-solid fa-triangle-exclamation"></i></span>
             </div>
-            <p id="kpi-certificados" class="text-2xl font-extrabold text-amber-600 mt-2">0</p>
-            <p class="text-xs text-slate-500 mt-1">Vencidos ou a vencer</p>
+            <p id="kpi-certificados" class="text-lg font-extrabold text-amber-600 mt-1">0</p>
+            <p class="text-[11px] text-slate-400">Vencidos ou a vencer</p>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold uppercase text-slate-500">A Receber (Aberto)</span>
-              <span class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-arrow-trend-up"></i></span>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-semibold uppercase text-slate-500">A Receber (Aberto)</span>
+              <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs"><i class="fa-solid fa-arrow-trend-up"></i></span>
             </div>
-            <p id="kpi-receber" class="text-2xl font-extrabold text-emerald-600 mt-2">R$ 0,00</p>
-            <p class="text-xs text-slate-500 mt-1">Honorários e serviços</p>
+            <p id="kpi-receber" class="text-lg font-extrabold text-emerald-600 mt-1">R$ 0,00</p>
+            <p class="text-[11px] text-slate-400">Honorários e serviços</p>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold uppercase text-slate-500">A Pagar (Aberto)</span>
-              <span class="w-9 h-9 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center"><i class="fa-solid fa-arrow-trend-down"></i></span>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-semibold uppercase text-slate-500">A Pagar (Aberto)</span>
+              <span class="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center text-xs"><i class="fa-solid fa-arrow-trend-down"></i></span>
             </div>
-            <p id="kpi-pagar" class="text-2xl font-extrabold text-rose-600 mt-2">R$ 0,00</p>
-            <p class="text-xs text-slate-500 mt-1">Despesas pendentes</p>
+            <p id="kpi-pagar" class="text-lg font-extrabold text-rose-600 mt-1">R$ 0,00</p>
+            <p class="text-[11px] text-slate-400">Despesas pendentes</p>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold uppercase text-slate-500">Serviços PMI (Aberto)</span>
-              <span class="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center"><i class="fa-solid fa-landmark"></i></span>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-semibold uppercase text-slate-500">Serviços PMI (Aberto)</span>
+              <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs"><i class="fa-solid fa-landmark"></i></span>
             </div>
-            <p id="kpi-pmi" class="text-2xl font-extrabold text-indigo-700 mt-2">R$ 0,00</p>
-            <p class="text-xs text-slate-500 mt-1">Prefeitura Itaporanga</p>
+            <p id="kpi-pmi" class="text-lg font-extrabold text-indigo-700 mt-1">R$ 0,00</p>
+            <p class="text-[11px] text-slate-400">Prefeitura Itaporanga</p>
           </div>
         </div>
 
-        <!-- GRÁFICOS FINANCEIROS: CONTAS A RECEBER & CONTAS A PAGAR -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <!-- GRÁFICOS FINANCEIROS: CONTAS A RECEBER & CONTAS A PAGAR (COMPACTOS) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 space-y-2">
             <div class="flex items-center justify-between">
-              <h3 class="font-bold text-contech-navy"><i class="fa-solid fa-chart-column text-emerald-600 mr-2"></i>Gráfico — Contas a Receber</h3>
-              <button onclick="switchTab('receber')" class="text-xs font-semibold text-sky-600 hover:underline">Abrir módulo</button>
+              <h3 class="text-xs font-bold uppercase tracking-wide text-contech-navy"><i class="fa-solid fa-chart-column text-emerald-600 mr-1.5"></i>Contas a Receber</h3>
+              <button onclick="switchTab('receber')" class="text-[11px] font-semibold text-sky-600 hover:underline">Abrir módulo</button>
             </div>
-            <div id="dash-chart-receber" class="space-y-3"></div>
+            <div id="dash-chart-receber" class="space-y-2"></div>
           </div>
 
-          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 space-y-2">
             <div class="flex items-center justify-between">
-              <h3 class="font-bold text-contech-navy"><i class="fa-solid fa-chart-column text-rose-600 mr-2"></i>Gráfico — Contas a Pagar</h3>
-              <button onclick="switchTab('pagar')" class="text-xs font-semibold text-sky-600 hover:underline">Abrir módulo</button>
+              <h3 class="text-xs font-bold uppercase tracking-wide text-contech-navy"><i class="fa-solid fa-chart-column text-rose-600 mr-1.5"></i>Contas a Pagar</h3>
+              <button onclick="switchTab('pagar')" class="text-[11px] font-semibold text-sky-600 hover:underline">Abrir módulo</button>
             </div>
-            <div id="dash-chart-pagar" class="space-y-3"></div>
+            <div id="dash-chart-pagar" class="space-y-2"></div>
           </div>
         </div>
 
@@ -1224,7 +1224,15 @@
   }
 
   function saveLocalOnly(aba) {
-    localStorage.setItem(STORAGE_KEYS[aba], JSON.stringify(db[aba]));
+    try {
+      localStorage.setItem(STORAGE_KEYS[aba], JSON.stringify(db[aba]));
+    } catch (e) {
+      if (aba === 'Busca_Licitacoes' && Array.isArray(db[aba])) {
+        try {
+          localStorage.setItem(STORAGE_KEYS[aba], JSON.stringify(db[aba].slice(0, 250)));
+        } catch (e2) {}
+      }
+    }
   }
 
   async function saveModule(aba) {
@@ -2249,13 +2257,18 @@
   }
 
   function addEditalIfNotExists(itemObj) {
-    const jaExiste = db.Busca_Licitacoes.some(existing =>
-      (itemObj.id && existing.id === itemObj.id) ||
-      (String(existing.objeto || '').trim().toLowerCase() === String(itemObj.objeto || '').trim().toLowerCase() &&
-       String(existing.orgao || '').trim().toLowerCase() === String(itemObj.orgao || '').trim().toLowerCase())
-    );
+    const idNorm = String(itemObj.id || '').trim();
+    const jaExiste = db.Busca_Licitacoes.some(existing => {
+      if (idNorm && String(existing.id || '').trim() === idNorm) return true;
+      if (!idNorm) {
+        return String(existing.objeto || '').trim().toLowerCase() === String(itemObj.objeto || '').trim().toLowerCase() &&
+               String(existing.orgao || '').trim().toLowerCase() === String(itemObj.orgao || '').trim().toLowerCase() &&
+               String(existing.data_abertura || '').trim() === String(itemObj.data_abertura || '').trim();
+      }
+      return false;
+    });
     if (!jaExiste) {
-      db.Busca_Licitacoes.unshift(itemObj);
+      db.Busca_Licitacoes.push(itemObj);
       return true;
     }
     return false;
@@ -2269,7 +2282,7 @@
     const objTexto = item.objetoCompra || 'Contratação pública em aberto';
     const valEst = parseFloat(item.valorTotalEstimado) || 0;
     const dtAb = item.dataEncerramentoProposta || item.dataAberturaProposta || addDaysISO(5);
-    const numCtrl = item.numeroControlePNCP || `${orgaoNome.slice(0, 10)}-${dtAb}`;
+    const numCtrl = item.numeroControlePNCP || `${orgaoNome.slice(0, 12)}-${dtAb}-${Math.random().toString(36).slice(2, 6)}`;
     const sistOrigem = String(item.sistemaOrigemNome || '');
 
     let portalNome = portalOverride;
@@ -2309,6 +2322,73 @@
     };
   }
 
+  async function fetchAllPncpPropostasPages(dtFim, ufParam, maxPages = 15, statusEl = null, label = 'PNCP') {
+    let totalAdicionados = 0;
+    for (let page = 1; page <= maxPages; page++) {
+      if (statusEl) {
+        statusEl.innerHTML = `<span class="text-contech-cyan font-semibold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Buscando todos os editais (${label} — página ${page})... Carregados até agora: <strong>${db.Busca_Licitacoes.length}</strong></span>`;
+      }
+      const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=${dtFim}${ufParam}&pagina=${page}&tamanhoPagina=50`;
+      const resp = await fetch(url);
+      if (!resp.ok) break;
+      const json = await resp.json();
+      const items = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+      if (!items.length) break;
+
+      items.forEach(item => {
+        const mapeado = mapearItemPNCP(item);
+        if (ufParam.includes('uf=PB') && !String(mapeado.portal).includes('TCE-PB')) {
+          mapeado.portal = `${mapeado.portal} / TCE-PB`;
+        }
+        if (addEditalIfNotExists(mapeado)) totalAdicionados++;
+      });
+
+      renderLicitacoes();
+      const totalPaginas = parseInt(json.totalPaginas || json.paginasRestantes ? (page + (json.paginasRestantes || 0)) : 0, 10);
+      if (items.length < 50 || (totalPaginas > 0 && page >= totalPaginas)) break;
+    }
+    return totalAdicionados;
+  }
+
+  async function fetchAllPncpSearchPages(q, ufParam, maxPages = 10, statusEl = null) {
+    let totalAdicionados = 0;
+    for (let page = 1; page <= maxPages; page++) {
+      if (statusEl) {
+        statusEl.innerHTML = `<span class="text-contech-cyan font-semibold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Consultando Portais Integrados / Portal de Compras Públicas (página ${page})... Total na lista: <strong>${db.Busca_Licitacoes.length}</strong></span>`;
+      }
+      const pcpSearchUrl = `https://pncp.gov.br/api/search/?tipos_documento=edital&ordenacao=-data&pagina=${page}&tam_pagina=50&status=recebendo_proposta${q ? `&q=${encodeURIComponent(q)}` : ''}${ufParam}`;
+      const pcpResp = await fetch(pcpSearchUrl);
+      if (!pcpResp.ok) break;
+      const pcpJson = await pcpResp.json();
+      const hits = Array.isArray(pcpJson.items) ? pcpJson.items : (Array.isArray(pcpJson.data) ? pcpJson.data : []);
+      if (!hits.length) break;
+
+      hits.forEach(hit => {
+        const sist = String(hit.sistema_origem || hit.fonte || '');
+        const isPCP = sist.toLowerCase().includes('compras públicas') || sist.toLowerCase().includes('portaldecompraspublicas');
+        const ctrlId = hit.numero_controle_pncp || hit.id || `${hit.orgao_nome}-${hit.title}`.slice(0, 40);
+        const editalObj = {
+          id: 'PNCP-' + ctrlId,
+          orgao: hit.orgao_nome || hit.razao_social || 'Órgão Público',
+          uf: hit.uf || (ufParam ? ufParam.replace('&uf=', '') : 'BR'),
+          modalidade: hit.modalidade_licitacao_nome || 'Pregão Eletrônico',
+          segmento: sist || 'Portal Nacional',
+          objeto: hit.description || hit.title || 'Edital em recebimento de propostas',
+          valor: parseFloat(hit.valor_global || hit.valor_estimado) || 0,
+          portal: isPCP ? 'Portal de Compras Públicas' : (sist || 'PNCP'),
+          data_abertura: String(hit.data_fim_vigencia || hit.data_publicacao_pncp || addDaysISO(5)).split('T')[0],
+          status_edital: 'Em Aberto',
+          link: hit.item_url ? `https://pncp.gov.br${hit.item_url}` : 'https://www.portaldecompraspublicas.com.br/'
+        };
+        if (addEditalIfNotExists(editalObj)) totalAdicionados++;
+      });
+
+      renderLicitacoes();
+      if (hits.length < 50) break;
+    }
+    return totalAdicionados;
+  }
+
   async function buscarEditaisOnline(notify = false) {
     const q = (document.getElementById('search-lic')?.value || '').trim();
     const ufSelecionada = (document.getElementById('filter-lic-uf')?.value || '').toUpperCase().trim();
@@ -2318,118 +2398,64 @@
 
     if (icon) icon.classList.add('fa-spin');
     if (statusEl) {
-      statusEl.innerHTML = `<span class="text-contech-cyan font-semibold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Consultando API JSON do PNCP, TCE-PB (Tramita / PB) e Portal de Compras Públicas...</span>`;
+      statusEl.innerHTML = `<span class="text-contech-cyan font-semibold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Iniciando varredura completa de todos os editais em aberto (PNCP • TCE-PB • Portal de Compras Públicas)...</span>`;
     }
 
-    let adicionadosPNCP = 0;
-    let adicionadosTCEPB = 0;
-    let adicionadosPCP = 0;
+    let totalAdicionados = 0;
     const avisos = [];
 
     const hoje = new Date();
-    const futuro = new Date(hoje.getTime() + 45 * 86400000);
+    const futuro = new Date(hoje.getTime() + 60 * 86400000);
     const dtFim = futuro.toISOString().slice(0, 10).replace(/-/g, '');
     const ufParam = ufSelecionada ? `&uf=${encodeURIComponent(ufSelecionada)}` : '';
 
-    // 1. Consulta direta à API JSON oficial do PNCP (propostas em aberto)
+    // 1. Consulta paginada completa à API JSON oficial do PNCP
     try {
-      const urlPncp = `https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=${dtFim}${ufParam}&pagina=1&tamanhoPagina=30`;
-      const resp = await fetch(urlPncp);
-      if (resp.ok) {
-        const json = await resp.json();
-        const items = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
-        items.forEach(item => {
-          const mapeado = mapearItemPNCP(item);
-          if (mapeado.portal === 'Portal de Compras Públicas') {
-            if (addEditalIfNotExists(mapeado)) adicionadosPCP++;
-          } else {
-            if (addEditalIfNotExists(mapeado)) adicionadosPNCP++;
-          }
-        });
-      }
+      totalAdicionados += await fetchAllPncpPropostasPages(dtFim, ufParam, 15, statusEl, ufSelecionada ? `PNCP (${ufSelecionada})` : 'PNCP Nacional');
     } catch (err) {
-      avisos.push('Não foi possível conectar diretamente à API do PNCP neste momento.');
+      avisos.push('Falha parcial ao consultar páginas do PNCP.');
     }
 
-    // 2. Consulta específica para Paraíba / TCE-PB (Tramita + fallback PNCP uf=PB conforme v2.1)
-    try {
-      let tceOk = false;
+    // 2. Consulta completa Paraíba / TCE-PB (Tramita + todas as páginas PB no PNCP se não houver filtro de outra UF)
+    if (!ufSelecionada || ufSelecionada === 'PB') {
       try {
-        const tceResp = await fetch('https://dados.tce.pb.gov.br/api/3/action/package_search?q=licitacao&rows=5');
-        if (tceResp.ok) {
-          const tceJson = await tceResp.json();
-          const pkgs = tceJson?.result?.results || [];
-          pkgs.forEach((pkg, idx) => {
-            if (addEditalIfNotExists({
-              id: `TCEPB-TRAMITA-${pkg.id || idx + 1}`,
-              orgao: pkg.organization?.title || 'Jurisdicionados TCE-PB (Paraíba)',
-              uf: 'PB',
-              modalidade: 'Licitação Pública (TCE-PB)',
-              segmento: 'Mural / Dados Abertos TCE-PB',
-              objeto: pkg.title || 'Licitações e Contratos Públicos — TCE-PB',
-              valor: 0,
-              portal: 'TCE-PB (Tramita)',
-              data_abertura: addDaysISO(5),
-              status_edital: 'Em Aberto',
-              link: 'https://tramita.tce.pb.gov.br/tramita/login.jsf?login_novo_mural_licitacoes_generico=1'
-            })) {
-              adicionadosTCEPB++;
-            }
-          });
-          tceOk = true;
+        try {
+          const tceResp = await fetch('https://dados.tce.pb.gov.br/api/3/action/package_search?q=licitacao&rows=20');
+          if (tceResp.ok) {
+            const tceJson = await tceResp.json();
+            const pkgs = tceJson?.result?.results || [];
+            pkgs.forEach((pkg, idx) => {
+              if (addEditalIfNotExists({
+                id: `TCEPB-TRAMITA-${pkg.id || idx + 1}`,
+                orgao: pkg.organization?.title || 'Jurisdicionados TCE-PB (Paraíba)',
+                uf: 'PB',
+                modalidade: 'Licitação Pública (TCE-PB)',
+                segmento: 'Mural / Dados Abertos TCE-PB',
+                objeto: pkg.title || 'Licitações e Contratos Públicos — TCE-PB',
+                valor: 0,
+                portal: 'TCE-PB (Tramita)',
+                data_abertura: addDaysISO(5),
+                status_edital: 'Em Aberto',
+                link: 'https://tramita.tce.pb.gov.br/tramita/login.jsf?login_novo_mural_licitacoes_generico=1'
+              })) {
+                totalAdicionados++;
+              }
+            });
+          }
+        } catch (e) {}
+
+        if (ufSelecionada !== 'PB') {
+          totalAdicionados += await fetchAllPncpPropostasPages(dtFim, '&uf=PB', 10, statusEl, 'TCE-PB / Paraíba');
         }
-      } catch (e) {}
+      } catch (err) {}
+    }
 
-      // Fallback automático uf=PB via API PNCP para garantir licitações ativas da Paraíba (TCE-PB / Municípios PB)
-      const urlPncpPB = `https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=${dtFim}&uf=PB&pagina=1&tamanhoPagina=25`;
-      const respPB = await fetch(urlPncpPB);
-      if (respPB.ok) {
-        const jsonPB = await respPB.json();
-        const itemsPB = Array.isArray(jsonPB.data) ? jsonPB.data : [];
-        itemsPB.forEach(item => {
-          const mapeadoPB = mapearItemPNCP(item);
-          if (!String(mapeadoPB.portal).includes('TCE-PB')) {
-            mapeadoPB.portal = `${mapeadoPB.portal} / TCE-PB`;
-          }
-          if (addEditalIfNotExists(mapeadoPB)) adicionadosTCEPB++;
-        });
-      } else if (!tceOk) {
-        avisos.push('O Mural JSF do Tramita TCE-PB exige sessão de servidor; aplicado fallback automático PB.');
-      }
-    } catch (err) {}
-
-    // 3. Integração Portal de Compras Públicas via API de busca do PNCP / endpoint público
+    // 3. Consulta paginada completa na API de Busca (Portal de Compras Públicas e demais portais integrados)
     try {
-      const pcpSearchUrl = `https://pncp.gov.br/api/search/?tipos_documento=edital&ordenacao=-data&pagina=1&tam_pagina=25&status=recebendo_proposta${q ? `&q=${encodeURIComponent(q)}` : ''}${ufParam}`;
-      const pcpResp = await fetch(pcpSearchUrl);
-      if (pcpResp.ok) {
-        const pcpJson = await pcpResp.json();
-        const hits = Array.isArray(pcpJson.items) ? pcpJson.items : (Array.isArray(pcpJson.data) ? pcpJson.data : []);
-        hits.forEach(hit => {
-          const sist = String(hit.sistema_origem || hit.fonte || '');
-          const isPCP = sist.toLowerCase().includes('compras públicas') || sist.toLowerCase().includes('portaldecompraspublicas');
-          const editalObj = {
-            id: 'PNCP-SRCH-' + (hit.numero_controle_pncp || hit.id || Date.now() + Math.random().toString(36).slice(2, 6)),
-            orgao: hit.orgao_nome || hit.razao_social || 'Órgão Público',
-            uf: hit.uf || ufSelecionada || 'BR',
-            modalidade: hit.modalidade_licitacao_nome || 'Pregão Eletrônico',
-            segmento: sist || 'Portal Nacional',
-            objeto: hit.description || hit.title || 'Edital em recebimento de propostas',
-            valor: parseFloat(hit.valor_global || hit.valor_estimado) || 0,
-            portal: isPCP ? 'Portal de Compras Públicas' : (sist || 'PNCP'),
-            data_abertura: String(hit.data_fim_vigencia || hit.data_publicacao_pncp || addDaysISO(5)).split('T')[0],
-            status_edital: 'Em Aberto',
-            link: hit.item_url ? `https://pncp.gov.br${hit.item_url}` : 'https://www.portaldecompraspublicas.com.br/'
-          };
-          if (addEditalIfNotExists(editalObj)) {
-            if (isPCP) adicionadosPCP++;
-            else adicionadosPNCP++;
-          }
-        });
-      }
+      totalAdicionados += await fetchAllPncpSearchPages(q, ufParam, 10, statusEl);
     } catch (err) {}
 
-    // 4. Se o Apps Script do Google Sheets estiver conectado, também consulta o endpoint ?action=licitacoes se disponível
+    // 4. Se o Apps Script do Google Sheets estiver conectado, busca também via ?action=licitacoes
     if (sheetsApiUrl && sheetsApiUrl.startsWith('http')) {
       try {
         const gasUrl = `${sheetsApiUrl}${sheetsApiUrl.includes('?') ? '&' : '?'}action=licitacoes&q=${encodeURIComponent(q)}&uf=${encodeURIComponent(ufSelecionada)}`;
@@ -2438,17 +2464,26 @@
           const gasJson = await gasResp.json();
           const gasList = Array.isArray(gasJson.licitacoes) ? gasJson.licitacoes : (Array.isArray(gasJson.data?.Busca_Licitacoes) ? gasJson.data.Busca_Licitacoes : []);
           gasList.forEach(g => {
-            if (addEditalIfNotExists(g)) adicionadosTCEPB++;
+            if (addEditalIfNotExists(g)) totalAdicionados++;
           });
         }
       } catch (e) {}
     }
 
-    const totalNovos = adicionadosPNCP + adicionadosTCEPB + adicionadosPCP;
-    if (totalNovos > 0) {
+    // Persistência segura sem deixar estourar cota do localStorage impedir a exibição na tela
+    try {
+      saveLocalOnly('Busca_Licitacoes');
+    } catch (storageErr) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.Busca_Licitacoes, JSON.stringify(db.Busca_Licitacoes.slice(0, 300)));
+      } catch (e2) {}
+    }
+
+    renderLicitacoes();
+    document.getElementById('badge-licitacoes').textContent = db.Busca_Licitacoes.length;
+
+    if (sheetsApiUrl && sheetsApiUrl.startsWith('http') && totalAdicionados > 0) {
       saveModule('Busca_Licitacoes');
-    } else {
-      renderLicitacoes();
     }
 
     if (alertBox) {
@@ -2462,9 +2497,7 @@
 
     if (icon) icon.classList.remove('fa-spin');
     if (notify) {
-      showToast(totalNovos > 0
-        ? `${totalNovos} novo(s) edital(is) carregado(s) (PNCP: ${adicionadosPNCP} | TCE-PB: ${adicionadosTCEPB} | PCP: ${adicionadosPCP})!`
-        : 'Consulta concluída! Todos os editais retornados já estão na lista.');
+      showToast(`Varredura concluída! ${db.Busca_Licitacoes.length} edital(is) disponível(is) exibido(s).`);
     }
   }
 
@@ -3120,22 +3153,22 @@
     const recPctPend = recTotal > 0 ? 100 - recPctPago : 0;
 
     document.getElementById('dash-chart-receber').innerHTML = `
-      <div class="flex items-center justify-between text-xs">
-        <span class="text-slate-500 font-semibold">Total Lançado: <strong class="text-contech-navy">${formatBRL(recTotal)}</strong></span>
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="text-slate-500 font-semibold">Total: <strong class="text-contech-navy">${formatBRL(recTotal)}</strong></span>
         <span class="text-emerald-700 font-bold">${recPctPago}% Recebido</span>
       </div>
-      <div class="w-full h-4 bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
+      <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
         <div style="width: ${recPctPago}%" class="bg-emerald-500 transition-all duration-300" title="Recebido: ${formatBRL(recPago)}"></div>
         <div style="width: ${recPctPend}%" class="bg-amber-400 transition-all duration-300" title="Pendente: ${formatBRL(recPendente)}"></div>
       </div>
-      <div class="grid grid-cols-2 gap-3 pt-1 text-xs">
-        <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg">
-          <span class="text-[11px] text-emerald-700 font-semibold block"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Recebido</span>
-          <strong class="text-sm text-emerald-800">${formatBRL(recPago)}</strong>
+      <div class="grid grid-cols-2 gap-2 text-[11px]">
+        <div class="bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+          <span class="text-emerald-700 font-semibold"><i class="fa-solid fa-circle text-[7px] mr-1"></i>Recebido</span>
+          <strong class="text-xs text-emerald-800">${formatBRL(recPago)}</strong>
         </div>
-        <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-lg">
-          <span class="text-[11px] text-amber-700 font-semibold block"><i class="fa-solid fa-circle text-[8px] mr-1"></i>A Receber (Pendente)</span>
-          <strong class="text-sm text-amber-800">${formatBRL(recPendente)}</strong>
+        <div class="bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+          <span class="text-amber-700 font-semibold"><i class="fa-solid fa-circle text-[7px] mr-1"></i>Pendente</span>
+          <strong class="text-xs text-amber-800">${formatBRL(recPendente)}</strong>
         </div>
       </div>
     `;
@@ -3144,40 +3177,39 @@
     const pagPctPago = pagTotal > 0 ? Math.round((pagPago / pagTotal) * 100) : 0;
     const pagPctPend = pagTotal > 0 ? 100 - pagPctPago : 0;
 
-    // Agrupamento por categoria de Contas a Pagar
     const catMap = {};
     db.Contas_Pagar.forEach(p => {
       const cat = p.categoria || 'Outros';
       catMap[cat] = (catMap[cat] || 0) + (parseFloat(p.valor) || 0);
     });
-    const catBars = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cat, val]) => {
+    const catBars = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([cat, val]) => {
       const pct = pagTotal > 0 ? Math.round((val / pagTotal) * 100) : 0;
-      return `<div class="space-y-1">
-        <div class="flex justify-between text-[11px] text-slate-600"><span>${cat}</span><span class="font-bold">${formatBRL(val)} (${pct}%)</span></div>
-        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden"><div style="width: ${pct}%" class="bg-contech-cyan h-full"></div></div>
+      return `<div class="space-y-0.5">
+        <div class="flex justify-between text-[10px] text-slate-600"><span>${cat}</span><span class="font-bold">${formatBRL(val)} (${pct}%)</span></div>
+        <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden"><div style="width: ${pct}%" class="bg-contech-cyan h-full"></div></div>
       </div>`;
     }).join('');
 
     document.getElementById('dash-chart-pagar').innerHTML = `
-      <div class="flex items-center justify-between text-xs">
-        <span class="text-slate-500 font-semibold">Total Lançado: <strong class="text-contech-navy">${formatBRL(pagTotal)}</strong></span>
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="text-slate-500 font-semibold">Total: <strong class="text-contech-navy">${formatBRL(pagTotal)}</strong></span>
         <span class="text-rose-700 font-bold">${pagPctPend}% Em Aberto</span>
       </div>
-      <div class="w-full h-4 bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
+      <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
         <div style="width: ${pagPctPago}%" class="bg-emerald-500 transition-all duration-300" title="Pago: ${formatBRL(pagPago)}"></div>
         <div style="width: ${pagPctPend}%" class="bg-rose-500 transition-all duration-300" title="A Pagar: ${formatBRL(pagPendente)}"></div>
       </div>
-      <div class="grid grid-cols-2 gap-3 pt-1 text-xs">
-        <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg">
-          <span class="text-[11px] text-emerald-700 font-semibold block"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Pago</span>
-          <strong class="text-sm text-emerald-800">${formatBRL(pagPago)}</strong>
+      <div class="grid grid-cols-2 gap-2 text-[11px]">
+        <div class="bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+          <span class="text-emerald-700 font-semibold"><i class="fa-solid fa-circle text-[7px] mr-1"></i>Pago</span>
+          <strong class="text-xs text-emerald-800">${formatBRL(pagPago)}</strong>
         </div>
-        <div class="bg-rose-50 border border-rose-200 p-2.5 rounded-lg">
-          <span class="text-[11px] text-rose-700 font-semibold block"><i class="fa-solid fa-circle text-[8px] mr-1"></i>A Pagar (Pendente)</span>
-          <strong class="text-sm text-rose-800">${formatBRL(pagPendente)}</strong>
+        <div class="bg-rose-50 border border-rose-200 px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+          <span class="text-rose-700 font-semibold"><i class="fa-solid fa-circle text-[7px] mr-1"></i>Pendente</span>
+          <strong class="text-xs text-rose-800">${formatBRL(pagPendente)}</strong>
         </div>
       </div>
-      ${catBars ? `<div class="pt-2 border-t border-slate-100 space-y-2"><p class="text-[10px] font-bold uppercase text-slate-400">Distribuição por Categoria</p>${catBars}</div>` : ''}
+      ${catBars ? `<div class="pt-1.5 border-t border-slate-100 space-y-1">${catBars}</div>` : ''}
     `;
   }
 
