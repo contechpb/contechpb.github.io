@@ -2192,6 +2192,42 @@
     showToast('Lista de licitações limpa.');
   }
 
+  function resolveEditalUrl(l) {
+    if (!l) return 'https://pncp.gov.br/app/editais';
+    const rawLink = String(l.link || '').trim();
+    if (rawLink && /^https?:\/\//i.test(rawLink)) {
+      return rawLink.replace(/"/g, '&quot;');
+    }
+    const portalLower = String(l.portal || '').toLowerCase();
+    if (portalLower.includes('tce-pb') || portalLower.includes('tramita')) {
+      return 'https://tramita.tce.pb.gov.br/tramita/login.jsf?login_novo_mural_licitacoes_generico=1';
+    }
+    if (portalLower.includes('compras públicas') || portalLower.includes('portaldecompraspublicas')) {
+      return 'https://www.portaldecompraspublicas.com.br/';
+    }
+    if (portalLower.includes('compras.gov') || portalLower.includes('comprasnet')) {
+      return 'https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-web/public/compras';
+    }
+    if (portalLower.includes('bll')) {
+      return 'https://bll.org.br/';
+    }
+    if (portalLower.includes('bnc')) {
+      return 'https://bnccompras.com/';
+    }
+    if (portalLower.includes('licitações-e') || portalLower.includes('licitacoes-e')) {
+      return 'https://www.licitacoes-e.com.br/';
+    }
+    if (portalLower.includes('licitanet')) {
+      return 'https://licitanet.com.br/';
+    }
+    const idStr = String(l.id || '');
+    const pncpMatch = idStr.match(/(\d{14})-\d+-(\d+)\/(\d{4})/);
+    if (pncpMatch) {
+      return `https://pncp.gov.br/app/editais/${pncpMatch[1]}/${pncpMatch[3]}/${parseInt(pncpMatch[2], 10)}`;
+    }
+    return 'https://pncp.gov.br/app/editais';
+  }
+
   function renderLicitacoes() {
     const list = getFilteredLicitacoes();
     const totalValorFiltrado = list.reduce((acc, item) => acc + (parseFloat(item.valor) || 0), 0);
@@ -2207,9 +2243,8 @@
     tbody.innerHTML = list.map(l => {
       const st = l.status_edital || 'Em Aberto';
       const jaVirouTarefa = db.Tarefas.some(t => String(t.edital_id || '') === String(l.id) || String(t.titulo || '').includes(String(l.id)));
-      const linkBtn = l.link
-        ? `<a href="${l.link}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-sky-100 text-sky-800 hover:bg-sky-200 font-semibold" title="Abrir edital no portal de origem"><i class="fa-solid fa-up-right-from-square"></i></a>`
-        : '';
+      const urlEdital = resolveEditalUrl(l);
+      const linkBtn = `<a href="${urlEdital}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-sky-100 text-sky-800 hover:bg-sky-200 font-bold" title="Abrir edital: ${urlEdital}"><i class="fa-solid fa-up-right-from-square"></i><span>Link</span></a>`;
       const taskBtn = jaVirouTarefa
         ? `<button onclick="switchTab('tarefas')" class="px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 hover:bg-emerald-200 font-bold" title="Ver tarefa vinculada no módulo Tarefas"><i class="fa-solid fa-check mr-1"></i>Na Tarefa</button>`
         : `<button onclick="criarTarefaDeEdital(${l._idx})" class="px-2.5 py-1 rounded bg-[#FF8A00] text-white hover:bg-amber-600 font-bold shadow-sm transition" title="Enviar este edital para o módulo Tarefas"><i class="fa-solid fa-plus mr-1"></i>Tarefa</button>`;
