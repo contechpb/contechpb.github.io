@@ -572,15 +572,22 @@
             </div>
           </div>
 
-          <!-- Filtros em tempo real: Palavra-chave, UF, Modalidade, Portal e Faixa de Valor Mín/Máx -->
+          <!-- Filtros em tempo real: Palavra-chave, UF, Modalidade, Portal, Faixa de Valor e Ordenação -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
-            <div class="lg:col-span-4 relative">
+            <div class="lg:col-span-3 relative">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
               <input type="text" id="search-lic" oninput="renderLicitacoes()" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarEditaisOnline(true);}" placeholder="Palavra-chave, objeto, município ou órgão..." class="w-full pl-8 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-contech-cyan" />
             </div>
 
             <div class="lg:col-span-2">
-              <select id="filter-lic-uf" onchange="renderLicitacoes()" class="w-full text-xs border border-slate-300 rounded-lg px-2.5 py-2 bg-white font-semibold text-slate-700 focus:outline-none focus:border-contech-cyan">
+              <select id="filter-lic-ordem" onchange="renderLicitacoes()" title="Ordenar editais por data de abertura" class="w-full text-xs border border-slate-300 rounded-lg px-2.5 py-2 bg-white font-bold text-contech-navy focus:outline-none focus:border-contech-cyan">
+                <option value="recentes_longe">Mais recentes ao mais longe</option>
+                <option value="longe_recentes">Mais longe ao mais recente</option>
+              </select>
+            </div>
+
+            <div class="lg:col-span-1">
+              <select id="filter-lic-uf" onchange="renderLicitacoes()" class="w-full text-xs border border-slate-300 rounded-lg px-2 py-2 bg-white font-semibold text-slate-700 focus:outline-none focus:border-contech-cyan">
                 <option value="">UF: Todas</option>
                 <option value="PB">PB (Paraíba)</option>
                 <option value="PE">PE (Pernambuco)</option>
@@ -2116,8 +2123,15 @@
   }
 
   // --- BUSCA LICITAÇÕES (API JSON PNCP + TCE-PB TRAMITA + PORTAL DE COMPRAS PÚBLICAS) ---
+  function parseDataOrdenacao(isoStr) {
+    if (!isoStr) return 0;
+    const d = new Date(String(isoStr).split('T')[0] + 'T00:00:00');
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  }
+
   function getFilteredLicitacoes() {
     const q = (document.getElementById('search-lic')?.value || '').toLowerCase().trim();
+    const ordem = document.getElementById('filter-lic-ordem')?.value || 'recentes_longe';
     const uf = (document.getElementById('filter-lic-uf')?.value || '').toUpperCase().trim();
     const mod = (document.getElementById('filter-lic-modalidade')?.value || '').toLowerCase().trim();
     const portal = (document.getElementById('filter-lic-portal')?.value || '').toLowerCase().trim();
@@ -2126,7 +2140,7 @@
     const minVal = minRaw !== '' && minRaw !== undefined ? parseFloat(minRaw) : null;
     const maxVal = maxRaw !== '' && maxRaw !== undefined ? parseFloat(maxRaw) : null;
 
-    return db.Busca_Licitacoes.map((l, idx) => ({ ...l, _idx: idx })).filter(l => {
+    const filtrados = db.Busca_Licitacoes.map((l, idx) => ({ ...l, _idx: idx })).filter(l => {
       const matchQ = !q || [l.id, l.orgao, l.uf, l.modalidade, l.segmento, l.objeto, l.portal, l.status_edital]
         .some(f => String(f || '').toLowerCase().includes(q));
       const matchUf = !uf || String(l.uf || '').toUpperCase() === uf;
@@ -2137,10 +2151,22 @@
       const matchMax = maxVal === null || isNaN(maxVal) || val <= maxVal;
       return matchQ && matchUf && matchMod && matchPortal && matchMin && matchMax;
     });
+
+    filtrados.sort((a, b) => {
+      const da = parseDataOrdenacao(a.data_abertura);
+      const dbTime = parseDataOrdenacao(b.data_abertura);
+      if (ordem === 'longe_recentes') {
+        return dbTime - da || (a._idx - b._idx);
+      }
+      return da - dbTime || (a._idx - b._idx);
+    });
+
+    return filtrados;
   }
 
   function limparFiltrosLicitacoes() {
     if (document.getElementById('search-lic')) document.getElementById('search-lic').value = '';
+    if (document.getElementById('filter-lic-ordem')) document.getElementById('filter-lic-ordem').value = 'recentes_longe';
     if (document.getElementById('filter-lic-uf')) document.getElementById('filter-lic-uf').value = '';
     if (document.getElementById('filter-lic-modalidade')) document.getElementById('filter-lic-modalidade').value = '';
     if (document.getElementById('filter-lic-portal')) document.getElementById('filter-lic-portal').value = '';
