@@ -213,6 +213,9 @@
       <button onclick="switchTab('relatorios')" id="nav-relatorios" class="nav-btn w-full flex items-center justify-between px-5 py-2.5 text-left hover:bg-white/10 transition">
         <span><i class="fa-solid fa-file-lines w-5 text-emerald-400"></i> Relatórios</span>
       </button>
+      <button onclick="switchTab('administracao')" id="nav-administracao" class="nav-btn w-full flex items-center justify-between px-5 py-2.5 text-left hover:bg-white/10 transition">
+        <span><i class="fa-solid fa-gears w-5 text-amber-400"></i> Administração</span>
+      </button>
     </nav>
 
     <div class="p-3 border-t border-white/15 text-[11px] text-slate-400 text-center">
@@ -235,38 +238,10 @@
         </span>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <!-- Botão Configurar Google Sheets -->
-        <button onclick="openSheetsConfigModal()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm transition">
-          <i class="fa-solid fa-table"></i> Configurar Google Sheets
-        </button>
-
-        <!-- Botão Sincronizar Agora -->
-        <button onclick="syncAllWithGoogleSheets(true)" id="btn-sync-now" class="hidden inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm transition" title="Baixar e atualizar dados da planilha Google Sheets">
-          <i id="sync-icon" class="fa-solid fa-rotate"></i> Sincronizar Nuvem
-        </button>
-
-        <div class="h-5 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-
-        <!-- Backup JSON -->
-        <button onclick="exportFullBackup()" class="inline-flex items-center gap-1.5 bg-contech-navy hover:bg-slate-800 text-white text-xs font-semibold px-3 py-2 rounded-lg transition" title="Exportar todos os módulos em arquivo JSON">
-          <i class="fa-solid fa-download"></i> Exportar JSON
-        </button>
-        <label class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer transition" title="Restaurar dados de um arquivo JSON">
-          <i class="fa-solid fa-upload"></i> Restaurar JSON
-          <input type="file" id="import-json-input" accept=".json" class="hidden" onchange="previewRestoreBackup(event)" />
-        </label>
-
-        <div class="h-5 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-
-        <button onclick="openLgpdModal()" class="inline-flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-semibold px-3 py-2 rounded-lg transition" title="Aviso de Privacidade e Governança LGPD">
-          <i class="fa-solid fa-shield-halved"></i> LGPD
-        </button>
-        <button onclick="openUsersModal()" class="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition" title="Gerenciar usuários e senhas">
-          <i class="fa-solid fa-user-shield"></i> <span id="current-user-label">admin</span>
-        </button>
-        <button onclick="logoutSystem()" class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition" title="Bloquear e sair do sistema">
-          <i class="fa-solid fa-right-from-bracket"></i> Sair
+      <div class="flex items-center gap-2 text-xs text-slate-500">
+        <span class="hidden sm:inline font-medium">Usuário: <strong id="current-user-label" class="text-contech-navy">admin</strong></span>
+        <button onclick="switchTab('administracao')" class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-contech-navy border border-slate-300 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+          <i class="fa-solid fa-gears text-amber-600"></i> Administração
         </button>
       </div>
     </header>
@@ -854,6 +829,48 @@
         <div id="report-preview-card" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4"></div>
       </section>
 
+      <!-- 13. ADMINISTRAÇÃO (ÚLTIMO MÓDULO DA PÁGINA) -->
+      <section id="tab-administracao" class="tab-section hidden space-y-5">
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5">
+          <div class="border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-contech-navy text-base"><i class="fa-solid fa-gears text-amber-500 mr-2"></i>Administração do Sistema</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Gerencie a integração em nuvem, backups JSON, governança LGPD, usuários e encerramento de sessão.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button onclick="openSheetsConfigModal()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition">
+              <i class="fa-solid fa-table"></i> Configurar Google Sheets
+            </button>
+
+            <button onclick="syncAllWithGoogleSheets(true)" id="btn-sync-now" class="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition" title="Baixar e atualizar dados da planilha Google Sheets">
+              <i id="sync-icon" class="fa-solid fa-rotate"></i> Sincronizar Nuvem
+            </button>
+
+            <button onclick="exportFullBackup()" class="inline-flex items-center gap-2 bg-contech-navy hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition" title="Exportar todos os módulos em arquivo JSON">
+              <i class="fa-solid fa-download"></i> Exportar JSON
+            </button>
+
+            <label class="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold px-4 py-2.5 rounded-lg cursor-pointer transition" title="Restaurar dados de um arquivo JSON">
+              <i class="fa-solid fa-upload"></i> Restaurar JSON
+              <input type="file" id="import-json-input" accept=".json" class="hidden" onchange="previewRestoreBackup(event)" />
+            </label>
+
+            <button onclick="openLgpdModal()" class="inline-flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-semibold px-4 py-2.5 rounded-lg transition" title="Aviso de Privacidade e Governança LGPD">
+              <i class="fa-solid fa-shield-halved"></i> LGPD
+            </button>
+
+            <button onclick="openUsersModal()" class="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition" title="Gerenciar usuários e senhas">
+              <i class="fa-solid fa-user-shield"></i> Usuários
+            </button>
+          </div>
+
+          <div class="pt-4 border-t border-slate-200">
+            <button onclick="logoutSystem()" class="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow-sm transition" title="Bloquear e sair do sistema">
+              <i class="fa-solid fa-right-from-bracket"></i> Sair
+            </button>
+          </div>
+        </div>
+      </section>
 
     </main>
   </div>
@@ -1272,10 +1289,9 @@
   function updateSheetsHeaderUI() {
     const btnSync = document.getElementById('btn-sync-now');
     if (sheetsApiUrl && sheetsApiUrl.startsWith('http')) {
-      btnSync.classList.remove('hidden');
+      if (btnSync) btnSync.classList.remove('hidden');
       setSyncIndicator('connected', 'Google Sheets Conectado');
     } else {
-      btnSync.classList.add('hidden');
       setSyncIndicator('local', 'Armazenamento Local');
     }
   }
@@ -1389,7 +1405,8 @@
     estudo: 'Estudo & Atividades Educativas',
     pmi: 'Serviços PMI — Prefeitura Municipal de Itaporanga',
     os: 'Ordens de Serviço (OS)',
-    relatorios: 'Emissão de Relatórios Gerenciais'
+    relatorios: 'Emissão de Relatórios Gerenciais',
+    administracao: 'Administração'
   };
 
   function switchTab(tabId) {
