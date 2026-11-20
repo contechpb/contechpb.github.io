@@ -466,6 +466,7 @@
               <tr class="bg-contech-navy text-white uppercase">
                 <th class="p-3">Descrição</th>
                 <th class="p-3">Categoria</th>
+                <th class="p-3">Parcela</th>
                 <th class="p-3">Vencimento</th>
                 <th class="p-3">Valor</th>
                 <th class="p-3">Status</th>
@@ -492,6 +493,7 @@
               <tr class="bg-contech-navy text-white uppercase">
                 <th class="p-3">Cliente</th>
                 <th class="p-3">Descrição</th>
+                <th class="p-3">Parcela</th>
                 <th class="p-3">Vencimento</th>
                 <th class="p-3">Valor</th>
                 <th class="p-3">Status</th>
@@ -2016,9 +2018,11 @@
 
     document.getElementById(`tbody-${tipo}`).innerHTML = list.map((item, idx) => {
       const liquidado = isPago(item);
+      const parcelaLabel = item.parcela || '1/1';
       return `<tr class="hover:bg-slate-50">
         <td class="p-3 font-bold text-slate-800">${tipo === 'pagar' ? item.descricao : item.cliente}</td>
         <td class="p-3">${tipo === 'pagar' ? item.categoria : item.descricao}</td>
+        <td class="p-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-contech-navy font-mono font-bold">${parcelaLabel}</span></td>
         <td class="p-3">${formatDateBR(item.vencimento)}</td>
         <td class="p-3 font-bold">${formatBRL(item.valor)}</td>
         <td class="p-3">
@@ -2034,7 +2038,7 @@
           <button onclick="deleteRecord('${aba}', ${idx})" class="px-2 py-1 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200" title="Excluir"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>`;
-    }).join('') || `<tr><td colspan="6" class="p-6 text-center text-slate-400">Nenhum lançamento registrado.</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="p-6 text-center text-slate-400">Nenhum lançamento registrado.</td></tr>`;
   }
 
   function baixarLancamento(aba, idx, statusFinal) {
@@ -2049,30 +2053,71 @@
     showToast('Lançamento estornado para Pendente.');
   }
 
+  function addMonthsISO(isoDate, monthsToAdd) {
+    if (!isoDate) return addDaysISO(0);
+    const parts = String(isoDate).split('T')[0].split('-').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return String(isoDate).split('T')[0];
+    const year = parts[0];
+    const monthIndex = parts[1] - 1 + monthsToAdd;
+    const day = parts[2];
+    const firstOfTarget = new Date(year, monthIndex, 1);
+    const lastDayOfTarget = new Date(firstOfTarget.getFullYear(), firstOfTarget.getMonth() + 1, 0).getDate();
+    const safeDay = Math.min(day, lastDayOfTarget);
+    const finalDate = new Date(firstOfTarget.getFullYear(), firstOfTarget.getMonth(), safeDay);
+    const yyyy = finalDate.getFullYear();
+    const mm = String(finalDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(finalDate.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function expandFinanceInstallments(baseData, prefixId) {
+    const qtd = Math.max(1, parseInt(baseData.parcelas, 10) || 1);
+    const baseVenc = baseData.vencimento || addDaysISO(0);
+    const cleanBase = { ...baseData };
+    delete cleanBase.parcelas;
+    const items = [];
+    for (let i = 1; i <= qtd; i++) {
+      items.push({
+        ...cleanBase,
+        id: `${prefixId}${Date.now()}_${i}`,
+        parcela: `${i}/${qtd}`,
+        vencimento: addMonthsISO(baseVenc, i - 1),
+        status: 'Pendente'
+      });
+    }
+    return items;
+  }
+
   function openFinanceModal(tipo) {
     if (tipo === 'pagar') {
       openGenericForm('Nova Conta a Pagar', [
         { id: 'descricao', label: 'Descrição', required: true },
         { id: 'categoria', label: 'Categoria', type: 'select', options: ['Software / Sistemas', 'Energia / Internet', 'Impostos / Taxas', 'Fornecedores', 'Outros'] },
-        { id: 'vencimento', label: 'Vencimento', type: 'date', required: true },
-        { id: 'valor', label: 'Valor (R$)', type: 'number', step: '0.01', required: true }
+        { id: 'parcelas', label: 'Número de Parcelas', type: 'number', value: '1', required: true },
+        { id: 'vencimento', label: 'Vencimento (1ª Parcela)', type: 'date', required: true },
+        { id: 'valor', label: 'Valor da Parcela (R$)', type: 'number', step: '0.01', required: true }
       ], data => {
-        data.id = 'P' + Date.now();
-        data.status = 'Pendente';
-        db.Contas_Pagar.push(data);
+        const parcelasCriadas = expandFinanceInstallments(data, 'P');
+        db.Contas_Pagar.push(...parcelasCriadas);
         saveModule('Contas_Pagar');
+        if (parcelasCriadas.length > 1) {
+          showToast(`${parcelasCriadas.length} parcelas geradas em Contas a Pagar!`);
+        }
       });
     } else {
       openGenericForm('Nova Conta a Receber', [
         { id: 'cliente', label: 'Cliente', required: true },
         { id: 'descricao', label: 'Serviço / Referência', required: true },
-        { id: 'vencimento', label: 'Vencimento', type: 'date', required: true },
-        { id: 'valor', label: 'Valor (R$)', type: 'number', step: '0.01', required: true }
+        { id: 'parcelas', label: 'Número de Parcelas', type: 'number', value: '1', required: true },
+        { id: 'vencimento', label: 'Vencimento (1ª Parcela)', type: 'date', required: true },
+        { id: 'valor', label: 'Valor da Parcela (R$)', type: 'number', step: '0.01', required: true }
       ], data => {
-        data.id = 'R' + Date.now();
-        data.status = 'Pendente';
-        db.Contas_Receber.push(data);
+        const parcelasCriadas = expandFinanceInstallments(data, 'R');
+        db.Contas_Receber.push(...parcelasCriadas);
         saveModule('Contas_Receber');
+        if (parcelasCriadas.length > 1) {
+          showToast(`${parcelasCriadas.length} parcelas geradas em Contas a Receber!`);
+        }
       });
     }
   }
@@ -3805,7 +3850,7 @@
         </div>`;
     } else if (tipo === 'contas_receber') {
       title = 'Relatório de Contas a Receber';
-      headers = ['Cliente', 'Descrição', 'Vencimento', 'Valor (R$)', 'Status'];
+      headers = ['Cliente', 'Descrição', 'Parcela', 'Vencimento', 'Valor (R$)', 'Status'];
       let total = 0;
       db.Contas_Receber.forEach(r => {
         const liq = isReceivedOrPaidStatus(r.status);
@@ -3814,12 +3859,12 @@
         if (!inDateRange(r.vencimento, ini, fim)) return;
         const val = parseMoneyValue(r.valor);
         total += val;
-        rows.push([r.cliente, r.descricao, formatDateBR(r.vencimento), formatBRL(val), liq ? 'Recebido' : 'Pendente']);
+        rows.push([r.cliente, r.descricao, r.parcela || '1/1', formatDateBR(r.vencimento), formatBRL(val), liq ? 'Recebido' : 'Pendente']);
       });
       summaryHtml = `<div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-xs"><strong>Total Listado (${rows.length} títulos):</strong> <span class="text-base font-extrabold text-emerald-800 ml-2">${formatBRL(total)}</span></div>`;
     } else if (tipo === 'contas_pagar') {
       title = 'Relatório de Contas a Pagar';
-      headers = ['Descrição', 'Categoria', 'Vencimento', 'Valor (R$)', 'Status'];
+      headers = ['Descrição', 'Categoria', 'Parcela', 'Vencimento', 'Valor (R$)', 'Status'];
       let total = 0;
       db.Contas_Pagar.forEach(p => {
         const liq = isReceivedOrPaidStatus(p.status);
@@ -3828,7 +3873,7 @@
         if (!inDateRange(p.vencimento, ini, fim)) return;
         const val = parseMoneyValue(p.valor);
         total += val;
-        rows.push([p.descricao, p.categoria, formatDateBR(p.vencimento), formatBRL(val), p.status]);
+        rows.push([p.descricao, p.categoria, p.parcela || '1/1', formatDateBR(p.vencimento), formatBRL(val), p.status]);
       });
       summaryHtml = `<div class="bg-rose-50 border border-rose-200 p-3 rounded-lg text-xs"><strong>Total Listado (${rows.length} contas):</strong> <span class="text-base font-extrabold text-rose-800 ml-2">${formatBRL(total)}</span></div>`;
     } else if (tipo === 'clientes_contabeis' || tipo === 'clientes_gerais') {
