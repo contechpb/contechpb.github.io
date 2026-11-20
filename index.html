@@ -3945,6 +3945,285 @@
     win.document.close();
   }
 
+
+  // =========================================================================
+  // CLIENTES CONTÁBEIS & GERAIS (25 CAMPOS) + FICHA + DASHBOARD
+  // =========================================================================
+  function getParcelamentoTexto(c) {
+    if (Array.isArray(c.parcelamento)) return c.parcelamento.join(', ');
+    return c.parcelamento ? String(c.parcelamento) : '';
+  }
+
+  function renderClienteRow(c, idx, aba) {
+    const parcStr = getParcelamentoTexto(c) || '-';
+    const certDias = c.vencimento_certificado ? daysUntil(c.vencimento_certificado) : null;
+    const certBadge = certDias === null
+      ? '-'
+      : certDias < 0
+        ? `<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold">${formatDateBR(c.vencimento_certificado)} (Vencido)</span>`
+        : certDias <= 30
+          ? `<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">${formatDateBR(c.vencimento_certificado)} (${certDias}d)</span>`
+          : `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">${formatDateBR(c.vencimento_certificado)}</span>`;
+
+    return `
+      <tr class="hover:bg-slate-50">
+        <td class="p-3 font-mono font-bold text-contech-navy whitespace-nowrap">${c.id || '-'}</td>
+        <td class="p-3 font-mono whitespace-nowrap">${c.id_alterdata || '-'}</td>
+        <td class="p-3 font-bold text-slate-800 whitespace-nowrap">${c.nome || '-'}</td>
+        <td class="p-3 font-mono whitespace-nowrap">${c.cpf || '-'}</td>
+        <td class="p-3 font-mono whitespace-nowrap">${c.senha_gov ? '••••••' : '-'}</td>
+        <td class="p-3 font-mono whitespace-nowrap">${c.cnpj || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.inscricao_estadual || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.inscricao_municipal || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${formatDateBR(c.data_abertura)}</td>
+        <td class="p-3 whitespace-nowrap">${formatDateBR(c.data_nascimento)}</td>
+        <td class="p-3 whitespace-nowrap">${certBadge}</td>
+        <td class="p-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-blue-50 text-contech-navy font-semibold">${c.regime || '-'}</span></td>
+        <td class="p-3 whitespace-nowrap">${c.capital_social || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.producoes || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${parcStr}</td>
+        <td class="p-3 whitespace-nowrap">${c.efd || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.mit || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.defis || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.dasn || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.celular || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.rg || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.cnh || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.titulo || '-'}</td>
+        <td class="p-3 whitespace-nowrap">${c.email || '-'}</td>
+        <td class="p-3 font-mono whitespace-nowrap">${c.senha_nfse ? '••••••' : '-'}</td>
+        <td class="p-3 font-mono whitespace-nowrap">${c.senha_email ? '••••••' : '-'}</td>
+        <td class="p-3 text-right space-x-1 whitespace-nowrap">
+          <button onclick="openFichaCliente('${aba}', ${idx})" class="px-2 py-1 rounded bg-slate-100 text-contech-navy hover:bg-slate-200 font-semibold" title="Ver ficha completa"><i class="fa-solid fa-eye"></i></button>
+          <button onclick="openClienteModal('${aba}', ${idx})" class="px-2 py-1 rounded bg-sky-100 text-sky-700 hover:bg-sky-200 font-semibold" title="Editar"><i class="fa-solid fa-pen"></i></button>
+          <button onclick="deleteRecord('${aba}', ${idx})" class="px-2 py-1 rounded bg-rose-100 text-rose-700 hover:bg-rose-200" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+    `;
+  }
+
+  function renderContabeis() {
+    const q = (document.getElementById('search-contabeis')?.value || '').toLowerCase().trim();
+    const regime = (document.getElementById('filter-regime')?.value || '').trim();
+    const list = (db.Clientes_Contabeis || []).map((c, idx) => ({ c: normalizeCliente25Campos(c), idx })).filter(({ c }) => {
+      const matchQ = !q || [c.id, c.id_alterdata, c.nome, c.cpf, c.cnpj, c.email, c.celular, c.regime]
+        .some(v => String(v || '').toLowerCase().includes(q));
+      const matchR = !regime || c.regime === regime;
+      return matchQ && matchR;
+    });
+    document.getElementById('tbody-contabeis').innerHTML = list.map(({ c, idx }) => renderClienteRow(c, idx, 'Clientes_Contabeis')).join('')
+      || '<tr><td colspan="27" class="p-6 text-center text-slate-400">Nenhum cliente contábil encontrado.</td></tr>';
+  }
+
+  function renderGerais() {
+    const q = (document.getElementById('search-gerais')?.value || '').toLowerCase().trim();
+    const regime = (document.getElementById('filter-regime-gerais')?.value || '').trim();
+    const list = (db.Clientes_Gerais || []).map((c, idx) => ({ c: normalizeCliente25Campos(c), idx })).filter(({ c }) => {
+      const matchQ = !q || [c.id, c.id_alterdata, c.nome, c.cpf, c.cnpj, c.email, c.celular, c.regime]
+        .some(v => String(v || '').toLowerCase().includes(q));
+      const matchR = !regime || c.regime === regime;
+      return matchQ && matchR;
+    });
+    document.getElementById('tbody-gerais').innerHTML = list.map(({ c, idx }) => renderClienteRow(c, idx, 'Clientes_Gerais')).join('')
+      || '<tr><td colspan="27" class="p-6 text-center text-slate-400">Nenhum cliente geral encontrado.</td></tr>';
+  }
+
+  function openClienteModal(aba, idx = -1) {
+    const isEdit = idx >= 0 && db[aba] && db[aba][idx];
+    const c = normalizeCliente25Campos(isEdit ? db[aba][idx] : {});
+    const defaultId = isEdit
+      ? c.id
+      : (aba === 'Clientes_Gerais'
+          ? 'G' + String((db.Clientes_Gerais || []).length + 1).padStart(2, '0')
+          : String((db.Clientes_Contabeis || []).length + 1).padStart(3, '0'));
+
+    document.getElementById('c-target-aba').value = aba;
+    document.getElementById('c-edit-index').value = String(isEdit ? idx : -1);
+    document.getElementById('modal-contabil-title').textContent = isEdit
+      ? `Editar Cliente (${aba === 'Clientes_Gerais' ? 'Geral' : 'Contábil'})`
+      : `Novo Cliente (${aba === 'Clientes_Gerais' ? 'Geral' : 'Contábil'})`;
+
+    document.getElementById('c-id').value = defaultId;
+    document.getElementById('c-id-alterdata').value = c.id_alterdata;
+    document.getElementById('c-nome').value = c.nome;
+    document.getElementById('c-cpf').value = c.cpf;
+    document.getElementById('c-nasc').value = c.data_nascimento;
+    document.getElementById('c-rg').value = c.rg;
+    document.getElementById('c-cnh').value = c.cnh;
+    document.getElementById('c-titulo').value = c.titulo;
+    document.getElementById('c-celular').value = c.celular;
+    document.getElementById('c-email').value = c.email;
+    document.getElementById('c-cnpj').value = c.cnpj;
+    document.getElementById('c-ie').value = c.inscricao_estadual;
+    document.getElementById('c-im').value = c.inscricao_municipal;
+    document.getElementById('c-abertura').value = c.data_abertura;
+    document.getElementById('c-regime').value = c.regime || 'Simples Nacional';
+    document.getElementById('c-capital').value = c.capital_social;
+    document.getElementById('c-producoes').value = c.producoes || '';
+    document.getElementById('c-cert').value = c.vencimento_certificado;
+    document.getElementById('c-efd').value = c.efd || 'Não se aplica';
+    document.getElementById('c-mit').value = c.mit || 'Não se aplica';
+    document.getElementById('c-defis').value = c.defis || 'Não se aplica';
+    document.getElementById('c-dasn').value = c.dasn || 'Não se aplica';
+    document.getElementById('c-senhagov').value = c.senha_gov;
+    document.getElementById('c-senhanfse').value = c.senha_nfse;
+    document.getElementById('c-senhaemail').value = c.senha_email;
+
+    const parcSet = new Set(Array.isArray(c.parcelamento) ? c.parcelamento : []);
+    document.querySelectorAll('input[name="c-parc"]').forEach(cb => {
+      cb.checked = parcSet.has(cb.value);
+    });
+
+    openModal('modal-contabil');
+  }
+
+  function saveContabil(e) {
+    e.preventDefault();
+    const aba = document.getElementById('c-target-aba').value || 'Clientes_Contabeis';
+    const editIdx = parseInt(document.getElementById('c-edit-index').value, 10);
+    const parcs = Array.from(document.querySelectorAll('input[name="c-parc"]:checked')).map(cb => cb.value);
+
+    const record = normalizeCliente25Campos({
+      id: document.getElementById('c-id').value,
+      id_alterdata: document.getElementById('c-id-alterdata').value,
+      nome: document.getElementById('c-nome').value,
+      cpf: document.getElementById('c-cpf').value,
+      data_nascimento: document.getElementById('c-nasc').value,
+      rg: document.getElementById('c-rg').value,
+      cnh: document.getElementById('c-cnh').value,
+      titulo: document.getElementById('c-titulo').value,
+      celular: document.getElementById('c-celular').value,
+      email: document.getElementById('c-email').value,
+      cnpj: document.getElementById('c-cnpj').value,
+      inscricao_estadual: document.getElementById('c-ie').value,
+      inscricao_municipal: document.getElementById('c-im').value,
+      data_abertura: document.getElementById('c-abertura').value,
+      regime: document.getElementById('c-regime').value,
+      capital_social: document.getElementById('c-capital').value,
+      producoes: document.getElementById('c-producoes').value,
+      vencimento_certificado: document.getElementById('c-cert').value,
+      parcelamento: parcs,
+      efd: document.getElementById('c-efd').value,
+      mit: document.getElementById('c-mit').value,
+      defis: document.getElementById('c-defis').value,
+      dasn: document.getElementById('c-dasn').value,
+      senha_gov: document.getElementById('c-senhagov').value,
+      senha_nfse: document.getElementById('c-senhanfse').value,
+      senha_email: document.getElementById('c-senhaemail').value
+    });
+
+    if (!Array.isArray(db[aba])) db[aba] = [];
+    if (editIdx >= 0 && db[aba][editIdx]) db[aba][editIdx] = record;
+    else db[aba].push(record);
+
+    syncCertificadosFromClients();
+    saveModule(aba);
+    closeModal('modal-contabil');
+    showToast('Cliente salvo com sucesso!');
+  }
+
+  function openFichaCliente(aba, idx) {
+    const c = normalizeCliente25Campos((db[aba] && db[aba][idx]) || {});
+    const items = [
+      ['ID', c.id], ['ID Alterdata', c.id_alterdata], ['Nome / Razão Social', c.nome],
+      ['CPF', c.cpf], ['CNPJ', c.cnpj], ['Insc. Estadual', c.inscricao_estadual],
+      ['Insc. Municipal', c.inscricao_municipal], ['Data Abertura', formatDateBR(c.data_abertura)],
+      ['Data Nascimento', formatDateBR(c.data_nascimento)], ['Venc. Certificado', formatDateBR(c.vencimento_certificado)],
+      ['Regime', c.regime], ['Capital Social', c.capital_social], ['Produções', c.producoes],
+      ['Parcelamento', getParcelamentoTexto(c)], ['EFD', c.efd], ['MIT', c.mit],
+      ['DEFIS', c.defis], ['DASN', c.dasn], ['Celular', c.celular],
+      ['RG', c.rg], ['CNH', c.cnh], ['Título', c.titulo], ['E-mail', c.email],
+      ['Senha GOV', c.senha_gov || '-'], ['Senha NFSe', c.senha_nfse || '-'], ['Senha E-mail', c.senha_email || '-']
+    ];
+    document.getElementById('ficha-body').innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        ${items.map(([k, v]) => `
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between gap-2">
+            <div><span class="text-[10px] font-bold uppercase text-slate-400 block">${k}</span><strong class="text-slate-800">${v || '-'}</strong></div>
+            ${v && v !== '-' ? `<button onclick="copyText('${String(v).replace(/'/g, "\\'")}', '${k}')" class="text-sky-600 hover:text-sky-800" title="Copiar"><i class="fa-regular fa-copy"></i></button>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+    openModal('modal-ficha');
+  }
+
+  function exportClientesCSV(aba) {
+    const list = (db[aba] || []).map(c => normalizeCliente25Campos(c));
+    if (!list.length) {
+      showToast('Nenhum cliente para exportar.');
+      return;
+    }
+    const headers = [
+      'ID', 'ID_ALTERDATA', 'NOME', 'CPF', 'CNPJ', 'INSC_ESTADUAL', 'INSC_MUNICIPAL',
+      'DATA_ABERTURA', 'DATA_NASCIMENTO', 'VENC_CERTIFICADO', 'REGIME', 'CAPITAL_SOCIAL',
+      'PRODUCOES', 'PARCELAMENTO', 'EFD', 'MIT', 'DEFIS', 'DASN', 'CELULAR', 'RG', 'CNH', 'TITULO', 'EMAIL'
+    ];
+    const rows = list.map(c => [
+      c.id, c.id_alterdata, c.nome, c.cpf, c.cnpj, c.inscricao_estadual, c.inscricao_municipal,
+      c.data_abertura, c.data_nascimento, c.vencimento_certificado, c.regime, c.capital_social,
+      c.producoes, getParcelamentoTexto(c), c.efd, c.mit, c.defis, c.dasn, c.celular, c.rg, c.cnh, c.titulo, c.email
+    ].map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(';'));
+    const csv = '﻿' + [headers.join(';'), ...rows].join('
+');
+    downloadBlob(csv, `${aba}_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;');
+    showToast('CSV exportado com sucesso!');
+  }
+
+  function renderDashboard() {
+    const contabeisCount = (db.Clientes_Contabeis || []).length;
+    const geraisCount = (db.Clientes_Gerais || []).length;
+    const certs = getMergedCertificados();
+    const certsAlerta = certs.filter(c => daysUntil(c.validade) <= 30).length;
+
+    const recPendente = (db.Contas_Receber || []).filter(r => !isReceivedOrPaidStatus(r.status)).reduce((s, r) => s + parseMoneyValue(r.valor), 0);
+    const recPago = (db.Contas_Receber || []).filter(r => isReceivedOrPaidStatus(r.status)).reduce((s, r) => s + parseMoneyValue(r.valor), 0);
+
+    const pagPendente = (db.Contas_Pagar || []).filter(p => !isReceivedOrPaidStatus(p.status)).reduce((s, p) => s + parseMoneyValue(p.valor), 0);
+    const pagPago = (db.Contas_Pagar || []).filter(p => isReceivedOrPaidStatus(p.status)).reduce((s, p) => s + parseMoneyValue(p.valor), 0);
+
+    const pmiAberto = (db.Servicos_PMI || []).filter(p => !isReceivedOrPaidStatus(p.status_pagamento)).reduce((s, p) => s + parseMoneyValue(p.valor), 0);
+
+    document.getElementById('kpi-contabeis').textContent = contabeisCount;
+    document.getElementById('kpi-certificados').textContent = certsAlerta;
+    document.getElementById('kpi-receber').textContent = formatBRL(recPendente);
+    document.getElementById('kpi-pagar').textContent = formatBRL(pagPendente);
+    document.getElementById('kpi-pmi').textContent = formatBRL(pmiAberto);
+
+    document.getElementById('badge-contabeis').textContent = contabeisCount;
+    document.getElementById('badge-gerais').textContent = geraisCount;
+    document.getElementById('badge-certificados').textContent = certs.length;
+    document.getElementById('badge-pagar').textContent = (db.Contas_Pagar || []).length;
+    document.getElementById('badge-receber').textContent = (db.Contas_Receber || []).length;
+    document.getElementById('badge-tarefas').textContent = (db.Tarefas || []).filter(t => getTarefaStatus(t) !== 'Concluído').length;
+    document.getElementById('badge-licitacoes').textContent = (db.Busca_Licitacoes || []).length;
+    document.getElementById('badge-estudo').textContent = (db.Estudo || []).length;
+    document.getElementById('badge-pmi').textContent = (db.Servicos_PMI || []).length;
+    document.getElementById('badge-os').textContent = (db.Ordens_Servico || []).length;
+
+    renderDashboardFinancialCharts(recPendente, recPago, pagPendente, pagPago);
+
+    const certListEl = document.getElementById('dash-cert-list');
+    if (certListEl) {
+      certListEl.innerHTML = certs.slice(0, 5).map(c => {
+        const d = daysUntil(c.validade);
+        const tag = d < 0 ? `<span class="text-xs font-bold text-rose-600">Vencido (${Math.abs(d)}d)</span>` : `<span class="text-xs font-bold text-amber-600">${d} dias</span>`;
+        return `<div class="py-2.5 flex items-center justify-between gap-2"><div><p class="font-bold text-slate-800">${c.titular}</p><p class="text-xs text-slate-400">${formatDateBR(c.validade)} • ${c.origem}</p></div>${tag}</div>`;
+      }).join('') || '<p class="py-4 text-center text-slate-400 text-xs">Nenhum certificado cadastrado.</p>';
+    }
+
+    const taskListEl = document.getElementById('dash-task-list');
+    if (taskListEl) {
+      const pendentes = (db.Tarefas || []).filter(t => getTarefaStatus(t) !== 'Concluído').slice(0, 5);
+      taskListEl.innerHTML = pendentes.map(t => `
+        <div class="py-2.5 flex items-center justify-between gap-2">
+          <div><p class="font-bold text-slate-800">${t.titulo}</p><p class="text-xs text-slate-400">${t.area} • Prazo: ${formatDateBR(t.prazo)}</p></div>
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold ${t.prioridade === 'Alta' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}">${t.prioridade}</span>
+        </div>
+      `).join('') || '<p class="py-4 text-center text-slate-400 text-xs">Nenhuma tarefa pendente.</p>';
+    }
+  }
+
   // =========================================================================
   // INICIALIZAÇÃO
   // =========================================================================
