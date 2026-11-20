@@ -837,6 +837,7 @@
               <select id="rel-status" onchange="generateReportPreview()" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white">
                 <option value="TODOS">Todos os Registros</option>
                 <option value="ABERTOS">Apenas Pendentes / Em Aberto</option>
+                <option value="EMPENHADOS">Apenas Empenhados (PMI)</option>
                 <option value="CONCLUIDOS">Apenas Pagos / Recebidos / Concluídos</option>
               </select>
             </div>
@@ -3902,10 +3903,17 @@
       headers = ['Data', 'Secretaria', 'Serviço', 'Complemento', 'Valor (R$)', 'Status'];
       let total = 0;
       let totalPago = 0;
+      let totalEmpenhado = 0;
       let totalAberto = 0;
       db.Servicos_PMI.forEach(p => {
-        const liq = isReceivedOrPaidStatus(p.status_pagamento);
-        if (statusFilter === 'ABERTOS' && liq) return;
+        const stRaw = String(p.status_pagamento || 'Pendente').trim();
+        const stNorm = stRaw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const liq = isReceivedOrPaidStatus(stRaw);
+        const emp = stNorm.includes('empenhad');
+        const aberto = !liq && !emp;
+
+        if (statusFilter === 'ABERTOS' && !aberto) return;
+        if (statusFilter === 'EMPENHADOS' && !emp) return;
         if (statusFilter === 'CONCLUIDOS' && !liq) return;
         if (!inDateRange(p.data, ini, fim)) return;
         const itemSec = String(p.secretaria || '').trim().toLowerCase();
@@ -3913,14 +3921,16 @@
         const val = parseMoneyValue(p.valor);
         total += val;
         if (liq) totalPago += val;
+        else if (emp) totalEmpenhado += val;
         else totalAberto += val;
-        rows.push([formatDateBR(p.data), p.secretaria, p.servico, p.complemento || '-', formatBRL(val), p.status_pagamento || 'Pendente']);
+        rows.push([formatDateBR(p.data), p.secretaria, p.servico, p.complemento || '-', formatBRL(val), stRaw]);
       });
       summaryHtml = `
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           <div class="bg-indigo-50 border border-indigo-200 p-3 rounded-lg"><span class="text-indigo-700 font-semibold block">Total Serviços PMI (${rows.length} registros)</span><strong class="text-base text-indigo-900">${formatBRL(total)}</strong></div>
-          <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg"><span class="text-emerald-700 font-semibold block">Total Serviços Pagos</span><strong class="text-base text-emerald-800">${formatBRL(totalPago)}</strong></div>
           <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg"><span class="text-amber-700 font-semibold block">Total Em Aberto / Pendente</span><strong class="text-base text-amber-800">${formatBRL(totalAberto)}</strong></div>
+          <div class="bg-sky-50 border border-sky-200 p-3 rounded-lg"><span class="text-sky-700 font-semibold block">Total Empenhado</span><strong class="text-base text-sky-900">${formatBRL(totalEmpenhado)}</strong></div>
+          <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg"><span class="text-emerald-700 font-semibold block">Total Serviços Pagos</span><strong class="text-base text-emerald-800">${formatBRL(totalPago)}</strong></div>
         </div>`;
     } else if (tipo === 'ordens_servico') {
       title = 'Relatório de Ordens de Serviço (OS)';
