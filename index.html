@@ -101,6 +101,10 @@
           <span class="hidden md:inline text-xs font-semibold text-slate-500">CONTECH Contabilidade &amp; Informática</span>
         </div>
         <div class="flex items-center gap-3">
+          <button type="button" id="header-sync-pill" onclick="triggerInstantBidirectionalSync()" title="Sincronização Bidirecional Instantânea" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[11px] font-bold text-slate-700 cursor-pointer">
+            <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+            <span id="header-sync-text">Sync Local</span>
+          </button>
           <div class="text-right">
             <div id="current-user-name" class="text-xs font-extrabold text-navy-900">Administrador</div>
             <div id="current-user-role" class="text-[11px] text-slate-500">Administrador</div>
@@ -422,7 +426,9 @@
         ],
         config: {
           gasUrl: '',
-          autoSyncMinutes: 0,
+          instantSync: true,
+          pollSeconds: 5,
+          cloudVersion: '0',
           lastSyncAt: '',
           lastSyncMessage: 'Aguardando configuração do Google Apps Script.'
         }
@@ -442,13 +448,41 @@
     let AppState = loadState();
     let ActiveRoute = 'dashboard';
     let SidebarVisible = true;
-    let autoSyncTimer = null;
+    let instantPushTimer = null;
+    let cloudPollTimer = null;
+    let isSyncBusy = false;
+    let pendingPushAfterSync = false;
 
-    function saveState() {
+    function saveState(skipCloudPush = false) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(AppState));
       } catch (e) {
         console.error('Erro ao salvar no localStorage:', e);
+      }
+      if (!skipCloudPush) {
+        scheduleInstantPush();
+      }
+    }
+
+    function updateSyncIndicator(status, label) {
+      const dot = document.getElementById('header-sync-dot');
+      const txt = document.getElementById('header-sync-text');
+      const sideBadge = document.getElementById('sidebar-sync-badge');
+      if (dot) {
+        dot.className = 'w-2 h-2 rounded-full ' + (
+          status === 'syncing' ? 'bg-amber-500 animate-ping' :
+          status === 'online' ? 'bg-emerald-500' :
+          status === 'error' ? 'bg-red-500' : 'bg-slate-400'
+        );
+      }
+      if (txt) txt.textContent = label;
+      if (sideBadge) {
+        sideBadge.textContent = label;
+        sideBadge.className = 'font-semibold mt-0.5 ' + (
+          status === 'syncing' ? 'text-amber-300' :
+          status === 'online' ? 'text-emerald-400' :
+          status === 'error' ? 'text-red-400' : 'text-slate-400'
+        );
       }
     }
 
@@ -486,7 +520,7 @@
       document.getElementById('current-user-role').textContent = session.role || 'Operador';
       renderSidebar();
       renderRoute(ActiveRoute);
-      setupAutoSync();
+      initInstantBidirectionalSync();
     }
 
     document.getElementById('login-form').addEventListener('submit', (e) => {
@@ -522,1934 +556,7 @@
     }
 
     // =========================================================================
-    // NAVEGAÇÃO LATERAL FIXA
-    // =========================================================================
-    function toggleSidebar(forceVisible = null) {
-      SidebarVisible = forceVisible !== null ? Boolean(forceVisible) : !SidebarVisible;
-      const sidebar = document.getElementById('sidebar');
-      const label = document.getElementById('toggle-sidebar-label');
-      if (SidebarVisible) {
-        sidebar.classList.remove('hidden');
-        if (label) label.textContent = 'Esconder Menu';
-      } else {
-        sidebar.classList.add('hidden');
-        if (label) label.textContent = 'Exibir Menu';
-      }
-    }
-
-    function renderSidebar() {
-      const nav = document.getElementById('sidebar-nav');
-      if (!nav) return;
-      nav.innerHTML = NAV_ITEMS.map((item) => {
-        const active = ActiveRoute === item.id;
-        return `
-          <button type="button" onclick="navigateTo('${item.id}')"
-            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition cursor-pointer ${
-              active ? 'bg-accent-500 text-white shadow-sm' : 'text-slate-300 hover:bg-navy-900 hover:text-white'
-            }">
-            ${item.icon}
-            <span class="truncate">${escapeHTML(item.label)}</span>
-          </button>
-        `;
-      }).join('');
-    }
-
-    function navigateTo(route) {
-      ActiveRoute = route;
-      renderSidebar();
-      renderRoute(route);
-    }
-
-    function renderRoute(route) {
-      const container = document.getElementById('main-content');
-      if (!container) return;
-      const map = {
-        dashboard: renderDashboard,
-        contabeis: (c) => renderClientes(c, 'contabeis'),
-        gerais: (c) => renderClientes(c, 'gerais'),
-        certificados: renderCertificados,
-        pagar: (c) => renderFinanceiro(c, 'pagar'),
-        receber: (c) => renderFinanceiro(c, 'receber'),
-        tarefas: renderTarefas,
-        licitacoes: renderLicitacoes,
-        pmi: renderPmi,
-        os: renderOrdensServico,
-        estudo: renderEstudo,
-        relatorios: renderRelatorios,
-        administracao: renderAdministracao
-      };
-      (map[route] || renderDashboard)(container);
-    }
-
-    // =========================================================================
-    // 1. PAINEL EXECUTIVO (DASHBOARD)
-    // =========================================================================
-    function getAllCertificates() {
-      const a = (AppState.clientesContabeis || []).filter((c) => c.certificadoVencimento).map((c) => ({ tipo: 'Contábil', cliente: c.nomeRazao, doc: c.cnpj || c.cpf, vencimento: c.certificadoVencimento, celular: c.celular }));
-      const b = (AppState.clientesGerais || []).filter((c) => c.certificadoVencimento).map((c) => ({ tipo: 'Geral / TI', cliente: c.nomeRazao, doc: c.cnpj || c.cpf, vencimento: c.certificadoVencimento, celular: c.celular }));
-      return [...a, ...b].sort((x, y) => String(x.vencimento).localeCompare(String(y.vencimento)));
-    }
-
-    function renderDashboard(container) {
-      const qtdContabeis = (AppState.clientesContabeis || []).length;
-      const certs = getAllCertificates();
-      const certsAlerta = certs.filter((c) => {
-        const d = daysUntil(c.vencimento);
-        return d !== null && d <= 30;
-      });
-
-      const recPendente = (AppState.contasReceber || []).filter((i) => i.status !== 'Recebido').reduce((s, i) => s + Number(i.valor || 0), 0);
-      const recRecebido = (AppState.contasReceber || []).filter((i) => i.status === 'Recebido').reduce((s, i) => s + Number(i.valor || 0), 0);
-      const pagPendente = (AppState.contasPagar || []).filter((i) => i.status !== 'Pago').reduce((s, i) => s + Number(i.valor || 0), 0);
-      const pagPago = (AppState.contasPagar || []).filter((i) => i.status === 'Pago').reduce((s, i) => s + Number(i.valor || 0), 0);
-      const pmiAberto = (AppState.servicosPmi || []).filter((i) => i.status !== 'Pago').reduce((s, i) => s + Number(i.valor || 0), 0);
-
-      const tarefasAtivas = (AppState.tarefas || []).filter((t) => t.status !== 'Concluído').slice(0, 6);
-
-      const catTotals = {};
-      (AppState.contasPagar || []).forEach((p) => {
-        catTotals[p.categoria || 'Outros'] = (catTotals[p.categoria || 'Outros'] || 0) + Number(p.valor || 0);
-      });
-      const maxCat = Math.max(1, ...Object.values(catTotals));
-
-      const recTotal = Math.max(1, recPendente + recRecebido);
-      const pagTotal = Math.max(1, pagPendente + pagPago);
-
-      container.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Painel Executivo</h2>
-            <p class="text-xs sm:text-sm text-slate-600">Visão consolidada da CONTECH Contabilidade &amp; Informática • Itaporanga - PB</p>
-          </div>
-          <span class="text-xs font-semibold text-slate-500">Atualizado em ${new Date().toLocaleDateString('pt-BR')}</span>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div onclick="navigateTo('contabeis')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-navy-700 transition">
-            <div class="text-xs font-semibold text-slate-500">Clientes Contábeis</div>
-            <div class="text-2xl font-extrabold text-navy-900 mt-1">${qtdContabeis}</div>
-          </div>
-          <div onclick="navigateTo('certificados')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-accent-500 transition">
-            <div class="text-xs font-semibold text-slate-500">Certificados (≤ 30 dias)</div>
-            <div class="text-2xl font-extrabold ${certsAlerta.length ? 'text-red-600' : 'text-emerald-700'} mt-1">${certsAlerta.length}</div>
-          </div>
-          <div onclick="navigateTo('receber')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-emerald-600 transition">
-            <div class="text-xs font-semibold text-slate-500">A Receber (Em Aberto)</div>
-            <div class="text-xl font-extrabold text-emerald-700 mt-1">${formatCurrency(recPendente)}</div>
-          </div>
-          <div onclick="navigateTo('pagar')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-red-600 transition">
-            <div class="text-xs font-semibold text-slate-500">A Pagar (Em Aberto)</div>
-            <div class="text-xl font-extrabold text-red-600 mt-1">${formatCurrency(pagPendente)}</div>
-          </div>
-          <div onclick="navigateTo('pmi')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-accent-500 transition">
-            <div class="text-xs font-semibold text-slate-500">Serviços PMI (Em Aberto)</div>
-            <div class="text-xl font-extrabold text-accent-600 mt-1">${formatCurrency(pmiAberto)}</div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div class="bg-white rounded-2xl p-5 border shadow-sm space-y-4">
-            <h3 class="text-sm font-extrabold text-navy-900">Proporção Financeira (Liquidado vs. Pendente)</h3>
-            <div class="space-y-3 text-xs">
-              <div>
-                <div class="flex justify-between font-semibold mb-1"><span>Contas a Receber</span><span>Recebido: ${formatCurrency(recRecebido)} | Pendente: ${formatCurrency(recPendente)}</span></div>
-                <div class="w-full h-3 rounded-full bg-amber-100 overflow-hidden flex">
-                  <div class="bg-emerald-600 h-full" style="width:${Math.round((recRecebido / recTotal) * 100)}%"></div>
-                </div>
-              </div>
-              <div>
-                <div class="flex justify-between font-semibold mb-1"><span>Contas a Pagar</span><span>Pago: ${formatCurrency(pagPago)} | Pendente: ${formatCurrency(pagPendente)}</span></div>
-                <div class="w-full h-3 rounded-full bg-red-100 overflow-hidden flex">
-                  <div class="bg-navy-800 h-full" style="width:${Math.round((pagPago / pagTotal) * 100)}%"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-2xl p-5 border shadow-sm space-y-3">
-            <h3 class="text-sm font-extrabold text-navy-900">Distribuição de Despesas por Categoria</h3>
-            <div class="space-y-2 text-xs">
-              ${
-                Object.entries(catTotals).map(([cat, val]) => `
-                  <div>
-                    <div class="flex justify-between font-semibold mb-0.5"><span>${escapeHTML(cat)}</span><span>${formatCurrency(val)}</span></div>
-                    <div class="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
-                      <div class="bg-accent-500 h-full" style="width:${Math.round((val / maxCat) * 100)}%"></div>
-                    </div>
-                  </div>
-                `).join('') || `<p class="text-slate-500">Nenhuma despesa lançada.</p>`
-              }
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div class="bg-white rounded-2xl p-5 border shadow-sm space-y-3">
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-extrabold text-navy-900">Radar de Certificados Digitais</h3>
-              <button type="button" onclick="navigateTo('certificados')" class="text-xs font-bold text-accent-600 hover:underline cursor-pointer">Ver todos</button>
-            </div>
-            <div class="divide-y divide-slate-100 text-xs">
-              ${
-                certs.slice(0, 5).map((c) => {
-                  const d = daysUntil(c.vencimento);
-                  const badge = d < 0 ? 'bg-red-100 text-red-700' : d <= 30 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700';
-                  return `
-                    <div class="py-2.5 flex items-center justify-between gap-2">
-                      <div><div class="font-bold text-navy-900">${escapeHTML(c.cliente)}</div><div class="text-[11px] text-slate-500">${escapeHTML(c.tipo)} • Vence em ${formatDateBR(c.vencimento)}</div></div>
-                      <span class="px-2.5 py-0.5 rounded-full font-bold ${badge}">${d < 0 ? 'Vencido' : d + ' dias'}</span>
-                    </div>
-                  `;
-                }).join('') || `<p class="text-slate-500 py-4">Nenhum certificado cadastrado.</p>`
-              }
-            </div>
-          </div>
-
-          <div class="bg-white rounded-2xl p-5 border shadow-sm space-y-3">
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-extrabold text-navy-900">Tarefas Prioritárias Ativas</h3>
-              <button type="button" onclick="navigateTo('tarefas')" class="text-xs font-bold text-accent-600 hover:underline cursor-pointer">Abrir Tarefas</button>
-            </div>
-            <div class="divide-y divide-slate-100 text-xs">
-              ${
-                tarefasAtivas.map((t) => `
-                  <div class="py-2.5 flex items-center justify-between gap-2">
-                    <div><div class="font-bold text-navy-900">${escapeHTML(t.titulo)}</div><div class="text-[11px] text-slate-500">${escapeHTML(t.area)} • Prazo: ${formatDateBR(t.prazo)}</div></div>
-                    <span class="px-2.5 py-0.5 rounded-full font-bold ${t.prioridade === 'Alta' ? 'bg-red-100 text-red-700' : 'bg-navy-100 text-navy-900'}">${escapeHTML(t.prioridade)}</span>
-                  </div>
-                `).join('') || `<p class="text-slate-500 py-4">Nenhuma tarefa pendente.</p>`
-              }
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // =========================================================================
-    // 2. CADASTROS DE CLIENTES (25 CAMPOS + BARRA DE ROLAGEM INFERIOR)
-    // =========================================================================
-    let clientFilter = { query: '', regime: '' };
-
-    function renderClientes(container, kind) {
-      const isContabil = kind === 'contabeis';
-      const list = isContabil ? AppState.clientesContabeis || [] : AppState.clientesGerais || [];
-      const filtered = list.filter((c) => {
-        const q = clientFilter.query.trim().toLowerCase();
-        if (q && ![c.id, c.idAlterdata, c.nomeRazao, c.cnpj, c.cpf, c.email, c.celular].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))) return false;
-        if (clientFilter.regime && c.regimeTributario !== clientFilter.regime) return false;
-        return true;
-      });
-
-      container.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">${isContabil ? 'Clientes Contábeis' : 'Clientes Gerais & Suporte TI'}</h2>
-            <p class="text-xs sm:text-sm text-slate-600">Cadastro completo com 25 campos fiscais, cadastrais, obrigações e credenciais.</p>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" onclick="openClientModal('${kind}')" class="px-4 py-2 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold cursor-pointer">+ Novo Cliente</button>
-            <button type="button" onclick="exportClientsCSV('${kind}')" class="px-3.5 py-2 rounded-xl bg-navy-800 hover:bg-navy-700 text-white text-xs font-semibold cursor-pointer">Exportar CSV</button>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-4 border shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <input type="text" value="${escapeHTML(clientFilter.query)}" oninput="clientFilter.query = this.value; renderRoute('${kind}');" placeholder="Pesquisar por nome, CNPJ, CPF, ID Alterdata..." class="sm:col-span-2 px-3 py-2 rounded-xl border" />
-          <select onchange="clientFilter.regime = this.value; renderRoute('${kind}');" class="px-3 py-2 rounded-xl border bg-white">
-            <option value="">Todos os Regimes Tributários</option>
-            ${REGIMES.map((r) => `<option ${clientFilter.regime === r ? 'selected' : ''}>${r}</option>`).join('')}
-          </select>
-        </div>
-
-        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-          <table class="w-full text-left border-collapse min-w-[2900px]">
-            <thead>
-              <tr class="bg-navy-900 text-white text-[11px] uppercase whitespace-nowrap">
-                <th class="py-3 px-3">ID</th>
-                <th class="py-3 px-3">ID Alterdata</th>
-                <th class="py-3 px-3">Nome / Razão Social</th>
-                <th class="py-3 px-3">CPF</th>
-                <th class="py-3 px-3">RG</th>
-                <th class="py-3 px-3">CNH</th>
-                <th class="py-3 px-3">Título Eleitor</th>
-                <th class="py-3 px-3">Nascimento</th>
-                <th class="py-3 px-3">Celular</th>
-                <th class="py-3 px-3">E-mail</th>
-                <th class="py-3 px-3">CNPJ</th>
-                <th class="py-3 px-3">Insc. Estadual</th>
-                <th class="py-3 px-3">Insc. Municipal</th>
-                <th class="py-3 px-3">Abertura</th>
-                <th class="py-3 px-3">Regime Tributário</th>
-                <th class="py-3 px-3">Capital Social</th>
-                <th class="py-3 px-3">Produções</th>
-                <th class="py-3 px-3">Parcelamentos</th>
-                <th class="py-3 px-3">EFD</th>
-                <th class="py-3 px-3">MIT</th>
-                <th class="py-3 px-3">DEFIS</th>
-                <th class="py-3 px-3">DASN</th>
-                <th class="py-3 px-3">Certificado Digital</th>
-                <th class="py-3 px-3">Senha GOV</th>
-                <th class="py-3 px-3">Senhas NFSe / E-mail</th>
-                <th class="py-3 px-3 sticky right-0 bg-navy-900 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-xs whitespace-nowrap">
-              ${
-                filtered.map((c) => `
-                  <tr class="hover:bg-navy-50/50">
-                    <td class="py-2.5 px-3 font-mono font-bold">${escapeHTML(c.id)}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.idAlterdata || '—')}</td>
-                    <td class="py-2.5 px-3 font-bold text-navy-900">${escapeHTML(c.nomeRazao)}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.cpf || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.rg || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.cnh || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.tituloEleitor || '—')}</td>
-                    <td class="py-2.5 px-3">${formatDateBR(c.dataNascimento)}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.celular || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.email || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.cnpj || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.inscricaoEstadual || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.inscricaoMunicipal || '—')}</td>
-                    <td class="py-2.5 px-3">${formatDateBR(c.dataAbertura)}</td>
-                    <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full bg-navy-100 text-navy-900 font-semibold">${escapeHTML(c.regimeTributario)}</span></td>
-                    <td class="py-2.5 px-3 font-semibold">${formatCurrency(c.capitalSocial)}</td>
-                    <td class="py-2.5 px-3">${escapeHTML((c.producoes || []).join(', ') || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML((c.parcelamentos || []).join(', ') || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.obrigacoes?.EFD || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.obrigacoes?.MIT || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.obrigacoes?.DEFIS || '—')}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(c.obrigacoes?.DASN || '—')}</td>
-                    <td class="py-2.5 px-3 font-semibold">${formatDateBR(c.certificadoVencimento)}</td>
-                    <td class="py-2.5 px-3 font-mono">${escapeHTML(c.senhas?.gov || '—')}</td>
-                    <td class="py-2.5 px-3 font-mono">${escapeHTML([c.senhas?.nfse, c.senhas?.email].filter(Boolean).join(' | ') || '—')}</td>
-                    <td class="py-2.5 px-3 sticky right-0 bg-white border-l text-right space-x-1">
-                      <button type="button" onclick="openClientFicha('${kind}', '${c.id}')" class="px-2.5 py-1 rounded-lg bg-navy-100 text-navy-900 font-semibold cursor-pointer">Ficha</button>
-                      <button type="button" onclick="openClientModal('${kind}', '${c.id}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-semibold cursor-pointer">Editar</button>
-                      <button type="button" onclick="deleteClient('${kind}', '${c.id}')" class="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-semibold cursor-pointer">Excluir</button>
-                    </td>
-                  </tr>
-                `).join('') || `<tr><td colspan="26" class="py-6 text-center text-slate-500">Nenhum cliente encontrado.</td></tr>`
-              }
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    function openClientFicha(kind, id) {
-      const list = kind === 'contabeis' ? AppState.clientesContabeis : AppState.clientesGerais;
-      const c = (list || []).find((x) => x.id === id);
-      if (!c) return;
-      openModal(
-        `Ficha Completa — ${c.nomeRazao}`,
-        `
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div class="p-3 rounded-xl bg-slate-50 border"><strong>ID / Alterdata:</strong> ${escapeHTML(c.id)} / ${escapeHTML(c.idAlterdata || '—')}</div>
-            <div class="p-3 rounded-xl bg-slate-50 border"><strong>Regime:</strong> ${escapeHTML(c.regimeTributario)}</div>
-            <div class="p-3 rounded-xl bg-slate-50 border"><strong>CNPJ / CPF:</strong> ${escapeHTML(c.cnpj || '—')} / ${escapeHTML(c.cpf || '—')}</div>
-            <div class="p-3 rounded-xl bg-slate-50 border"><strong>IE / IM:</strong> ${escapeHTML(c.inscricaoEstadual || '—')} / ${escapeHTML(c.inscricaoMunicipal || '—')}</div>
-            <div class="p-3 rounded-xl bg-slate-50 border"><strong>Celular / E-mail:</strong> ${escapeHTML(c.celular || '—')} • ${escapeHTML(c.email || '—')}</div>
-            <div class="p-3 rounded-xl bg-slate-50 border"><strong>Certificado Digital:</strong> ${formatDateBR(c.certificadoVencimento)}</div>
-            <div class="sm:col-span-2 p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-1.5">
-              <div class="font-bold text-amber-900">Credenciais de Acesso:</div>
-              <div class="flex flex-wrap gap-2">
-                <button type="button" onclick="navigator.clipboard?.writeText('${escapeHTML(c.senhas?.gov || '')}'); showToast('Senha GOV copiada!');" class="px-2.5 py-1 rounded-lg bg-white border font-mono cursor-pointer">GOV: ${escapeHTML(c.senhas?.gov || '—')} (Copiar)</button>
-                <button type="button" onclick="navigator.clipboard?.writeText('${escapeHTML(c.senhas?.nfse || '')}'); showToast('Senha NFSe copiada!');" class="px-2.5 py-1 rounded-lg bg-white border font-mono cursor-pointer">NFSe: ${escapeHTML(c.senhas?.nfse || '—')} (Copiar)</button>
-                <button type="button" onclick="navigator.clipboard?.writeText('${escapeHTML(c.senhas?.email || '')}'); showToast('Senha E-mail copiada!');" class="px-2.5 py-1 rounded-lg bg-white border font-mono cursor-pointer">E-mail: ${escapeHTML(c.senhas?.email || '—')} (Copiar)</button>
-              </div>
-            </div>
-          </div>
-        `
-      );
-    }
-
-    function openClientModal(kind, editId = null) {
-      const isContabil = kind === 'contabeis';
-      const list = isContabil ? AppState.clientesContabeis : AppState.clientesGerais;
-      const item = editId ? (list || []).find((x) => x.id === editId) : null;
-      const c = item || {
-        id: generateId(isContabil ? 'CC' : 'CG'),
-        idAlterdata: '', nomeRazao: '', cpf: '', rg: '', cnh: '', tituloEleitor: '', dataNascimento: '',
-        celular: '', email: '', cnpj: '', inscricaoEstadual: '', inscricaoMunicipal: '', dataAbertura: '',
-        regimeTributario: 'Simples Nacional', capitalSocial: 0, producoes: [], parcelamentos: [],
-        obrigacoes: { EFD: 'Pendente', MIT: 'N/A', DEFIS: 'Pendente', DASN: 'N/A' },
-        certificadoVencimento: '', senhas: { gov: '', nfse: '', email: '' }
-      };
-
-      openModal(
-        item ? 'Editar Cliente' : 'Novo Cadastro de Cliente',
-        `
-          <form id="client-form" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div><label class="font-semibold">ID *</label><input name="id" required value="${escapeHTML(c.id)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">ID Alterdata</label><input name="idAlterdata" value="${escapeHTML(c.idAlterdata || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Regime Tributário</label><select name="regimeTributario" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${REGIMES.map((r) => `<option ${c.regimeTributario === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
-            <div class="sm:col-span-3"><label class="font-semibold">Nome / Razão Social *</label><input name="nomeRazao" required value="${escapeHTML(c.nomeRazao)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">CNPJ</label><input name="cnpj" value="${escapeHTML(c.cnpj || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">CPF</label><input name="cpf" value="${escapeHTML(c.cpf || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">RG</label><input name="rg" value="${escapeHTML(c.rg || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">CNH</label><input name="cnh" value="${escapeHTML(c.cnh || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Título de Eleitor</label><input name="tituloEleitor" value="${escapeHTML(c.tituloEleitor || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Data Nascimento</label><input type="date" name="dataNascimento" value="${escapeHTML(c.dataNascimento || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Celular</label><input name="celular" value="${escapeHTML(c.celular || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div class="sm:col-span-2"><label class="font-semibold">E-mail</label><input type="email" name="email" value="${escapeHTML(c.email || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Inscrição Estadual</label><input name="inscricaoEstadual" value="${escapeHTML(c.inscricaoEstadual || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Inscrição Municipal</label><input name="inscricaoMunicipal" value="${escapeHTML(c.inscricaoMunicipal || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Data Abertura</label><input type="date" name="dataAbertura" value="${escapeHTML(c.dataAbertura || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Capital Social (R$)</label><input type="number" step="0.01" name="capitalSocial" value="${Number(c.capitalSocial || 0)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Venc. Certificado Digital</label><input type="date" name="certificadoVencimento" value="${escapeHTML(c.certificadoVencimento || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div>
-              <label class="font-semibold block">Produções</label>
-              <div class="flex gap-3 mt-2">${PRODUCOES_OPTS.map((p) => `<label class="inline-flex items-center gap-1"><input type="checkbox" name="producoes" value="${p}" ${(c.producoes || []).includes(p) ? 'checked' : ''} />${p}</label>`).join('')}</div>
-            </div>
-            <div class="sm:col-span-3">
-              <label class="font-semibold block">Parcelamentos Ativos</label>
-              <div class="flex flex-wrap gap-3 mt-1.5">${PARCELAMENTOS_OPTS.map((p) => `<label class="inline-flex items-center gap-1"><input type="checkbox" name="parcelamentos" value="${p}" ${(c.parcelamentos || []).includes(p) ? 'checked' : ''} />${p}</label>`).join('')}</div>
-            </div>
-            ${OBRIGACOES_KEYS.map((k) => `
-              <div><label class="font-semibold">Obrigação ${k}</label><select name="ob_${k}" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${OBRIGACOES_STATUS.map((st) => `<option ${(c.obrigacoes?.[k] || 'N/A') === st ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
-            `).join('')}
-            <div><label class="font-semibold">Senha GOV</label><input name="senhaGov" value="${escapeHTML(c.senhas?.gov || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Senha NFSe</label><input name="senhaNfse" value="${escapeHTML(c.senhas?.nfse || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Senha E-mail</label><input name="senhaEmail" value="${escapeHTML(c.senhas?.email || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-          </form>
-        `,
-        `
-          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
-          <button type="submit" form="client-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar Cliente</button>
-        `
-      );
-
-      document.getElementById('client-form').onsubmit = (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        const rec = {
-          id: fd.get('id').trim(),
-          idAlterdata: fd.get('idAlterdata').trim(),
-          nomeRazao: fd.get('nomeRazao').trim(),
-          cpf: fd.get('cpf').trim(),
-          rg: fd.get('rg').trim(),
-          cnh: fd.get('cnh').trim(),
-          tituloEleitor: fd.get('tituloEleitor').trim(),
-          dataNascimento: fd.get('dataNascimento'),
-          celular: fd.get('celular').trim(),
-          email: fd.get('email').trim(),
-          cnpj: fd.get('cnpj').trim(),
-          inscricaoEstadual: fd.get('inscricaoEstadual').trim(),
-          inscricaoMunicipal: fd.get('inscricaoMunicipal').trim(),
-          dataAbertura: fd.get('dataAbertura'),
-          regimeTributario: fd.get('regimeTributario'),
-          capitalSocial: Number(fd.get('capitalSocial') || 0),
-          producoes: fd.getAll('producoes'),
-          parcelamentos: fd.getAll('parcelamentos'),
-          obrigacoes: { EFD: fd.get('ob_EFD'), MIT: fd.get('ob_MIT'), DEFIS: fd.get('ob_DEFIS'), DASN: fd.get('ob_DASN') },
-          certificadoVencimento: fd.get('certificadoVencimento'),
-          senhas: { gov: fd.get('senhaGov').trim(), nfse: fd.get('senhaNfse').trim(), email: fd.get('senhaEmail').trim() }
-        };
-        const targetArr = isContabil ? AppState.clientesContabeis : AppState.clientesGerais;
-        if (item) {
-          const idx = targetArr.findIndex((x) => x.id === editId);
-          if (idx >= 0) targetArr[idx] = rec;
-        } else {
-          targetArr.unshift(rec);
-        }
-        saveState();
-        closeModal();
-        renderRoute(kind);
-        showToast('Cadastro salvo com sucesso!');
-      };
-    }
-
-    function deleteClient(kind, id) {
-      askConfirm('Excluir Cliente', 'Deseja excluir este cadastro?', () => {
-        if (kind === 'contabeis') AppState.clientesContabeis = AppState.clientesContabeis.filter((x) => x.id !== id);
-        else AppState.clientesGerais = AppState.clientesGerais.filter((x) => x.id !== id);
-        saveState();
-        renderRoute(kind);
-      });
-    }
-
-    function exportClientsCSV(kind) {
-      const list = kind === 'contabeis' ? AppState.clientesContabeis : AppState.clientesGerais;
-      const headers = ['ID', 'ID_Alterdata', 'Nome_Razao', 'CPF', 'CNPJ', 'Regime', 'Celular', 'Email', 'Certificado'];
-      const rows = (list || []).map((c) => [c.id, c.idAlterdata, c.nomeRazao, c.cpf, c.cnpj, c.regimeTributario, c.celular, c.email, c.certificadoVencimento]);
-      downloadCSV(`clientes_${kind}_contech.csv`, headers, rows);
-    }
-
-    // =========================================================================
-    // 3. CONTROLE DE CERTIFICADOS DIGITAIS
-    // =========================================================================
-    function renderCertificados(container) {
-      const certs = getAllCertificates();
-      container.innerHTML = `
-        <div>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Controle de Certificados Digitais</h2>
-          <p class="text-xs sm:text-sm text-slate-600">Sincronizado automaticamente com os cadastros de clientes e envio rápido de aviso via WhatsApp.</p>
-        </div>
-
-        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-          <table class="w-full text-left border-collapse min-w-[680px]">
-            <thead>
-              <tr class="bg-navy-900 text-white text-[11px] uppercase">
-                <th class="py-3 px-3.5">Origem</th>
-                <th class="py-3 px-3.5">Cliente</th>
-                <th class="py-3 px-3.5">Documento</th>
-                <th class="py-3 px-3.5">Vencimento</th>
-                <th class="py-3 px-3.5">Situação</th>
-                <th class="py-3 px-3.5 text-right">WhatsApp</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-xs">
-              ${
-                certs.map((c) => {
-                  const d = daysUntil(c.vencimento);
-                  const badge = d < 0 ? 'bg-red-100 text-red-700' : d <= 30 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700';
-                  const statusTxt = d < 0 ? `Vencido há ${Math.abs(d)} dia(s)` : d <= 30 ? `Vence em ${d} dia(s)` : `No prazo (${d} dias)`;
-                  const phone = String(c.celular || '').replace(/\D/g, '');
-                  const msg = encodeURIComponent(`Olá ${c.cliente}, aqui é da CONTECH Contabilidade & Informática. Lembramos que seu Certificado Digital vence em ${formatDateBR(c.vencimento)}. Podemos agendar a renovação?`);
-                  return `
-                    <tr>
-                      <td class="py-3 px-3.5">${escapeHTML(c.tipo)}</td>
-                      <td class="py-3 px-3.5 font-bold text-navy-900">${escapeHTML(c.cliente)}</td>
-                      <td class="py-3 px-3.5">${escapeHTML(c.doc || '—')}</td>
-                      <td class="py-3 px-3.5 font-semibold">${formatDateBR(c.vencimento)}</td>
-                      <td class="py-3 px-3.5"><span class="px-2.5 py-0.5 rounded-full font-bold ${badge}">${statusTxt}</span></td>
-                      <td class="py-3 px-3.5 text-right">
-                        ${phone ? `<a href="https://wa.me/55${phone}?text=${msg}" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Avisar WhatsApp</a>` : '<span class="text-slate-400">Sem celular</span>'}
-                      </td>
-                    </tr>
-                  `;
-                }).join('') || `<tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhum certificado com data informada.</td></tr>`
-              }
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    // =========================================================================
-    // 4. GESTÃO FINANCEIRA (CONTAS A PAGAR & RECEBER COM ALTERAÇÃO EM LOTE)
-    // =========================================================================
-    let selectedFinIds = { pagar: new Set(), receber: new Set() };
-
-    function toggleFinSelection(kind, id, checked) {
-      if (checked) selectedFinIds[kind].add(id);
-      else selectedFinIds[kind].delete(id);
-      renderRoute(kind);
-    }
-
-    function toggleFinSectionAll(kind, ids, checked) {
-      ids.forEach((id) => {
-        if (checked) selectedFinIds[kind].add(id);
-        else selectedFinIds[kind].delete(id);
-      });
-      renderRoute(kind);
-    }
-
-    function batchSettleFin(kind, targetStatus) {
-      const isPagar = kind === 'pagar';
-      const arr = isPagar ? AppState.contasPagar : AppState.contasReceber;
-      const today = new Date().toISOString().slice(0, 10);
-      arr.forEach((item) => {
-        if (selectedFinIds[kind].has(item.id)) {
-          item.status = targetStatus;
-          if (isPagar) item.dataPagamento = targetStatus === 'Pago' ? today : '';
-          else item.dataRecebimento = targetStatus === 'Recebido' ? today : '';
-        }
-      });
-      selectedFinIds[kind].clear();
-      saveState();
-      renderRoute(kind);
-      showToast(`Lançamentos atualizados para ${targetStatus}!`);
-    }
-
-    function batchDeleteFin(kind) {
-      const count = selectedFinIds[kind].size;
-      if (!count) return;
-      askConfirm('Excluir em Lote', `Deseja excluir ${count} lançamento(s) selecionado(s)?`, () => {
-        if (kind === 'pagar') AppState.contasPagar = AppState.contasPagar.filter((x) => !selectedFinIds.pagar.has(x.id));
-        else AppState.contasReceber = AppState.contasReceber.filter((x) => !selectedFinIds.receber.has(x.id));
-        selectedFinIds[kind].clear();
-        saveState();
-        renderRoute(kind);
-        showToast(`${count} lançamento(s) excluído(s).`);
-      });
-    }
-
-    function openBatchEditFinModal(kind) {
-      const isPagar = kind === 'pagar';
-      const count = selectedFinIds[kind].size;
-      if (!count) return;
-      openModal(
-        `Alterar ${count} Lançamento(s) em Lote`,
-        `
-          <form id="batch-fin-form" class="space-y-3 text-xs">
-            <p class="text-slate-600">Preencha apenas os campos que deseja aplicar a todos os ${count} itens selecionados:</p>
-            <div><label class="font-semibold">Novo Vencimento</label><input type="date" name="vencimento" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Novo Valor (R$)</label><input type="number" step="0.01" name="valor" placeholder="Deixe vazio para manter" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            ${isPagar ? `<div><label class="font-semibold">Nova Categoria</label><select name="categoria" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white"><option value="">Manter atual</option>${DESPESA_CATEGORIAS.map((c) => `<option>${c}</option>`).join('')}</select></div>` : ''}
-            <div><label class="font-semibold">Novo Status</label><select name="status" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white"><option value="">Manter atual</option><option value="Pendente">Pendente</option><option value="${isPagar ? 'Pago' : 'Recebido'}">${isPagar ? 'Pago' : 'Recebido'}</option></select></div>
-          </form>
-        `,
-        `
-          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
-          <button type="submit" form="batch-fin-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Aplicar em Lote</button>
-        `
-      );
-      document.getElementById('batch-fin-form').onsubmit = (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        const venc = fd.get('vencimento');
-        const val = fd.get('valor');
-        const cat = fd.get('categoria');
-        const st = fd.get('status');
-        const arr = isPagar ? AppState.contasPagar : AppState.contasReceber;
-        arr.forEach((item) => {
-          if (selectedFinIds[kind].has(item.id)) {
-            if (venc) item.vencimento = venc;
-            if (val !== '' && val !== null) item.valor = Number(val);
-            if (isPagar && cat) item.categoria = cat;
-            if (st) item.status = st;
-          }
-        });
-        selectedFinIds[kind].clear();
-        saveState();
-        closeModal();
-        renderRoute(kind);
-        showToast('Alterações em lote aplicadas!');
-      };
-    }
-
-    function renderFinanceiro(container, kind) {
-      const isPagar = kind === 'pagar';
-      const settledLabel = isPagar ? 'Pago' : 'Recebido';
-      const list = isPagar ? AppState.contasPagar || [] : AppState.contasReceber || [];
-      const pendentes = list.filter((i) => i.status !== settledLabel);
-      const liquidados = list.filter((i) => i.status === settledLabel);
-
-      const sumPend = pendentes.reduce((s, i) => s + Number(i.valor || 0), 0);
-      const sumLiq = liquidados.reduce((s, i) => s + Number(i.valor || 0), 0);
-      const selSet = selectedFinIds[kind];
-      const selectedTotal = list.filter((i) => selSet.has(i.id)).reduce((s, i) => s + Number(i.valor || 0), 0);
-
-      const renderTable = (rows, sectionTitle, headerBg) => {
-        const idsJson = JSON.stringify(rows.map((r) => r.id)).replace(/"/g, '&quot;');
-        const allChecked = rows.length > 0 && rows.every((r) => selSet.has(r.id));
-        return `
-          <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-            <div class="px-4 py-3 ${headerBg} border-b font-extrabold text-xs text-navy-900 flex justify-between">
-              <span>${sectionTitle} (${rows.length})</span>
-              <span>Total: ${formatCurrency(rows.reduce((s, r) => s + Number(r.valor || 0), 0))}</span>
-            </div>
-            <table class="w-full text-left border-collapse min-w-[740px]">
-              <thead>
-                <tr class="bg-navy-900 text-white text-[11px] uppercase">
-                  <th class="py-2.5 px-3 w-10"><input type="checkbox" ${allChecked ? 'checked' : ''} onchange="toggleFinSectionAll('${kind}', ${idsJson}, this.checked)" /></th>
-                  <th class="py-2.5 px-3">${isPagar ? 'Descrição / Fornecedor' : 'Cliente / Serviço'}</th>
-                  <th class="py-2.5 px-3">${isPagar ? 'Categoria' : 'Parcela'}</th>
-                  <th class="py-2.5 px-3">Vencimento</th>
-                  <th class="py-2.5 px-3">Valor</th>
-                  <th class="py-2.5 px-3">Status</th>
-                  <th class="py-2.5 px-3 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 text-xs">
-                ${
-                  rows.map((r) => `
-                    <tr class="hover:bg-navy-50/50 ${selSet.has(r.id) ? 'bg-accent-50/60' : ''}">
-                      <td class="py-2.5 px-3"><input type="checkbox" ${selSet.has(r.id) ? 'checked' : ''} onchange="toggleFinSelection('${kind}', '${r.id}', this.checked)" /></td>
-                      <td class="py-2.5 px-3">
-                        <div class="font-bold text-navy-900">${escapeHTML(isPagar ? r.descricao : r.cliente)}</div>
-                        <div class="text-[11px] text-slate-500">${escapeHTML(isPagar ? `Parcela ${r.parcela || '1/1'}` : `${r.descricao} (${r.parcela || '1/1'})`)}</div>
-                      </td>
-                      <td class="py-2.5 px-3">${escapeHTML(isPagar ? r.categoria : r.parcela || '1/1')}</td>
-                      <td class="py-2.5 px-3">${formatDateBR(r.vencimento)}</td>
-                      <td class="py-2.5 px-3 font-bold">${formatCurrency(r.valor)}</td>
-                      <td class="py-2.5 px-3"><span class="px-2.5 py-0.5 rounded-full font-bold ${r.status === settledLabel ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}">${escapeHTML(r.status)}</span></td>
-                      <td class="py-2.5 px-3 text-right space-x-1">
-                        <button type="button" onclick="toggleSingleFinStatus('${kind}', '${r.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-semibold cursor-pointer">${r.status === settledLabel ? 'Estornar' : 'Baixar'}</button>
-                        <button type="button" onclick="deleteSingleFin('${kind}', '${r.id}')" class="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-semibold cursor-pointer">Excluir</button>
-                      </td>
-                    </tr>
-                  `).join('') || `<tr><td colspan="7" class="py-5 text-center text-slate-500">Nenhum lançamento nesta seção.</td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        `;
-      };
-
-      container.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">${isPagar ? 'Contas a Pagar' : 'Contas a Receber'}</h2>
-            <p class="text-xs sm:text-sm text-slate-600">Lançamentos em aberto no topo, liquidados na parte inferior e edição/baixa em lote.</p>
-          </div>
-          <button type="button" onclick="openNewFinModal('${kind}')" class="px-4 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold cursor-pointer">
-            + Novo Lançamento
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Total Pendente / Em Aberto</div><div class="text-xl font-extrabold text-accent-600 mt-1">${formatCurrency(sumPend)}</div></div>
-          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Total ${settledLabel}</div><div class="text-xl font-extrabold text-emerald-700 mt-1">${formatCurrency(sumLiq)}</div></div>
-        </div>
-
-        ${
-          selSet.size
-            ? `<div class="bg-navy-900 text-white rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div><strong>${selSet.size} selecionado(s)</strong> • Soma: <strong>${formatCurrency(selectedTotal)}</strong></div>
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" onclick="batchSettleFin('${kind}', '${settledLabel}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 font-bold cursor-pointer">Marcar como ${settledLabel}</button>
-                  <button type="button" onclick="batchSettleFin('${kind}', 'Pendente')" class="px-3 py-1.5 rounded-xl bg-amber-500 text-navy-950 font-bold cursor-pointer">Estornar para Pendente</button>
-                  <button type="button" onclick="openBatchEditFinModal('${kind}')" class="px-3 py-1.5 rounded-xl bg-white text-navy-900 font-bold cursor-pointer">Editar em Lote</button>
-                  <button type="button" onclick="batchDeleteFin('${kind}')" class="px-3 py-1.5 rounded-xl bg-red-600 font-bold cursor-pointer">Excluir Selecionados</button>
-                </div>
-              </div>`
-            : ''
-        }
-
-        ${renderTable(pendentes, 'Pendentes / Em Aberto', 'bg-accent-50')}
-        ${renderTable(liquidados, isPagar ? 'Contas Pagas' : 'Contas Recebidas', 'bg-emerald-50')}
-      `;
-    }
-
-    function openNewFinModal(kind) {
-      const isPagar = kind === 'pagar';
-      openModal(
-        isPagar ? 'Nova Conta a Pagar' : 'Nova Conta a Receber',
-        `
-          <form id="fin-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            ${!isPagar ? `<div class="sm:col-span-2"><label class="font-semibold">Cliente *</label><input name="cliente" required class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>` : ''}
-            <div class="sm:col-span-2"><label class="font-semibold">Descrição *</label><input name="descricao" required class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            ${isPagar ? `<div><label class="font-semibold">Categoria</label><select name="categoria" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${DESPESA_CATEGORIAS.map((c) => `<option>${c}</option>`).join('')}</select></div>` : ''}
-            <div><label class="font-semibold">1º Vencimento *</label><input type="date" name="vencimento" required value="${new Date().toISOString().slice(0, 10)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Valor por Parcela (R$) *</label><input type="number" step="0.01" name="valor" required class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Qtd. Parcelas Mensais</label><input type="number" min="1" max="60" name="parcelas" value="1" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-          </form>
-        `,
-        `
-          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
-          <button type="submit" form="fin-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Lançar</button>
-        `
-      );
-      document.getElementById('fin-form').onsubmit = (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        const totalParcelas = Math.max(1, Number(fd.get('parcelas') || 1));
-        const baseDate = fd.get('vencimento');
-        const val = Number(fd.get('valor') || 0);
-        for (let i = 0; i < totalParcelas; i++) {
-          const parcStr = `${i + 1}/${totalParcelas}`;
-          if (isPagar) {
-            AppState.contasPagar.unshift({ id: generateId('PAG'), descricao: fd.get('descricao').trim(), categoria: fd.get('categoria'), parcela: parcStr, vencimento: addMonthsISO(baseDate, i), valor: val, status: 'Pendente', dataPagamento: '' });
-          } else {
-            AppState.contasReceber.unshift({ id: generateId('REC'), cliente: fd.get('cliente').trim(), descricao: fd.get('descricao').trim(), parcela: parcStr, vencimento: addMonthsISO(baseDate, i), valor: val, status: 'Pendente', dataRecebimento: '' });
-          }
-        }
-        saveState();
-        closeModal();
-        renderRoute(kind);
-        showToast(`${totalParcelas} parcela(s) lançada(s)!`);
-      };
-    }
-
-    function toggleSingleFinStatus(kind, id) {
-      const isPagar = kind === 'pagar';
-      const settled = isPagar ? 'Pago' : 'Recebido';
-      const arr = isPagar ? AppState.contasPagar : AppState.contasReceber;
-      const item = arr.find((x) => x.id === id);
-      if (item) {
-        item.status = item.status === settled ? 'Pendente' : settled;
-        saveState();
-        renderRoute(kind);
-      }
-    }
-
-    function deleteSingleFin(kind, id) {
-      askConfirm('Excluir Lançamento', 'Deseja excluir este lançamento?', () => {
-        if (kind === 'pagar') AppState.contasPagar = AppState.contasPagar.filter((x) => x.id !== id);
-        else AppState.contasReceber = AppState.contasReceber.filter((x) => x.id !== id);
-        saveState();
-        renderRoute(kind);
-      });
-    }
-
-    // =========================================================================
-    // 5. TAREFAS & PRAZOS
-    // =========================================================================
-    function renderTarefas(container) {
-      const list = AppState.tarefas || [];
-      const ativas = list.filter((t) => t.status !== 'Concluído');
-      const concluidas = list.filter((t) => t.status === 'Concluído');
-
-      const renderTaskCard = (t) => `
-        <div class="bg-white rounded-2xl p-4 border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <div class="flex flex-wrap items-center gap-2 text-xs mb-1">
-              <span class="px-2.5 py-0.5 rounded-full font-bold bg-navy-100 text-navy-900">${escapeHTML(t.area)}</span>
-              <span class="px-2.5 py-0.5 rounded-full font-bold ${t.prioridade === 'Alta' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${escapeHTML(t.prioridade)}</span>
-              <span class="text-slate-500">Prazo: <strong>${formatDateBR(t.prazo)}</strong></span>
-            </div>
-            <div class="font-extrabold text-sm text-navy-900">${escapeHTML(t.titulo)}</div>
-          </div>
-          <div class="flex flex-wrap items-center gap-2 text-xs shrink-0">
-            <select onchange="updateTarefaStatus('${t.id}', this.value)" class="px-2.5 py-1.5 rounded-xl border bg-white font-semibold">
-              ${['Pendente', 'Em andamento', 'Concluído'].map((st) => `<option ${t.status === st ? 'selected' : ''}>${st}</option>`).join('')}
-            </select>
-            <button type="button" onclick="openTarefaModal('${t.id}')" class="px-2.5 py-1.5 rounded-xl bg-amber-100 text-amber-900 font-semibold cursor-pointer">Editar</button>
-            <button type="button" onclick="deleteTarefa('${t.id}')" class="px-2.5 py-1.5 rounded-xl bg-red-100 text-red-700 font-semibold cursor-pointer">Excluir</button>
-          </div>
-        </div>
-      `;
-
-      container.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Tarefas &amp; Prazos Operacionais</h2>
-            <p class="text-xs sm:text-sm text-slate-600">Controle de demandas por setor com priorização e acompanhamento de status.</p>
-          </div>
-          <button type="button" onclick="openTarefaModal()" class="px-4 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold cursor-pointer">
-            + Nova Tarefa
-          </button>
-        </div>
-
-        <div class="space-y-3">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy-900">Tarefas Ativas (${ativas.length})</h3>
-          ${ativas.map(renderTaskCard).join('') || `<p class="text-xs text-slate-500">Nenhuma tarefa ativa.</p>`}
-        </div>
-
-        <div class="space-y-3 pt-2">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Concluídas (${concluidas.length})</h3>
-          ${concluidas.map(renderTaskCard).join('') || `<p class="text-xs text-slate-500">Nenhuma tarefa concluída.</p>`}
-        </div>
-      `;
-    }
-
-    function openTarefaModal(editId = null, prefill = null) {
-      const item = editId ? (AppState.tarefas || []).find((x) => x.id === editId) : null;
-      const t = item || prefill || { titulo: '', area: TAREFA_AREAS[0], prioridade: 'Média', prazo: addDaysISO(3), status: 'Pendente', responsavel: '' };
-
-      openModal(
-        item ? 'Editar Tarefa' : 'Nova Tarefa',
-        `
-          <form id="tarefa-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div class="sm:col-span-2"><label class="font-semibold">Título *</label><input name="titulo" required value="${escapeHTML(t.titulo)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Área</label><select name="area" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${TAREFA_AREAS.map((a) => `<option ${t.area === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
-            <div><label class="font-semibold">Prioridade</label><select name="prioridade" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${['Alta', 'Média', 'Baixa'].map((p) => `<option ${t.prioridade === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
-            <div><label class="font-semibold">Prazo *</label><input type="date" name="prazo" required value="${escapeHTML(t.prazo)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Responsável</label><input name="responsavel" value="${escapeHTML(t.responsavel || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-          </form>
-        `,
-        `
-          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
-          <button type="submit" form="tarefa-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar Tarefa</button>
-        `
-      );
-      document.getElementById('tarefa-form').onsubmit = (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        const rec = {
-          id: item ? item.id : generateId('TAR'),
-          titulo: fd.get('titulo').trim(),
-          area: fd.get('area'),
-          prioridade: fd.get('prioridade'),
-          prazo: fd.get('prazo'),
-          status: item ? item.status : 'Pendente',
-          responsavel: fd.get('responsavel').trim()
-        };
-        if (item) {
-          const idx = AppState.tarefas.findIndex((x) => x.id === item.id);
-          if (idx >= 0) AppState.tarefas[idx] = rec;
-        } else {
-          AppState.tarefas.unshift(rec);
-        }
-        saveState();
-        closeModal();
-        renderRoute('tarefas');
-        showToast('Tarefa salva!');
-      };
-    }
-
-    function updateTarefaStatus(id, status) {
-      const t = (AppState.tarefas || []).find((x) => x.id === id);
-      if (t) {
-        t.status = status;
-        saveState();
-        renderRoute('tarefas');
-      }
-    }
-
-    function deleteTarefa(id) {
-      askConfirm('Excluir Tarefa', 'Deseja remover esta tarefa?', () => {
-        AppState.tarefas = AppState.tarefas.filter((x) => x.id !== id);
-        saveState();
-        renderRoute('tarefas');
-      });
-    }
-
-    // =========================================================================
-    // 7. BUSCA & MONITORAMENTO DE LICITAÇÕES (20 PORTAIS INTEGRADOS)
-    // =========================================================================
-    let licitacaoFilter = {
-      query: '',
-      uf: 'PB',
-      portal: '',
-      modalidade: '',
-      maxDate: '',
-      minVal: '',
-      maxVal: '',
-      sort: 'recentes'
-    };
-    let liveTenderResults = [];
-    let liveTenderSources = [];
-    let isFetchingTenders = false;
-
-    function detectTenderPortal(it) {
-      const sig = [
-        it.usuarioNome || '',
-        it.sistemaOrigem || '',
-        it.linkSistemaOrigem || '',
-        it.orgaoEntidade?.razaoSocial || '',
-        it.unidadeOrgao?.ufSigla || ''
-      ].join(' ').toLowerCase();
-
-      if (sig.includes('compras.gov') || sig.includes('comprasnet') || sig.includes('siasg')) return 'Compras.gov.br (ComprasNet)';
-      if (sig.includes('licitacoes-e') || sig.includes('banco do brasil')) return 'Licitações-e (Banco do Brasil)';
-      if (sig.includes('caixa')) return 'Portal de Compras da Caixa';
-      if (sig.includes('portaldecompraspublicas') || sig.includes('compras públicas')) return 'Portal de Compras Públicas';
-      if (sig.includes('bll')) return 'BLL Compras';
-      if (sig.includes('licitanet')) return 'Licitanet';
-      if (sig.includes('bnc') || sig.includes('bolsa nacional')) return 'BNC (Bolsa Nacional de Compras)';
-      if (sig.includes('licitamais') || sig.includes('licita+brasil')) return 'Licita+Brasil';
-      if (sig.includes('comprasbr')) return 'ComprasBR';
-      if (sig.includes('bbmnet')) return 'BBMNET';
-      if (sig.includes('bec.sp') || sig.includes('bolsa eletrônica de compras')) return 'BEC/SP (Bolsa Eletrônica de Compras de São Paulo)';
-      if (sig.includes('compras.mg')) return 'Portal de Compras MG';
-      if (sig.includes('compras.rs') || sig.includes('celic')) return 'Compras RS';
-      if (sig.includes('compras.rj') || sig.includes('siga')) return 'Compras RJ';
-      if (sig.includes('seap') || sig.includes('comprasparana')) return 'SEAP-PR';
-      if (sig.includes('sislog') || sig.includes('comprasnet.go')) return 'SISLOG (Goiás)';
-      if (sig.includes('compras.mt') || sig.includes('siag')) return 'Compras MT';
-      if (sig.includes('centraldecompras.pb') || sig.includes('paraíba') || sig.includes('governo do estado da paraiba')) return 'Portal de Compras PB (Paraíba)';
-      if (sig.includes('tce.pb') || sig.includes('tramita')) return 'TCE PB';
-      return 'Portal Nacional de Contratações Públicas (PNCP)';
-    }
-
-    function openPortalsDirectoryModal() {
-      openModal(
-        'Diretório dos 20 Portais de Licitações Monitorados',
-        `
-          <div class="space-y-3 text-xs">
-            <p class="text-slate-600">O motor de busca consulta diretamente as APIs abertas (PNCP, Compras.gov.br, TCE-PB, Portal de Compras PB) e classifica automaticamente os editais publicados pelos demais 16 sistemas eletrônicos federados ao PNCP e ao proxy Google Apps Script:</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              ${TENDER_PORTALS_20.map((p, idx) => `
-                <div class="p-2.5 rounded-xl border bg-slate-50 flex items-center justify-between gap-2">
-                  <div>
-                    <div class="font-bold text-navy-900">${idx + 1}. ${escapeHTML(p.name)}</div>
-                    <div class="text-[11px] text-emerald-700 font-semibold">${escapeHTML(p.apiMode)}</div>
-                  </div>
-                  <a href="${p.url}" target="_blank" rel="noopener" class="px-2.5 py-1 rounded-lg bg-navy-900 text-white font-semibold shrink-0">Acessar</a>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `
-      );
-    }
-
-    async function fetchAllTendersFromAPIs() {
-      if (isFetchingTenders) return;
-      isFetchingTenders = true;
-      liveTenderSources = [];
-      renderRoute('licitacoes');
-
-      const uf = licitacaoFilter.uf.trim().toUpperCase();
-      const kw = licitacaoFilter.query.trim().toLowerCase();
-      const aggregated = [];
-
-      const tasks = [];
-
-      // 1. PNCP - Propostas Abertas (paginado até 3 páginas)
-      tasks.push((async () => {
-        try {
-          const dataFinal = addDaysISO(90).replace(/-/g, '');
-          const ufQuery = uf ? `&uf=${encodeURIComponent(uf)}` : '';
-          let count = 0;
-          for (let pag = 1; pag <= 3; pag++) {
-            const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=${dataFinal}${ufQuery}&pagina=${pag}&tamanhoPagina=100`;
-            const res = await fetch(url);
-            if (!res.ok) break;
-            const json = await res.json();
-            const rows = json.data || [];
-            if (!rows.length) break;
-            rows.forEach((it) => {
-              const cnpj = it.orgaoEntidade?.cnpj || '';
-              const ano = it.anoCompra || '';
-              const seq = it.sequencialCompra || '';
-              aggregated.push({
-                id: it.numeroControlePNCP || `PNCP-${cnpj}-${ano}-${seq}`,
-                numeroEdital: `${it.numeroCompra || 'S/N'}/${ano || new Date().getFullYear()}`,
-                orgao: it.orgaoEntidade?.razaoSocial || 'Órgão Público',
-                municipio: it.unidadeOrgao?.municipioNome || '',
-                portal: detectTenderPortal(it),
-                uf: it.unidadeOrgao?.ufSigla || uf || 'BR',
-                modalidade: it.modalidadeNome || 'Pregão Eletrônico',
-                objeto: it.objetoCompra || '',
-                valorEstimado: Number(it.valorTotalEstimado || 0),
-                dataAbertura: String(it.dataAberturaProposta || it.dataPublicacaoPncp || '').slice(0, 10),
-                link: it.linkSistemaOrigem || (cnpj && ano && seq ? `https://pncp.gov.br/app/editais/${cnpj}/${ano}/${seq}` : 'https://pncp.gov.br/app/editais')
-              });
-              count++;
-            });
-            if (rows.length < 100) break;
-          }
-          liveTenderSources.push({ label: 'PNCP (Propostas + Portais Integrados)', count, ok: true });
-        } catch (err) {
-          liveTenderSources.push({ label: 'PNCP (Propostas)', count: 0, ok: false });
-        }
-      })());
-
-      // 2. PNCP - Publicações Recentes (Pregão = 6 e Dispensa = 8)
-      tasks.push((async () => {
-        try {
-          const dtIni = addDaysISO(-10).replace(/-/g, '');
-          const dtFim = addDaysISO(0).replace(/-/g, '');
-          const ufQuery = uf ? `&uf=${encodeURIComponent(uf)}` : '';
-          let count = 0;
-          for (const mod of [6, 8]) {
-            const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?dataInicial=${dtIni}&dataFinal=${dtFim}&codigoModalidadeContratacao=${mod}${ufQuery}&pagina=1&tamanhoPagina=80`;
-            const res = await fetch(url);
-            if (!res.ok) continue;
-            const json = await res.json();
-            (json.data || []).forEach((it) => {
-              const cnpj = it.orgaoEntidade?.cnpj || '';
-              const ano = it.anoCompra || '';
-              const seq = it.sequencialCompra || '';
-              aggregated.push({
-                id: it.numeroControlePNCP || `PNCP-PUB-${cnpj}-${ano}-${seq}`,
-                numeroEdital: `${it.numeroCompra || 'S/N'}/${ano || new Date().getFullYear()}`,
-                orgao: it.orgaoEntidade?.razaoSocial || 'Órgão Público',
-                municipio: it.unidadeOrgao?.municipioNome || '',
-                portal: detectTenderPortal(it),
-                uf: it.unidadeOrgao?.ufSigla || uf || 'BR',
-                modalidade: it.modalidadeNome || (mod === 6 ? 'Pregão Eletrônico' : 'Dispensa'),
-                objeto: it.objetoCompra || '',
-                valorEstimado: Number(it.valorTotalEstimado || 0),
-                dataAbertura: String(it.dataAberturaProposta || it.dataPublicacaoPncp || '').slice(0, 10),
-                link: it.linkSistemaOrigem || (cnpj && ano && seq ? `https://pncp.gov.br/app/editais/${cnpj}/${ano}/${seq}` : 'https://pncp.gov.br/app/editais')
-              });
-              count++;
-            });
-          }
-          liveTenderSources.push({ label: 'PNCP (Publicações Recentes)', count, ok: true });
-        } catch (err) {
-          liveTenderSources.push({ label: 'PNCP (Publicações)', count: 0, ok: false });
-        }
-      })());
-
-      // 3. Compras.gov.br (ComprasNet)
-      tasks.push((async () => {
-        try {
-          const dataMin = addDaysISO(-20);
-          const ufQuery = uf ? `&uf=${encodeURIComponent(uf)}` : '';
-          const url = `https://compras.dados.gov.br/licitacoes/v1/licitacoes.json?data_publicacao_min=${dataMin}${ufQuery}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const json = await res.json();
-          const rows = json._embedded?.licitacoes || [];
-          rows.slice(0, 60).forEach((lic, idx) => {
-            aggregated.push({
-              id: `COMPRASGOV-${lic.identificador || idx}`,
-              numeroEdital: `Aviso ${lic.numero_aviso || idx + 1}`,
-              orgao: `UASG ${lic.uasg || ''} — Compras.gov.br`,
-              municipio: '',
-              portal: 'Compras.gov.br (ComprasNet)',
-              uf: lic.uf || uf || 'BR',
-              modalidade: lic.modalidade ? `Modalidade ${lic.modalidade}` : 'Pregão Eletrônico',
-              objeto: lic.objeto || 'Licitação publicada no portal Compras.gov.br.',
-              valorEstimado: Number(lic.valor_estimado_total || 0),
-              dataAbertura: String(lic.data_abertura_proposta || lic.data_publicacao || '').slice(0, 10),
-              link: 'https://www.gov.br/compras/pt-br'
-            });
-          });
-          liveTenderSources.push({ label: 'Compras.gov.br', count: rows.slice(0, 60).length, ok: true });
-        } catch (err) {
-          liveTenderSources.push({ label: 'Compras.gov.br', count: 0, ok: false });
-        }
-      })());
-
-      // 4. TCE-PB & Portal de Compras PB (quando UF for PB ou vazio)
-      if (!uf || uf === 'PB') {
-        tasks.push((async () => {
-          try {
-            const url = 'https://dados.tce.pb.gov.br/api/3/action/package_search?q=licitacoes&rows=15';
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const json = await res.json();
-            const pkgs = json.result?.results || [];
-            pkgs.forEach((pkg, idx) => {
-              const resUrl = pkg.resources?.[0]?.url || 'https://tramita.tce.pb.gov.br';
-              aggregated.push({
-                id: `TCEPB-${pkg.id || idx}`,
-                numeroEdital: pkg.name || `TCE-PB-${idx + 1}`,
-                orgao: 'TCE-PB — Tribunal de Contas do Estado da Paraíba',
-                municipio: 'Paraíba',
-                portal: 'TCE PB',
-                uf: 'PB',
-                modalidade: 'Mural / Dados Abertos TCE-PB',
-                objeto: `${pkg.title}${pkg.notes ? ' — ' + pkg.notes.slice(0, 160) : ''}`,
-                valorEstimado: 0,
-                dataAbertura: String(pkg.metadata_modified || '').slice(0, 10),
-                link: resUrl
-              });
-            });
-            liveTenderSources.push({ label: 'TCE-PB (Tramita / Dados Abertos)', count: pkgs.length, ok: true });
-          } catch (err) {
-            liveTenderSources.push({ label: 'TCE-PB', count: 0, ok: false });
-          }
-        })());
-
-        tasks.push((async () => {
-          try {
-            const dtIniPb = addDaysISO(-30).replace(/-/g, '');
-            const dtFimPb = addDaysISO(0).replace(/-/g, '');
-            const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?dataInicial=${dtIniPb}&dataFinal=${dtFimPb}&cnpj=08761124000100&pagina=1&tamanhoPagina=50`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const json = await res.json();
-            const rows = json.data || [];
-            rows.forEach((it) => {
-              const ano = it.anoCompra || '';
-              const seq = it.sequencialCompra || '';
-              aggregated.push({
-                id: it.numeroControlePNCP || `COMPRA-PB-${ano}-${seq}`,
-                numeroEdital: `${it.numeroCompra || 'S/N'}/${ano}`,
-                orgao: it.orgaoEntidade?.razaoSocial || 'Governo do Estado da Paraíba',
-                municipio: it.unidadeOrgao?.municipioNome || 'João Pessoa',
-                portal: 'Portal de Compras PB (Paraíba)',
-                uf: 'PB',
-                modalidade: it.modalidadeNome || 'Pregão Eletrônico',
-                objeto: it.objetoCompra || '',
-                valorEstimado: Number(it.valorTotalEstimado || 0),
-                dataAbertura: String(it.dataAberturaProposta || it.dataPublicacaoPncp || '').slice(0, 10),
-                link: it.linkSistemaOrigem || 'https://centraldecompras.pb.gov.br'
-              });
-            });
-            liveTenderSources.push({ label: 'Portal de Compras PB', count: rows.length, ok: true });
-          } catch (err) {
-            liveTenderSources.push({ label: 'Portal de Compras PB', count: 0, ok: false });
-          }
-        })());
-      }
-
-      // 5. Google Apps Script Proxy (se configurado)
-      if (AppState.config?.gasUrl) {
-        tasks.push((async () => {
-          try {
-            const url = `${AppState.config.gasUrl}?action=licitacoes&uf=${encodeURIComponent(uf)}&q=${encodeURIComponent(kw)}`;
-            const res = await fetch(url);
-            const json = await res.json();
-            if (json.success && Array.isArray(json.items)) {
-              json.items.forEach((it) => aggregated.push(it));
-              liveTenderSources.push({ label: 'Google Apps Script (20 Portais)', count: json.items.length, ok: true });
-            }
-          } catch (err) {
-            liveTenderSources.push({ label: 'Apps Script Proxy', count: 0, ok: false });
-          }
-        })());
-      }
-
-      await Promise.all(tasks);
-
-      const dedup = new Map();
-      aggregated.forEach((item) => {
-        if (item.id && !dedup.has(item.id)) dedup.set(item.id, item);
-      });
-      liveTenderResults = Array.from(dedup.values());
-      isFetchingTenders = false;
-      renderRoute('licitacoes');
-      showToast(`${liveTenderResults.length} licitações encontradas nos portais!`);
-    }
-
-    function filterTenderList(items) {
-      const q = licitacaoFilter.query.trim().toLowerCase();
-      const uf = licitacaoFilter.uf.trim().toUpperCase();
-      const portal = licitacaoFilter.portal;
-      const mod = licitacaoFilter.modalidade.trim().toLowerCase();
-      const maxDate = licitacaoFilter.maxDate;
-      const minVal = licitacaoFilter.minVal !== '' ? Number(licitacaoFilter.minVal) : null;
-      const maxVal = licitacaoFilter.maxVal !== '' ? Number(licitacaoFilter.maxVal) : null;
-
-      return items
-        .filter((it) => {
-          if (uf && String(it.uf || '').toUpperCase() !== uf) return false;
-          if (portal && it.portal !== portal) return false;
-          if (mod && !String(it.modalidade || '').toLowerCase().includes(mod)) return false;
-          if (maxDate && it.dataAbertura && it.dataAbertura > maxDate) return false;
-          if (minVal !== null && Number(it.valorEstimado || 0) < minVal) return false;
-          if (maxVal !== null && Number(it.valorEstimado || 0) > maxVal) return false;
-          if (q) {
-            const hay = `${it.objeto} ${it.orgao} ${it.municipio || ''} ${it.numeroEdital} ${it.portal}`.toLowerCase();
-            if (!hay.includes(q)) return false;
-          }
-          return true;
-        })
-        .sort((a, b) => {
-          const da = String(a.dataAbertura || '');
-          const db = String(b.dataAbertura || '');
-          return licitacaoFilter.sort === 'longe' ? db.localeCompare(da) : da.localeCompare(db);
-        });
-    }
-
-    function saveTenderToLocal(idx) {
-      const filteredLive = filterTenderList(liveTenderResults);
-      const item = filteredLive[idx];
-      if (!item) return;
-      if ((AppState.licitacoes || []).some((x) => x.id === item.id)) {
-        showToast('Este edital já está salvo na sua base.', 'warning');
-        return;
-      }
-      AppState.licitacoes.unshift({ ...item });
-      saveState();
-      renderRoute('licitacoes');
-      showToast('Edital salvo na base monitorada!');
-    }
-
-    function convertTenderToTask(titulo, orgao, prazo) {
-      openTarefaModal(null, {
-        titulo: `Analisar Edital: ${titulo} (${orgao})`,
-        area: 'Licitações',
-        prioridade: 'Alta',
-        prazo: prazo || addDaysISO(3),
-        status: 'Pendente',
-        responsavel: 'Setor Licitações'
-      });
-    }
-
-    function openManualTenderModal() {
-      openModal(
-        'Incluir Edital Manualmente',
-        `
-          <form id="manual-tender-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div><label class="font-semibold">Nº Edital *</label><input name="numeroEdital" required placeholder="PE 015/2026" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Portal</label><select name="portal" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${TENDER_PORTALS_20.map((p) => `<option>${escapeHTML(p.name)}</option>`).join('')}</select></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Órgão / Município *</label><input name="orgao" required placeholder="Prefeitura Municipal de Itaporanga - PB" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">UF</label><input name="uf" value="PB" maxlength="2" class="w-full mt-1 px-3 py-2 rounded-xl border uppercase" /></div>
-            <div><label class="font-semibold">Modalidade</label><input name="modalidade" value="Pregão Eletrônico" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Data Abertura</label><input type="date" name="dataAbertura" value="${addDaysISO(5)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Valor Estimado (R$)</label><input type="number" step="0.01" name="valorEstimado" value="0" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Objeto *</label><textarea name="objeto" rows="3" required class="w-full mt-1 px-3 py-2 rounded-xl border"></textarea></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Link do Edital</label><input name="link" placeholder="https://..." class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-          </form>
-        `,
-        `
-          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
-          <button type="submit" form="manual-tender-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar Edital</button>
-        `
-      );
-      document.getElementById('manual-tender-form').onsubmit = (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        AppState.licitacoes.unshift({
-          id: generateId('LIC'),
-          numeroEdital: fd.get('numeroEdital').trim(),
-          portal: fd.get('portal'),
-          orgao: fd.get('orgao').trim(),
-          uf: fd.get('uf').trim().toUpperCase(),
-          modalidade: fd.get('modalidade').trim(),
-          dataAbertura: fd.get('dataAbertura'),
-          valorEstimado: Number(fd.get('valorEstimado') || 0),
-          objeto: fd.get('objeto').trim(),
-          link: fd.get('link').trim()
-        });
-        saveState();
-        closeModal();
-        renderRoute('licitacoes');
-        showToast('Edital adicionado!');
-      };
-    }
-
-    function renderLicitacoes(container) {
-      const filteredLive = filterTenderList(liveTenderResults);
-      const filteredSaved = filterTenderList(AppState.licitacoes || []);
-
-      container.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Busca &amp; Monitoramento de Licitações</h2>
-            <p class="text-xs sm:text-sm text-slate-600">Integração via API com os 20 principais portais (PNCP, Compras.gov.br, Licitações-e, Caixa, BLL, BNC, TCE-PB e estaduais).</p>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" onclick="fetchAllTendersFromAPIs()" ${isFetchingTenders ? 'disabled' : ''} class="px-4 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold cursor-pointer disabled:opacity-60">
-              ${isFetchingTenders ? 'Consultando 20 Portais...' : 'Buscar em Todos os Portais (API)'}
-            </button>
-            <button type="button" onclick="openPortalsDirectoryModal()" class="px-3.5 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 text-white text-xs font-semibold cursor-pointer">
-              Ver 20 Portais
-            </button>
-            <button type="button" onclick="openManualTenderModal()" class="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold cursor-pointer">
-              + Incluir Manual
-            </button>
-          </div>
-        </div>
-
-        ${
-          liveTenderSources.length
-            ? `<div class="bg-white rounded-2xl p-3 border shadow-sm flex flex-wrap items-center gap-2 text-[11px]">
-                <span class="font-bold text-navy-900">Status das Fontes:</span>
-                ${liveTenderSources.map((s) => `<span class="px-2.5 py-1 rounded-full font-semibold ${s.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'}">${escapeHTML(s.label)}: ${s.count}</span>`).join('')}
-              </div>`
-            : ''
-        }
-
-        <div class="bg-white rounded-2xl p-4 border shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-          <input type="text" value="${escapeHTML(licitacaoFilter.query)}" oninput="licitacaoFilter.query = this.value; renderRoute('licitacoes');" placeholder="Palavra-chave (ex: contabilidade, TI, informática...)" class="lg:col-span-2 px-3 py-2 rounded-xl border" />
-          <select onchange="licitacaoFilter.portal = this.value; renderRoute('licitacoes');" class="px-3 py-2 rounded-xl border bg-white">
-            <option value="">Todos os 20 Portais</option>
-            ${TENDER_PORTALS_20.map((p) => `<option value="${escapeHTML(p.name)}" ${licitacaoFilter.portal === p.name ? 'selected' : ''}>${escapeHTML(p.name)}</option>`).join('')}
-          </select>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" maxlength="2" value="${escapeHTML(licitacaoFilter.uf)}" oninput="licitacaoFilter.uf = this.value.toUpperCase(); renderRoute('licitacoes');" placeholder="UF (PB)" class="px-3 py-2 rounded-xl border uppercase" />
-            <select onchange="licitacaoFilter.sort = this.value; renderRoute('licitacoes');" class="px-2 py-2 rounded-xl border bg-white">
-              <option value="recentes" ${licitacaoFilter.sort === 'recentes' ? 'selected' : ''}>Recentes → Longe</option>
-              <option value="longe" ${licitacaoFilter.sort === 'longe' ? 'selected' : ''}>Longe → Recentes</option>
-            </select>
-          </div>
-          <input type="text" value="${escapeHTML(licitacaoFilter.modalidade)}" oninput="licitacaoFilter.modalidade = this.value; renderRoute('licitacoes');" placeholder="Modalidade (Pregão, Dispensa...)" class="px-3 py-2 rounded-xl border" />
-          <div><input type="date" value="${escapeHTML(licitacaoFilter.maxDate)}" onchange="licitacaoFilter.maxDate = this.value; renderRoute('licitacoes');" title="Data máxima de abertura" class="w-full px-3 py-2 rounded-xl border" /></div>
-          <input type="number" value="${escapeHTML(licitacaoFilter.minVal)}" oninput="licitacaoFilter.minVal = this.value; renderRoute('licitacoes');" placeholder="Valor mínimo (R$)" class="px-3 py-2 rounded-xl border" />
-          <input type="number" value="${escapeHTML(licitacaoFilter.maxVal)}" oninput="licitacaoFilter.maxVal = this.value; renderRoute('licitacoes');" placeholder="Valor máximo (R$)" class="px-3 py-2 rounded-xl border" />
-        </div>
-
-        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-          <div class="px-4 py-3 bg-navy-50 border-b flex items-center justify-between text-xs font-extrabold text-navy-900">
-            <span>Resultados das APIs ao Vivo (${filteredLive.length})</span>
-            <button type="button" onclick="downloadCSV('licitacoes_api_contech.csv', ['Edital','Orgao','Portal','UF','Modalidade','Abertura','Valor','Objeto','Link'], ${JSON.stringify(filteredLive.map((i) => [i.numeroEdital, i.orgao, i.portal, i.uf, i.modalidade, i.dataAbertura, i.valorEstimado, i.objeto, i.link])).replace(/"/g, '&quot;')})" class="text-accent-600 hover:underline cursor-pointer">Exportar CSV</button>
-          </div>
-          <table class="w-full text-left border-collapse min-w-[900px]">
-            <thead>
-              <tr class="bg-navy-900 text-white text-[11px] uppercase">
-                <th class="py-2.5 px-3">Edital / Portal</th>
-                <th class="py-2.5 px-3">Órgão / UF</th>
-                <th class="py-2.5 px-3">Objeto</th>
-                <th class="py-2.5 px-3">Abertura</th>
-                <th class="py-2.5 px-3">Valor Est.</th>
-                <th class="py-2.5 px-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-xs">
-              ${
-                filteredLive.slice(0, 120).map((it, idx) => `
-                  <tr class="hover:bg-navy-50/50">
-                    <td class="py-2.5 px-3">
-                      <div class="font-bold text-navy-900">${escapeHTML(it.numeroEdital)}</div>
-                      <span class="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-50 text-accent-600">${escapeHTML(it.portal)}</span>
-                    </td>
-                    <td class="py-2.5 px-3"><div class="font-semibold">${escapeHTML(it.orgao)}</div><div class="text-[11px] text-slate-500">${escapeHTML(it.municipio ? it.municipio + ' - ' : '')}${escapeHTML(it.uf)} • ${escapeHTML(it.modalidade)}</div></td>
-                    <td class="py-2.5 px-3 max-w-md"><div class="line-clamp-2">${escapeHTML(it.objeto)}</div></td>
-                    <td class="py-2.5 px-3 whitespace-nowrap">${formatDateBR(it.dataAbertura)}</td>
-                    <td class="py-2.5 px-3 font-bold whitespace-nowrap">${it.valorEstimado ? formatCurrency(it.valorEstimado) : 'Sigiloso / N/I'}</td>
-                    <td class="py-2.5 px-3 text-right whitespace-nowrap space-x-1">
-                      <button type="button" onclick="saveTenderToLocal(${idx})" class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-semibold cursor-pointer">Salvar</button>
-                      <button type="button" onclick="convertTenderToTask('${escapeHTML(it.numeroEdital)}', '${escapeHTML(it.orgao)}', '${escapeHTML(it.dataAbertura)}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-semibold cursor-pointer">+ Tarefa</button>
-                      ${it.link ? `<a href="${escapeHTML(it.link)}" target="_blank" rel="noopener" class="px-2.5 py-1 rounded-lg bg-navy-900 text-white font-semibold">Edital</a>` : ''}
-                    </td>
-                  </tr>
-                `).join('') || `<tr><td colspan="6" class="py-6 text-center text-slate-500">Clique em <strong>Buscar em Todos os Portais (API)</strong> para consultar editais ao vivo.</td></tr>`
-              }
-            </tbody>
-          </table>
-        </div>
-
-        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-          <div class="px-4 py-3 bg-emerald-50 border-b text-xs font-extrabold text-navy-900">Editais Salvos na Base CONTECH (${filteredSaved.length})</div>
-          <table class="w-full text-left border-collapse min-w-[850px]">
-            <thead>
-              <tr class="bg-navy-900 text-white text-[11px] uppercase">
-                <th class="py-2.5 px-3">Edital / Portal</th>
-                <th class="py-2.5 px-3">Órgão</th>
-                <th class="py-2.5 px-3">Objeto</th>
-                <th class="py-2.5 px-3">Abertura</th>
-                <th class="py-2.5 px-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-xs">
-              ${
-                filteredSaved.map((it) => `
-                  <tr>
-                    <td class="py-2.5 px-3 font-bold">${escapeHTML(it.numeroEdital)} <div class="text-[11px] font-normal text-slate-500">${escapeHTML(it.portal)}</div></td>
-                    <td class="py-2.5 px-3">${escapeHTML(it.orgao)} (${escapeHTML(it.uf)})</td>
-                    <td class="py-2.5 px-3 max-w-md">${escapeHTML(it.objeto)}</td>
-                    <td class="py-2.5 px-3">${formatDateBR(it.dataAbertura)}</td>
-                    <td class="py-2.5 px-3 text-right space-x-1">
-                      <button type="button" onclick="convertTenderToTask('${escapeHTML(it.numeroEdital)}', '${escapeHTML(it.orgao)}', '${escapeHTML(it.dataAbertura)}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-semibold cursor-pointer">+ Tarefa</button>
-                      ${it.link ? `<a href="${escapeHTML(it.link)}" target="_blank" rel="noopener" class="px-2.5 py-1 rounded-lg bg-navy-900 text-white font-semibold">Abrir</a>` : ''}
-                      <button type="button" onclick="AppState.licitacoes = AppState.licitacoes.filter(x => x.id !== '${it.id}'); saveState(); renderRoute('licitacoes');" class="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-semibold cursor-pointer">Remover</button>
-                    </td>
-                  </tr>
-                `).join('') || `<tr><td colspan="5" class="py-5 text-center text-slate-500">Nenhum edital salvo localmente.</td></tr>`
-              }
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    // =========================================================================
-    // 9. SERVIÇOS PMI — PREFEITURA DE ITAPORANGA
-    // =========================================================================
-    function renderPmi(container) {
-      const list = AppState.servicosPmi || [];
-      const abertos = list.filter((i) => i.status !== 'Pago');
-      const pagos = list.filter((i) => i.status === 'Pago');
-
-      const totalGeral = list.reduce((s, i) => s + Number(i.valor || 0), 0);
-      const totalPago = pagos.reduce((s, i) => s + Number(i.valor || 0), 0);
-      const totalAberto = abertos.reduce((s, i) => s + Number(i.valor || 0), 0);
-
-      const renderTable = (rows, title, bg) => `
-        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-          <div class="px-4 py-3 ${bg} border-b font-extrabold text-xs text-navy-900 flex justify-between">
-            <span>${title} (${rows.length})</span>
-            <span>Subtotal: ${formatCurrency(rows.reduce((s, r) => s + Number(r.valor || 0), 0))}</span>
-          </div>
-          <table class="w-full text-left border-collapse min-w-[740px]">
-            <thead>
-              <tr class="bg-navy-900 text-white text-[11px] uppercase">
-                <th class="py-2.5 px-3">Data</th>
-                <th class="py-2.5 px-3">Secretaria</th>
-                <th class="py-2.5 px-3">Serviço / Complemento</th>
-                <th class="py-2.5 px-3">Empenho / NF</th>
-                <th class="py-2.5 px-3">Valor</th>
-                <th class="py-2.5 px-3">Status</th>
-                <th class="py-2.5 px-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-xs">
-              ${
-                rows.map((r) => `
-                  <tr>
-                    <td class="py-2.5 px-3">${formatDateBR(r.data)}</td>
-                    <td class="py-2.5 px-3 font-bold text-navy-900">${escapeHTML(r.secretaria)}</td>
-                    <td class="py-2.5 px-3">${escapeHTML(r.servico)} <div class="text-[11px] text-slate-500">${escapeHTML(r.complemento || '')}</div></td>
-                    <td class="py-2.5 px-3">${escapeHTML(r.empenho || '—')} / ${escapeHTML(r.nf || '—')}</td>
-                    <td class="py-2.5 px-3 font-bold">${formatCurrency(r.valor)}</td>
-                    <td class="py-2.5 px-3"><span class="px-2.5 py-0.5 rounded-full font-bold ${r.status === 'Pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}">${escapeHTML(r.status)}</span></td>
-                    <td class="py-2.5 px-3 text-right space-x-1">
-                      <button type="button" onclick="openPmiModal('${r.id}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-semibold cursor-pointer">Editar</button>
-                      <button type="button" onclick="askConfirm('Excluir Serviço PMI', 'Remover lançamento?', () => { AppState.servicosPmi = AppState.servicosPmi.filter(x => x.id !== '${r.id}'); saveState(); renderRoute('pmi'); })" class="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-semibold cursor-pointer">Excluir</button>
-                    </td>
-                  </tr>
-                `).join('') || `<tr><td colspan="7" class="py-5 text-center text-slate-500">Nenhum registro nesta seção.</td></tr>`
-              }
-            </tbody>
-          </table>
-        </div>
-      `;
-
-      container.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Serviços PMI — Prefeitura de Itaporanga</h2>
-            <p class="text-xs sm:text-sm text-slate-600">Controle por secretaria, empenho, nota fiscal e separação entre pendentes e pagos.</p>
-          </div>
-          <button type="button" onclick="openPmiModal()" class="px-4 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold cursor-pointer">+ Lançar Serviço PMI</button>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Total Geral</div><div class="text-xl font-extrabold text-navy-900 mt-1">${formatCurrency(totalGeral)}</div></div>
-          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Em Aberto</div><div class="text-xl font-extrabold text-accent-600 mt-1">${formatCurrency(totalAberto)}</div></div>
-          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Total Pago</div><div class="text-xl font-extrabold text-emerald-700 mt-1">${formatCurrency(totalPago)}</div></div>
-        </div>
-
-        ${renderTable(abertos, 'Serviços Pendentes / Em Aberto', 'bg-accent-50')}
-        ${renderTable(pagos, 'Serviços Pagos', 'bg-emerald-50')}
-      `;
-    }
-
-    function openPmiModal(editId = null) {
-      const item = editId ? (AppState.servicosPmi || []).find((x) => x.id === editId) : null;
-      const p = item || { data: new Date().toISOString().slice(0, 10), secretaria: '', servico: '', complemento: '', valor: 0, status: 'Pendente', empenho: '', nf: '' };
-
-      openModal(
-        item ? 'Editar Serviço PMI' : 'Novo Serviço PMI',
-        `
-          <form id="pmi-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div><label class="font-semibold">Data *</label><input type="date" name="data" required value="${escapeHTML(p.data)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Status</label><select name="status" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${PMI_STATUSES.map((st) => `<option ${p.status === st ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Secretaria *</label><input name="secretaria" required value="${escapeHTML(p.secretaria)}" placeholder="Ex: Secretaria Municipal de Saúde" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Serviço *</label><input name="servico" required value="${escapeHTML(p.servico)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Complemento</label><input name="complemento" value="${escapeHTML(p.complemento || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Valor (R$) *</label><input type="number" step="0.01" name="valor" required value="${Number(p.valor || 0)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Nº Empenho</label><input name="empenho" value="${escapeHTML(p.empenho || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Nº Nota Fiscal</label><input name="nf" value="${escapeHTML(p.nf || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-          </form>
-        `,
-        `
-          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
-          <button type="submit" form="pmi-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar</button>
-        `
-      );
-      document.getElementById('pmi-form').onsubmit = (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        const rec = {
-          id: item ? item.id : generateId('PMI'),
-          data: fd.get('data'),
-          secretaria: fd.get('secretaria').trim(),
-          servico: fd.get('servico').trim(),
-          complemento: fd.get('complemento').trim(),
-          valor: Number(fd.get('valor') || 0),
-          status: fd.get('status'),
-          empenho: fd.get('empenho').trim(),
-          nf: fd.get('nf').trim()
-        };
-        if (item) {
-          const idx = AppState.servicosPmi.findIndex((x) => x.id === item.id);
-          if (idx >= 0) AppState.servicosPmi[idx] = rec;
-        } else {
-          AppState.servicosPmi.unshift(rec);
-        }
-        saveState();
-        closeModal();
-        renderRoute('pmi');
-        showToast('Serviço PMI salvo!');
-      };
-    }
-
-    // =========================================================================
-    // 10. ORDENS DE SERVIÇO (OS) + IMPRESSÃO / PDF
-    // =========================================================================
-    let osFilter = { query: '', status: '' };
-
-    function renderOrdensServico(container) {
-      const list = AppState.ordensServico || [];
-      const abertas = list.filter((o) => !['Concluída', 'Entregue / Faturada'].includes(o.status)).length;
-      const concluidas = list.filter((o) => ['Concluída', 'Entregue / Faturada'].includes(o.status)).length;
-      const faturamento = list.reduce((s, o) => s + Number(o.valor || 0), 0);
-
-      const filtered = list.filter((o) => {
-        const q = osFilter.query.trim().toLowerCase();
-        if (q && ![o.id, o.clienteNome, o.equipamento, o.defeito].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))) return false;
-        if (osFilter.status && o.status !== osFilter.status) return false;
-        return true;
-      });
-
-      container.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Ordens de Serviço (OS)</h2>
-            <p class="text-xs sm:text-sm text-slate-600">Atendimento técnico de TI com impressão formatada e geração de PDF.</p>
-          </div>
-          <button type="button" onclick="openOsModal()" class="px-4 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold cursor-pointer">+ Nova OS</button>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">OS Abertas / Execução</div><div class="text-2xl font-extrabold text-accent-600 mt-1">${abertas}</div></div>
-          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">OS Concluídas</div><div class="text-2xl font-extrabold text-emerald-700 mt-1">${concluidas}</div></div>
-          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Faturamento OS</div><div class="text-2xl font-extrabold text-navy-900 mt-1">${formatCurrency(faturamento)}</div></div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-4 border shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <input type="text" value="${escapeHTML(osFilter.query)}" oninput="osFilter.query = this.value; renderRoute('os');" placeholder="Buscar OS por número, cliente, equipamento..." class="sm:col-span-2 px-3 py-2 rounded-xl border" />
-          <select onchange="osFilter.status = this.value; renderRoute('os');" class="px-3 py-2 rounded-xl border bg-white">
-            <option value="">Todos os Status</option>
-            ${OS_STATUSES.map((st) => `<option ${osFilter.status === st ? 'selected' : ''}>${st}</option>`).join('')}
-          </select>
-        </div>
-
-        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-          <table class="w-full text-left border-collapse min-w-[740px]">
-            <thead>
-              <tr class="bg-navy-900 text-white text-[11px] uppercase">
-                <th class="py-2.5 px-3">Nº OS / Data</th>
-                <th class="py-2.5 px-3">Cliente</th>
-                <th class="py-2.5 px-3">Equipamento / Serviço</th>
-                <th class="py-2.5 px-3">Valor</th>
-                <th class="py-2.5 px-3">Status</th>
-                <th class="py-2.5 px-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-xs">
-              ${
-                filtered.map((o) => `
-                  <tr>
-                    <td class="py-2.5 px-3 font-mono font-bold">${escapeHTML(o.id)} <div class="font-sans font-normal text-[11px] text-slate-500">${formatDateBR(o.data)}</div></td>
-                    <td class="py-2.5 px-3 font-bold text-navy-900">${escapeHTML(o.clienteNome)} <div class="font-normal text-[11px] text-slate-500">${escapeHTML(o.telefone || '')}</div></td>
-                    <td class="py-2.5 px-3"><strong>${escapeHTML(o.equipamento)}</strong><div class="text-[11px] text-slate-600">${escapeHTML(o.defeito)}</div></td>
-                    <td class="py-2.5 px-3 font-bold">${formatCurrency(o.valor)}</td>
-                    <td class="py-2.5 px-3"><span class="px-2.5 py-0.5 rounded-full font-bold bg-navy-100 text-navy-900">${escapeHTML(o.status)}</span></td>
-                    <td class="py-2.5 px-3 text-right space-x-1">
-                      <button type="button" onclick="printOsDocument('${o.id}')" class="px-2.5 py-1 rounded-lg bg-navy-900 text-white font-semibold cursor-pointer">Imprimir / PDF</button>
-                      <button type="button" onclick="openOsModal('${o.id}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-semibold cursor-pointer">Editar</button>
-                    </td>
-                  </tr>
-                `).join('') || `<tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma OS encontrada.</td></tr>`
-              }
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    function openOsModal(editId = null) {
-      const item = editId ? (AppState.ordensServico || []).find((x) => x.id === editId) : null;
-      const o = item || { id: `OS-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`, data: new Date().toISOString().slice(0, 10), clienteNome: '', telefone: '', equipamento: '', defeito: '', servicoExecutado: '', valor: 0, status: 'Aberta' };
-
-      openModal(
-        item ? 'Editar Ordem de Serviço' : 'Nova Ordem de Serviço',
-        `
-          <form id="os-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div><label class="font-semibold">Nº OS *</label><input name="id" required value="${escapeHTML(o.id)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Data *</label><input type="date" name="data" required value="${escapeHTML(o.data)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Cliente *</label><input name="clienteNome" required value="${escapeHTML(o.clienteNome)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Telefone</label><input name="telefone" value="${escapeHTML(o.telefone || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Equipamento *</label><input name="equipamento" required value="${escapeHTML(o.equipamento)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Defeito Relatado *</label><textarea name="defeito" rows="2" required class="w-full mt-1 px-3 py-2 rounded-xl border">${escapeHTML(o.defeito)}</textarea></div>
-            <div class="sm:col-span-2"><label class="font-semibold">Serviço Executado</label><textarea name="servicoExecutado" rows="2" class="w-full mt-1 px-3 py-2 rounded-xl border">${escapeHTML(o.servicoExecutado || '')}</textarea></div>
-            <div><label class="font-semibold">Valor Total (R$)</label><input type="number" step="0.01" name="valor" value="${Number(o.valor || 0)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-            <div><label class="font-semibold">Status</label><select name="status" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${OS_STATUSES.map((st) => `<option ${o.status === st ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
-          </form>
-        `,
-        `
-          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
-          <button type="submit" form="os-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar OS</button>
-        `
-      );
-      document.getElementById('os-form').onsubmit = (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        const rec = {
-          id: fd.get('id').trim(),
-          data: fd.get('data'),
-          clienteNome: fd.get('clienteNome').trim(),
-          telefone: fd.get('telefone').trim(),
-          equipamento: fd.get('equipamento').trim(),
-          defeito: fd.get('defeito').trim(),
-          servicoExecutado: fd.get('servicoExecutado').trim(),
-          valor: Number(fd.get('valor') || 0),
-          status: fd.get('status')
-        };
-        if (item) {
-          const idx = AppState.ordensServico.findIndex((x) => x.id === item.id);
-          if (idx >= 0) AppState.ordensServico[idx] = rec;
-        } else {
-          AppState.ordensServico.unshift(rec);
-        }
-        saveState();
-        closeModal();
-        renderRoute('os');
-        showToast('Ordem de Serviço salva!');
-      };
-    }
-
-    function printOsDocument(id) {
-      const o = (AppState.ordensServico || []).find((x) => x.id === id);
-      if (!o) return;
-      const printEl = document.getElementById('print-area');
-      printEl.innerHTML = `
-        <div class="max-w-2xl mx-auto border-2 border-slate-800 p-6 space-y-4 text-xs">
-          <div class="flex items-center justify-between border-b pb-4">
-            ${getContechLogoSVG(true)}
-            <div class="text-right">
-              <div class="font-extrabold text-base">ORDEM DE SERVIÇO Nº ${escapeHTML(o.id)}</div>
-              <div>Data: ${formatDateBR(o.data)} • Itaporanga - PB</div>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border">
-            <div><strong>Cliente:</strong> ${escapeHTML(o.clienteNome)}</div>
-            <div><strong>Telefone:</strong> ${escapeHTML(o.telefone || '—')}</div>
-            <div class="col-span-2"><strong>Equipamento:</strong> ${escapeHTML(o.equipamento)}</div>
-          </div>
-          <div><strong>Defeito Relatado:</strong><p class="mt-1 p-2 border rounded">${escapeHTML(o.defeito)}</p></div>
-          <div><strong>Serviço Executado:</strong><p class="mt-1 p-2 border rounded">${escapeHTML(o.servicoExecutado || 'Em análise técnica')}</p></div>
-          <div class="flex justify-between items-center pt-2 border-t text-sm font-extrabold">
-            <span>Status: ${escapeHTML(o.status)}</span>
-            <span>Valor Total: ${formatCurrency(o.valor)}</span>
-          </div>
-          <div class="grid grid-cols-2 gap-8 pt-12 text-center">
-            <div class="border-t border-slate-700 pt-1">CONTECH Contabilidade &amp; Informática</div>
-            <div class="border-t border-slate-700 pt-1">Assinatura do Cliente</div>
-          </div>
-        </div>
-      `;
-      window.print();
-    }
-
-    // =========================================================================
-    // 8. ESTUDO & CAPACITAÇÃO
-    // =========================================================================
-    function renderEstudo(container) {
-      const cursos = AppState.cursos || [];
-      const atividades = AppState.atividadesEstudo || [];
-      const concluidas = atividades.filter((a) => a.status === 'Concluída').length;
-
-      container.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Estudo &amp; Capacitação Contínua</h2>
-            <p class="text-xs sm:text-sm text-slate-600">Catálogo de cursos e cronograma de atividades (${concluidas}/${atividades.length} concluídas).</p>
-          </div>
-          <div class="flex gap-2">
-            <button type="button" onclick="openNewCourseModal()" class="px-3.5 py-2 rounded-xl bg-navy-800 text-white text-xs font-bold cursor-pointer">+ Novo Curso</button>
-            <button type="button" onclick="openNewStudyActivityModal()" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">+ Nova Atividade</button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div class="bg-white rounded-2xl p-4 border shadow-sm space-y-3">
-            <h3 class="text-sm font-extrabold text-navy-900">Cursos (${cursos.length})</h3>
-            ${
-              cursos.map((c) => `
-                <div class="p-3 rounded-xl bg-slate-50 border text-xs">
-                  <div class="font-bold text-navy-900">${escapeHTML(c.nome)}</div>
-                  <div class="text-slate-500">${escapeHTML(c.instituicao || 'Geral')} • ${escapeHTML(c.cargaHoraria || '')}</div>
-                </div>
-              `).join('') || `<p class="text-xs text-slate-500">Nenhum curso cadastrado.</p>`
-            }
-          </div>
-
-          <div class="lg:col-span-2 bg-white rounded-2xl p-4 border shadow-sm space-y-3">
-            <h3 class="text-sm font-extrabold text-navy-900">Atividades de Estudo</h3>
-            <div class="divide-y divide-slate-100 text-xs">
-              ${
-                atividades.map((a) => {
-                  const curso = cursos.find((c) => c.id === a.cursoId);
-                  return `
-                    <div class="py-3 flex items-center justify-between gap-2">
-                      <div>
-                        <div class="font-bold text-navy-900">${escapeHTML(a.titulo)}</div>
-                        <div class="text-[11px] text-slate-500">${formatDateBR(a.data)} • ${escapeHTML(curso?.nome || 'Estudo Geral')}</div>
-                      </div>
-                      <button type="button" onclick="cycleStudyStatus('${a.id}')" class="px-3 py-1 rounded-full font-bold cursor-pointer ${a.status === 'Concluída' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}">
-                        ${escapeHTML(a.status)}
-                      </button>
-                    </div>
-                  `;
-                }).join('') || `<p class="text-slate-500 py-4">Nenhuma atividade cadastrada.</p>`
-              }
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function openNewCourseModal() {
-      openModal(
-        'Cadastrar Curso',
-        `<form id="curso-form" class="space-y-3 text-xs">
-          <div><label class="font-semibold">Nome do Curso *</label><input name="nome" required class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-          <div><label class="font-semibold">Instituição</label><input name="instituicao" placeholder="CRC-PB, CFC, Alura..." class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-          <div><label class="font-semibold">Carga Horária</label><input name="cargaHoraria" placeholder="40h" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-        </form>`,
-        `<button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
-         <button type="submit" form="curso-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar</button>`
-      );
-      document.getElementById('curso-form').onsubmit = (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        AppState.cursos.unshift({ id: generateId('CUR'), nome: fd.get('nome').trim(), instituicao: fd.get('instituicao').trim(), cargaHoraria: fd.get('cargaHoraria').trim(), status: 'Em andamento' });
-        saveState();
-        closeModal();
-        renderRoute('estudo');
-      };
-    }
-
-    function openNewStudyActivityModal() {
-      openModal(
-        'Nova Atividade de Estudo',
-        `<form id="estudo-form" class="space-y-3 text-xs">
-          <div><label class="font-semibold">Data *</label><input type="date" name="data" required value="${new Date().toISOString().slice(0, 10)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-          <div><label class="font-semibold">Curso Vinculado</label><select name="cursoId" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white"><option value="">Geral</option>${(AppState.cursos || []).map((c) => `<option value="${c.id}">${escapeHTML(c.nome)}</option>`).join('')}</select></div>
-          <div><label class="font-semibold">Atividade / Matéria *</label><input name="titulo" required class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
-        </form>`,
-        `<button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
-         <button type="submit" form="estudo-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar</button>`
-      );
-      document.getElementById('estudo-form').onsubmit = (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        AppState.atividadesEstudo.unshift({ id: generateId('EST'), data: fd.get('data'), cursoId: fd.get('cursoId'), titulo: fd.get('titulo').trim(), status: 'Pendente' });
-        saveState();
-        closeModal();
-        renderRoute('estudo');
-      };
-    }
-
-    function cycleStudyStatus(id) {
-      const order = ['Pendente', 'Em Andamento', 'Concluída'];
-      const item = (AppState.atividadesEstudo || []).find((x) => x.id === id);
-      if (item) {
-        item.status = order[(order.indexOf(item.status) + 1) % order.length];
-        saveState();
-        renderRoute('estudo');
-      }
-    }
-
-    // =========================================================================
-    // 11. CENTRAL DE RELATÓRIOS (10 RELATÓRIOS + CSV + IMPRESSÃO)
-    // =========================================================================
-    let reportFilter = { type: 'fluxo', startDate: '', endDate: '', status: '' };
-
-    function buildReportDataset() {
-      const { type, startDate, endDate, status } = reportFilter;
-      const inRange = (d) => (!startDate || !d || d >= startDate) && (!endDate || !d || d <= endDate);
-
-      if (type === 'receber') {
-        const rows = (AppState.contasReceber || []).filter((r) => inRange(r.vencimento) && (!status || r.status === status));
-        return {
-          title: 'Relatório de Contas a Receber',
-          headers: ['Cliente', 'Descrição', 'Parcela', 'Vencimento', 'Valor', 'Status'],
-          rows: rows.map((r) => [r.cliente, r.descricao, r.parcela, formatDateBR(r.vencimento), formatCurrency(r.valor), r.status]),
-          total: formatCurrency(rows.reduce((s, r) => s + Number(r.valor || 0), 0))
-        };
-      }
-      if (type === 'pagar') {
-        const rows = (AppState.contasPagar || []).filter((r) => inRange(r.vencimento) && (!status || r.status === status));
-        return {
-          title: 'Relatório de Contas a Pagar',
-          headers: ['Descrição', 'Categoria', 'Parcela', 'Vencimento', 'Valor', 'Status'],
-          rows: rows.map((r) => [r.descricao, r.categoria, r.parcela, formatDateBR(r.vencimento), formatCurrency(r.valor), r.status]),
-          total: formatCurrency(rows.reduce((s, r) => s + Number(r.valor || 0), 0))
-        };
-      }
-      if (type === 'contabeis' || type === 'gerais') {
-        const src = type === 'contabeis' ? AppState.clientesContabeis || [] : AppState.clientesGerais || [];
-        return {
-          title: type === 'contabeis' ? 'Relatório de Clientes Contábeis' : 'Relatório de Clientes Gerais & TI',
-          headers: ['ID', 'Nome / Razão Social', 'CNPJ / CPF', 'Regime', 'Celular', 'Certificado'],
-          rows: src.map((c) => [c.id, c.nomeRazao, c.cnpj || c.cpf, c.regimeTributario, c.celular, formatDateBR(c.certificadoVencimento)]),
-          total: `${src.length} cliente(s)`
-        };
-      }
-      if (type === 'certificados') {
-        const rows = getAllCertificates().filter((c) => inRange(c.vencimento));
-        return {
-          title: 'Relatório de Certificados Digitais',
-          headers: ['Tipo', 'Cliente', 'Documento', 'Vencimento', 'Celular'],
-          rows: rows.map((c) => [c.tipo, c.cliente, c.doc, formatDateBR(c.vencimento), c.celular]),
-          total: `${rows.length} certificado(s)`
-        };
-      }
-      if (type === 'pmi') {
-        const rows = (AppState.servicosPmi || []).filter((r) => inRange(r.data) && (!status || r.status === status));
-        return {
-          title: 'Relatório de Serviços PMI — Prefeitura de Itaporanga',
-          headers: ['Data', 'Secretaria', 'Serviço', 'Empenho / NF', 'Valor', 'Status'],
-          rows: rows.map((r) => [formatDateBR(r.data), r.secretaria, r.servico, `${r.empenho || '-'} / ${r.nf || '-'}`, formatCurrency(r.valor), r.status]),
-          total: formatCurrency(rows.reduce((s, r) => s + Number(r.valor || 0), 0))
-        };
-      }
-      if (type === 'os') {
-        const rows = (AppState.ordensServico || []).filter((o) => inRange(o.data) && (!status || o.status === status));
-        return {
-          title: 'Relatório de Ordens de Serviço (OS)',
-          headers: ['Nº OS', 'Data', 'Cliente', 'Equipamento', 'Valor', 'Status'],
-          rows: rows.map((o) => [o.id, formatDateBR(o.data), o.clienteNome, o.equipamento, formatCurrency(o.valor), o.status]),
-          total: formatCurrency(rows.reduce((s, o) => s + Number(o.valor || 0), 0))
-        };
-      }
-      if (type === 'tarefas') {
-        const rows = (AppState.tarefas || []).filter((t) => inRange(t.prazo) && (!status || t.status === status));
-        return {
-          title: 'Relatório de Tarefas & Prazos',
-          headers: ['Título', 'Área', 'Prioridade', 'Prazo', 'Status'],
-          rows: rows.map((t) => [t.titulo, t.area, t.prioridade, formatDateBR(t.prazo), t.status]),
-          total: `${rows.length} tarefa(s)`
-        };
-      }
-      if (type === 'estudo') {
-        const rows = (AppState.atividadesEstudo || []).filter((a) => inRange(a.data) && (!status || a.status === status));
-        return {
-          title: 'Relatório de Estudo & Capacitação',
-          headers: ['Data', 'Atividade', 'Status'],
-          rows: rows.map((a) => [formatDateBR(a.data), a.titulo, a.status]),
-          total: `${rows.length} atividade(s)`
-        };
-      }
-
-      // Fluxo Financeiro Consolidado
-      const entries = [
-        ...(AppState.contasReceber || []).map((r) => ({ data: r.vencimento, tipo: 'Entrada', desc: `${r.cliente} — ${r.descricao}`, valor: Number(r.valor || 0), status: r.status })),
-        ...(AppState.contasPagar || []).map((p) => ({ data: p.vencimento, tipo: 'Saída', desc: p.descricao, valor: -Number(p.valor || 0), status: p.status }))
-      ].filter((e) => inRange(e.data) && (!status || e.status === status));
-
-      return {
-        title: 'Fluxo Financeiro Consolidado',
-        headers: ['Data', 'Tipo', 'Descrição', 'Valor', 'Status'],
-        rows: entries.map((e) => [formatDateBR(e.data), e.tipo, e.desc, formatCurrency(e.valor), e.status]),
-        total: formatCurrency(entries.reduce((s, e) => s + e.valor, 0))
-      };
-    }
-
-    function renderRelatorios(container) {
-      const ds = buildReportDataset();
-      container.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Central de Relatórios</h2>
-            <p class="text-xs sm:text-sm text-slate-600">10 relatórios gerenciais com filtro por período, exportação CSV e impressão/PDF.</p>
-          </div>
-          <div class="flex gap-2">
-            <button type="button" onclick="exportCurrentReportCSV()" class="px-3.5 py-2 rounded-xl bg-navy-800 text-white text-xs font-bold cursor-pointer">Exportar CSV</button>
-            <button type="button" onclick="printCurrentReport()" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Imprimir / PDF</button>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-4 border shadow-sm grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-          <select onchange="reportFilter.type = this.value; renderRoute('relatorios');" class="px-3 py-2 rounded-xl border bg-white font-semibold">
-            ${REPORT_TYPES.map((r) => `<option value="${r.id}" ${reportFilter.type === r.id ? 'selected' : ''}>${r.label}</option>`).join('')}
-          </select>
-          <input type="date" value="${escapeHTML(reportFilter.startDate)}" onchange="reportFilter.startDate = this.value; renderRoute('relatorios');" class="px-3 py-2 rounded-xl border" />
-          <input type="date" value="${escapeHTML(reportFilter.endDate)}" onchange="reportFilter.endDate = this.value; renderRoute('relatorios');" class="px-3 py-2 rounded-xl border" />
-          <input type="text" value="${escapeHTML(reportFilter.status)}" oninput="reportFilter.status = this.value; renderRoute('relatorios');" placeholder="Filtrar status..." class="px-3 py-2 rounded-xl border" />
-        </div>
-
-        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-          <div class="px-4 py-3 bg-navy-50 border-b flex justify-between text-xs font-extrabold text-navy-900">
-            <span>${escapeHTML(ds.title)}</span>
-            <span>Resumo: ${escapeHTML(ds.total)}</span>
-          </div>
-          <table class="w-full text-left border-collapse min-w-[680px]">
-            <thead>
-              <tr class="bg-navy-900 text-white text-[11px] uppercase">
-                ${ds.headers.map((h) => `<th class="py-2.5 px-3">${escapeHTML(h)}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-xs">
-              ${
-                ds.rows.map((r) => `<tr>${r.map((cell) => `<td class="py-2.5 px-3">${escapeHTML(cell)}</td>`).join('')}</tr>`).join('') ||
-                `<tr><td colspan="${ds.headers.length}" class="py-6 text-center text-slate-500">Nenhum dado para o filtro selecionado.</td></tr>`
-              }
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    function exportCurrentReportCSV() {
-      const ds = buildReportDataset();
-      downloadCSV(`relatorio_${reportFilter.type}_contech.csv`, ds.headers, ds.rows);
-    }
-
-    function printCurrentReport() {
-      const ds = buildReportDataset();
-      const printEl = document.getElementById('print-area');
-      printEl.innerHTML = `
-        <div class="space-y-4 text-xs">
-          <div class="flex items-center justify-between border-b pb-3">
-            ${getContechLogoSVG(true)}
-            <div class="text-right"><div class="font-extrabold text-sm">${escapeHTML(ds.title)}</div><div>Emitido em ${new Date().toLocaleDateString('pt-BR')} • Total: ${escapeHTML(ds.total)}</div></div>
-          </div>
-          <table class="w-full border-collapse border border-slate-400">
-            <thead><tr>${ds.headers.map((h) => `<th class="border border-slate-400 p-1.5 bg-slate-100 text-left">${escapeHTML(h)}</th>`).join('')}</tr></thead>
-            <tbody>${ds.rows.map((r) => `<tr>${r.map((c) => `<td class="border border-slate-400 p-1.5">${escapeHTML(c)}</td>`).join('')}</tr>`).join('')}</tbody>
-          </table>
-        </div>
-      `;
-      window.print();
-    }
-
-    // =========================================================================
-    // 12. ADMINISTRAÇÃO, USUÁRIOS, BACKUP & GOOGLE SHEETS SYNC
+    // 12. ADMINISTRAÇÃO, USUÁRIOS, BACKUP & GOOGLE SHEETS SYNC BIDIRECIONAL
     // =========================================================================
     function mapStateToSheetPayload() {
       return {
@@ -2512,34 +619,299 @@
       };
     }
 
+    function applyCloudPayloadToState(cloudData, cloudVersion) {
+      if (!cloudData || typeof cloudData !== 'object') return;
+      const splitPipe = (v) => String(v || '').split('|').map((s) => s.trim());
+
+      if (Array.isArray(cloudData.contabeis)) {
+        AppState.clientesContabeis = cloudData.contabeis.map((r) => {
+          const [nfse = '', emailPass = ''] = splitPipe(r.Senha_NFSe_Email);
+          return {
+            id: String(r.ID || generateId('CC')),
+            idAlterdata: String(r.ID_Alterdata || ''),
+            nomeRazao: String(r.Nome_Razao_Social || ''),
+            cpf: String(r.CPF || ''),
+            rg: String(r.RG || ''),
+            cnh: String(r.CNH || ''),
+            tituloEleitor: String(r.Titulo_Eleitor || ''),
+            dataNascimento: String(r.Data_Nascimento || ''),
+            celular: String(r.Celular || ''),
+            email: String(r.Email || ''),
+            cnpj: String(r.CNPJ || ''),
+            inscricaoEstadual: String(r.Inscricao_Estadual || ''),
+            inscricaoMunicipal: String(r.Inscricao_Municipal || ''),
+            dataAbertura: String(r.Data_Abertura || ''),
+            regimeTributario: String(r.Regime_Tributario || 'Simples Nacional'),
+            capitalSocial: Number(r.Capital_Social || 0),
+            producoes: String(r.Producoes || '').split(',').map((s) => s.trim()).filter(Boolean),
+            parcelamentos: String(r.Parcelamentos || '').split(',').map((s) => s.trim()).filter(Boolean),
+            obrigacoes: {
+              EFD: String(r.Status_EFD || 'N/A'),
+              MIT: String(r.Status_MIT || 'N/A'),
+              DEFIS: String(r.Status_DEFIS || 'N/A'),
+              DASN: String(r.Status_DASN || 'N/A')
+            },
+            certificadoVencimento: String(r.Vencimento_Certificado || ''),
+            senhas: { gov: String(r.Senha_GOV || ''), nfse, email: emailPass }
+          };
+        });
+      }
+
+      if (Array.isArray(cloudData.gerais)) {
+        AppState.clientesGerais = cloudData.gerais.map((r) => {
+          const [nfse = '', emailPass = ''] = splitPipe(r.Senha_NFSe_Email);
+          return {
+            id: String(r.ID || generateId('CG')),
+            idAlterdata: String(r.ID_Alterdata || ''),
+            nomeRazao: String(r.Nome_Razao_Social || ''),
+            cpf: String(r.CPF || ''),
+            rg: String(r.RG || ''),
+            cnh: String(r.CNH || ''),
+            tituloEleitor: String(r.Titulo_Eleitor || ''),
+            dataNascimento: String(r.Data_Nascimento || ''),
+            celular: String(r.Celular || ''),
+            email: String(r.Email || ''),
+            cnpj: String(r.CNPJ || ''),
+            inscricaoEstadual: String(r.Inscricao_Estadual || ''),
+            inscricaoMunicipal: String(r.Inscricao_Municipal || ''),
+            dataAbertura: String(r.Data_Abertura || ''),
+            regimeTributario: String(r.Regime_Tributario || 'Simples Nacional'),
+            capitalSocial: Number(r.Capital_Social || 0),
+            producoes: String(r.Producoes || '').split(',').map((s) => s.trim()).filter(Boolean),
+            parcelamentos: String(r.Parcelamentos || '').split(',').map((s) => s.trim()).filter(Boolean),
+            obrigacoes: {
+              EFD: String(r.Status_EFD || 'N/A'),
+              MIT: String(r.Status_MIT || 'N/A'),
+              DEFIS: String(r.Status_DEFIS || 'N/A'),
+              DASN: String(r.Status_DASN || 'N/A')
+            },
+            certificadoVencimento: String(r.Vencimento_Certificado || ''),
+            senhas: { gov: String(r.Senha_GOV || ''), nfse, email: emailPass }
+          };
+        });
+      }
+
+      if (Array.isArray(cloudData.pagar)) {
+        AppState.contasPagar = cloudData.pagar.map((p) => ({
+          id: String(p.ID || generateId('PAG')),
+          descricao: String(p.Fornecedor_Descricao || ''),
+          categoria: String(p.Categoria || 'Outros'),
+          parcela: String(p.Parcela || '1/1'),
+          vencimento: String(p.Vencimento || ''),
+          valor: Number(p.Valor || 0),
+          status: String(p.Status || 'Pendente'),
+          dataPagamento: String(p.Data_Pagamento || '')
+        }));
+      }
+
+      if (Array.isArray(cloudData.receber)) {
+        AppState.contasReceber = cloudData.receber.map((r) => ({
+          id: String(r.ID || generateId('REC')),
+          cliente: String(r.Cliente || ''),
+          descricao: String(r.Descricao_Servico || ''),
+          parcela: String(r.Parcela || '1/1'),
+          vencimento: String(r.Vencimento || ''),
+          valor: Number(r.Valor || 0),
+          status: String(r.Status || 'Pendente'),
+          dataRecebimento: String(r.Data_Recebimento || '')
+        }));
+      }
+
+      if (Array.isArray(cloudData.tarefas)) {
+        AppState.tarefas = cloudData.tarefas.map((t) => ({
+          id: String(t.ID || generateId('TAR')),
+          titulo: String(t.Titulo || ''),
+          area: String(t.Area || TAREFA_AREAS[0]),
+          prioridade: String(t.Prioridade || 'Média'),
+          prazo: String(t.Prazo || ''),
+          status: String(t.Status || 'Pendente'),
+          responsavel: String(t.Responsavel || '')
+        }));
+      }
+
+      if (Array.isArray(cloudData.licitacoes)) {
+        AppState.licitacoes = cloudData.licitacoes.map((l) => ({
+          id: String(l.ID || generateId('LIC')),
+          portal: String(l.Portal || 'Portal Nacional de Contratações Públicas (PNCP)'),
+          numeroEdital: String(l.Numero_Edital || ''),
+          orgao: String(l.Orgao || ''),
+          uf: String(l.UF || 'PB'),
+          modalidade: String(l.Modalidade || ''),
+          objeto: String(l.Objeto || ''),
+          dataAbertura: String(l.Data_Abertura || ''),
+          valorEstimado: Number(l.Valor_Estimado || 0),
+          link: String(l.Link_Edital || '')
+        }));
+      }
+
+      if (Array.isArray(cloudData.cursos)) {
+        AppState.cursos = cloudData.cursos.map((c) => ({
+          id: String(c.ID || generateId('CUR')),
+          nome: String(c.Curso || ''),
+          instituicao: String(c.Instituicao || ''),
+          cargaHoraria: String(c.Carga_Horaria || ''),
+          status: String(c.Status || 'Em andamento')
+        }));
+      }
+
+      if (Array.isArray(cloudData.estudos)) {
+        AppState.atividadesEstudo = cloudData.estudos.map((a) => ({
+          id: String(a.ID || generateId('EST')),
+          data: String(a.Data || ''),
+          cursoId: String(a.Curso_ID || ''),
+          titulo: String(a.Atividade || a.Materia || ''),
+          status: String(a.Status || 'Pendente')
+        }));
+      }
+
+      if (Array.isArray(cloudData.pmi)) {
+        AppState.servicosPmi = cloudData.pmi.map((p) => ({
+          id: String(p.ID || generateId('PMI')),
+          data: String(p.Data || ''),
+          secretaria: String(p.Secretaria || ''),
+          servico: String(p.Servico || ''),
+          complemento: String(p.Complemento || ''),
+          valor: Number(p.Valor || 0),
+          status: String(p.Status_Pagamento || 'Pendente'),
+          empenho: String(p.Numero_Empenho || ''),
+          nf: String(p.Numero_NF || '')
+        }));
+      }
+
+      if (Array.isArray(cloudData.os)) {
+        AppState.ordensServico = cloudData.os.map((o) => ({
+          id: String(o.Numero_OS || generateId('OS')),
+          data: String(o.Data_Abertura || ''),
+          clienteNome: String(o.Cliente || ''),
+          telefone: String(o.Telefone || ''),
+          equipamento: String(o.Equipamento || ''),
+          defeito: String(o.Defeito_Relatado || ''),
+          servicoExecutado: String(o.Servico_Executado || ''),
+          valor: Number(o.Valor || 0),
+          status: String(o.Status || 'Aberta')
+        }));
+      }
+
+      if (Array.isArray(cloudData.usuarios) && cloudData.usuarios.length > 0) {
+        AppState.users = cloudData.usuarios.map((u) => ({
+          id: String(u.ID || generateId('USR')),
+          username: String(u.Usuario || ''),
+          name: String(u.Nome_Completo || ''),
+          password: String(u.Senha_Hash || ''),
+          role: String(u.Perfil || 'Operador')
+        }));
+      }
+
+      if (cloudVersion) AppState.config.cloudVersion = String(cloudVersion);
+      AppState.config.lastSyncAt = new Date().toLocaleTimeString('pt-BR');
+      AppState.config.lastSyncMessage = 'Sincronizado bidirecionalmente com Google Sheets';
+      saveState(true);
+    }
+
+    function scheduleInstantPush() {
+      const url = AppState.config?.gasUrl?.trim();
+      if (!url || AppState.config?.instantSync === false) return;
+      updateSyncIndicator('syncing', 'Enviando alterações...');
+      if (instantPushTimer) clearTimeout(instantPushTimer);
+      instantPushTimer = setTimeout(() => {
+        syncAllToGas(true);
+      }, 450);
+    }
+
+    async function pullFromGas(silent = false) {
+      const url = AppState.config?.gasUrl?.trim();
+      if (!url) {
+        if (!silent) showToast('Configure a URL /exec antes de puxar da nuvem.', 'warning');
+        return;
+      }
+      if (isSyncBusy) return;
+      isSyncBusy = true;
+      updateSyncIndicator('syncing', 'Puxando da planilha...');
+      try {
+        const res = await fetch(`${url}?action=readAll&_t=${Date.now()}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          applyCloudPayloadToState(json.data, json.version);
+          updateSyncIndicator('online', `Sheets Ao Vivo • ${AppState.config.lastSyncAt}`);
+          if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA' && document.activeElement?.tagName !== 'SELECT') {
+            renderRoute(ActiveRoute);
+          }
+          if (!silent) showToast('Dados atualizados a partir do Google Sheets!');
+        } else {
+          updateSyncIndicator('error', 'Erro na leitura');
+          if (!silent) showToast(json.error || 'Erro ao puxar dados.', 'error');
+        }
+      } catch (e) {
+        updateSyncIndicator('error', 'Offline / Erro CORS');
+        if (!silent) showToast('Falha de conexão com o Google Sheets.', 'error');
+      } finally {
+        isSyncBusy = false;
+        if (pendingPushAfterSync) {
+          pendingPushAfterSync = false;
+          syncAllToGas(true);
+        }
+      }
+    }
+
+    async function checkCloudDeltaAndPull() {
+      const url = AppState.config?.gasUrl?.trim();
+      if (!url || AppState.config?.instantSync === false || isSyncBusy || instantPushTimer) return;
+      try {
+        const res = await fetch(`${url}?action=version&_t=${Date.now()}`);
+        const json = await res.json();
+        if (json.success && json.version && String(json.version) !== String(AppState.config.cloudVersion || '0')) {
+          await pullFromGas(true);
+          showToast('Atualização recebida do Google Sheets!');
+        } else if (json.success) {
+          updateSyncIndicator('online', `Sheets Ao Vivo${AppState.config.lastSyncAt ? ' • ' + AppState.config.lastSyncAt : ''}`);
+        }
+      } catch (e) {
+        // Silencioso no polling em segundo plano
+      }
+    }
+
     async function testGasConnection() {
       const url = AppState.config?.gasUrl?.trim();
       if (!url) {
         showToast('Informe a URL /exec do Google Apps Script.', 'warning');
         return;
       }
+      updateSyncIndicator('syncing', 'Testando conexão...');
       try {
-        const res = await fetch(`${url}?action=test`);
+        const res = await fetch(`${url}?action=test&_t=${Date.now()}`);
         const json = await res.json();
         if (json.success) {
           AppState.config.lastSyncMessage = `Conectado: ${json.spreadsheet || 'Planilha CONTECH'}`;
-          saveState();
+          saveState(true);
+          updateSyncIndicator('online', 'Sheets Conectado');
           renderRoute('administracao');
           showToast('Conexão com Google Sheets validada!');
         } else {
+          updateSyncIndicator('error', 'Erro no Script');
           showToast(json.error || 'Falha na resposta do script.', 'error');
         }
       } catch (e) {
+        updateSyncIndicator('error', 'Falha de Rede');
         showToast('Erro de rede ao conectar com o Apps Script.', 'error');
       }
     }
 
-    async function syncAllToGas() {
+    async function syncAllToGas(silent = false) {
       const url = AppState.config?.gasUrl?.trim();
       if (!url) {
-        showToast('Configure a URL /exec antes de sincronizar.', 'warning');
+        if (!silent) showToast('Configure a URL /exec antes de sincronizar.', 'warning');
         return;
       }
+      if (instantPushTimer) {
+        clearTimeout(instantPushTimer);
+        instantPushTimer = null;
+      }
+      if (isSyncBusy) {
+        pendingPushAfterSync = true;
+        return;
+      }
+      isSyncBusy = true;
+      updateSyncIndicator('syncing', 'Sincronizando...');
       try {
         const res = await fetch(url, {
           method: 'POST',
@@ -2548,26 +920,59 @@
         });
         const json = await res.json();
         if (json.success) {
-          AppState.config.lastSyncAt = new Date().toLocaleString('pt-BR');
-          AppState.config.lastSyncMessage = json.message || 'Sincronizado com sucesso.';
-          saveState();
-          renderRoute('administracao');
-          showToast('Todas as abas enviadas para o Google Sheets!');
+          if (json.version) AppState.config.cloudVersion = String(json.version);
+          AppState.config.lastSyncAt = new Date().toLocaleTimeString('pt-BR');
+          AppState.config.lastSyncMessage = json.message || 'Sincronizado instantaneamente.';
+          saveState(true);
+          updateSyncIndicator('online', `Sheets Ao Vivo • ${AppState.config.lastSyncAt}`);
+          if (ActiveRoute === 'administracao') renderRoute('administracao');
+          if (!silent) showToast('Todas as abas enviadas para o Google Sheets!');
         } else {
-          showToast(json.error || 'Erro ao enviar dados.', 'error');
+          updateSyncIndicator('error', 'Falha ao enviar');
+          if (!silent) showToast(json.error || 'Erro ao enviar dados.', 'error');
         }
       } catch (e) {
-        showToast('Falha ao enviar dados para o Google Apps Script.', 'error');
+        updateSyncIndicator('error', 'Offline / Erro');
+        if (!silent) showToast('Falha ao enviar dados para o Google Apps Script.', 'error');
+      } finally {
+        isSyncBusy = false;
+        if (pendingPushAfterSync) {
+          pendingPushAfterSync = false;
+          syncAllToGas(true);
+        }
       }
     }
 
-    function setupAutoSync() {
-      if (autoSyncTimer) clearInterval(autoSyncTimer);
-      const mins = Number(AppState.config?.autoSyncMinutes || 0);
-      if (mins > 0 && AppState.config?.gasUrl) {
-        autoSyncTimer = setInterval(() => syncAllToGas(), mins * 60000);
+    async function triggerInstantBidirectionalSync() {
+      const url = AppState.config?.gasUrl?.trim();
+      if (!url) {
+        navigateTo('administracao');
+        showToast('Cole a URL /exec do Google Apps Script para ativar o Sync.', 'warning');
+        return;
+      }
+      await syncAllToGas(false);
+    }
+
+    function initInstantBidirectionalSync() {
+      if (cloudPollTimer) clearInterval(cloudPollTimer);
+      const url = AppState.config?.gasUrl?.trim();
+      if (!url) {
+        updateSyncIndicator('offline', 'Sync Local');
+        return;
+      }
+      updateSyncIndicator('online', 'Sheets Ao Vivo');
+      if (AppState.config?.instantSync !== false) {
+        checkCloudDeltaAndPull();
+        const intervalMs = Math.max(3, Number(AppState.config?.pollSeconds || 5)) * 1000;
+        cloudPollTimer = setInterval(checkCloudDeltaAndPull, intervalMs);
       }
     }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && AppState.config?.gasUrl && AppState.config?.instantSync !== false) {
+        checkCloudDeltaAndPull();
+      }
+    });
 
     function exportBackupJSON() {
       const blob = new Blob([JSON.stringify(AppState, null, 2)], { type: 'application/json' });
@@ -2622,15 +1027,29 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="bg-white rounded-2xl p-5 border shadow-sm space-y-4">
-            <h3 class="text-sm font-extrabold text-navy-900">Integração Google Sheets (Apps Script /exec)</h3>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-extrabold text-navy-900">Sincronização Bidirecional Instantânea</h3>
+              <label class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 cursor-pointer">
+                <input type="checkbox" ${cfg.instantSync !== false ? 'checked' : ''} onchange="AppState.config.instantSync = this.checked; saveState(true); initInstantBidirectionalSync();" class="rounded" />
+                <span>Ativa em Tempo Real</span>
+              </label>
+            </div>
             <div class="space-y-2 text-xs">
               <label class="font-semibold block">URL do Web App (/exec)</label>
-              <input type="url" value="${escapeHTML(cfg.gasUrl || '')}" onchange="AppState.config.gasUrl = this.value.trim(); saveState();" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 rounded-xl border" />
-              <div class="text-[11px] text-slate-500">${escapeHTML(cfg.lastSyncMessage || '')} ${cfg.lastSyncAt ? `(${cfg.lastSyncAt})` : ''}</div>
+              <input type="url" value="${escapeHTML(cfg.gasUrl || '')}" onchange="AppState.config.gasUrl = this.value.trim(); saveState(true); initInstantBidirectionalSync();" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 rounded-xl border" />
+              <div class="flex items-center justify-between gap-2 pt-1">
+                <span class="text-[11px] text-slate-500">${escapeHTML(cfg.lastSyncMessage || '')} ${cfg.lastSyncAt ? `(${cfg.lastSyncAt})` : ''}</span>
+                <label class="inline-flex items-center gap-1 text-[11px] text-slate-600 shrink-0">
+                  <span>Checar a cada</span>
+                  <input type="number" min="3" max="60" value="${Number(cfg.pollSeconds || 5)}" onchange="AppState.config.pollSeconds = Math.max(3, Number(this.value || 5)); saveState(true); initInstantBidirectionalSync();" class="w-12 px-1.5 py-0.5 rounded border text-center" />
+                  <span>seg</span>
+                </label>
+              </div>
             </div>
             <div class="flex flex-wrap gap-2 text-xs">
               <button type="button" onclick="testGasConnection()" class="px-3.5 py-2 rounded-xl bg-navy-800 text-white font-bold cursor-pointer">Testar Conexão</button>
-              <button type="button" onclick="syncAllToGas()" class="px-4 py-2 rounded-xl bg-accent-500 text-white font-bold cursor-pointer">Enviar Tudo para Planilha</button>
+              <button type="button" onclick="pullFromGas(false)" class="px-3.5 py-2 rounded-xl bg-emerald-600 text-white font-bold cursor-pointer">Puxar da Nuvem Agora</button>
+              <button type="button" onclick="syncAllToGas(false)" class="px-4 py-2 rounded-xl bg-accent-500 text-white font-bold cursor-pointer">Enviar Tudo para Planilha</button>
             </div>
           </div>
 
