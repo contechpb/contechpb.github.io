@@ -1,0 +1,2891 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CONTECH ERP — Contabilidade &amp; Informática</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              50: '#f0f5fc',
+              100: '#dce8f8',
+              200: '#b8d1f1',
+              700: '#173766',
+              800: '#10294e',
+              900: '#0a1c38',
+              950: '#061226'
+            },
+            accent: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    @media print {
+      body * { visibility: hidden !important; }
+      #print-area, #print-area * { visibility: visible !important; }
+      #print-area {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        padding: 20px !important;
+        z-index: 99999 !important;
+      }
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased selection:bg-accent-500 selection:text-white">
+
+  <!-- ======================================================================= -->
+  <!-- TELA DE LOGIN RESTRITA                                                  -->
+  <!-- ======================================================================= -->
+  <div id="auth-screen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden">
+      <div class="p-8 pb-6 text-center bg-gradient-to-b from-slate-50 to-white border-b border-slate-100">
+        <div id="login-logo-slot" class="flex justify-center mb-3"></div>
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Itaporanga - PB • Gestão Integrada</p>
+      </div>
+
+      <form id="login-form" class="p-8 pt-6 space-y-4">
+        <div>
+          <label for="login-username" class="block text-xs font-bold uppercase tracking-wider text-navy-900 mb-1.5">Usuário</label>
+          <input id="login-username" type="text" required autocomplete="username" placeholder="Digite seu usuário"
+            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none text-sm font-medium" />
+        </div>
+
+        <div>
+          <label for="login-password" class="block text-xs font-bold uppercase tracking-wider text-navy-900 mb-1.5">Senha</label>
+          <input id="login-password" type="password" required autocomplete="current-password" placeholder="••••••••"
+            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none text-sm font-medium" />
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer select-none">
+            <input id="login-remember" type="checkbox" checked class="rounded border-slate-300 text-accent-500 focus:ring-accent-500" />
+            <span>Manter sessão ativa neste navegador</span>
+          </label>
+        </div>
+
+        <div id="login-error" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700"></div>
+
+        <button type="submit"
+          class="w-full py-3.5 rounded-xl bg-gradient-to-r from-navy-900 to-navy-800 hover:from-navy-800 hover:to-navy-700 text-white font-bold text-sm shadow-lg shadow-navy-900/25 transition cursor-pointer">
+          Acessar CONTECH ERP
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- SHELL PRINCIPAL DA APLICAÇÃO                                            -->
+  <!-- ======================================================================= -->
+  <div id="app-shell" class="hidden min-h-screen flex flex-row">
+    <!-- Sidebar Lateral Fixa (Sempre visível até clicar em esconder) -->
+    <aside id="sidebar" class="sticky top-0 left-0 z-40 h-screen w-72 bg-navy-950 text-white flex flex-col shrink-0 border-r border-navy-800 transition-all duration-200 ease-out">
+      <div class="p-4 bg-white border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
+        <div id="sidebar-logo-slot" class="min-w-0"></div>
+        <button type="button" onclick="toggleSidebar()" title="Esconder menu lateral" aria-label="Esconder menu lateral"
+          class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-navy-900 text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <span>Esconder</span>
+        </button>
+      </div>
+
+      <nav id="sidebar-nav" class="flex flex-col flex-1 p-3 space-y-1 overflow-y-auto text-xs font-semibold"></nav>
+
+      <div class="p-3 border-t border-navy-800 bg-navy-900/70 space-y-2 shrink-0">
+        <div class="flex items-center justify-between text-xs">
+          <div>
+            <div id="current-user-name" class="font-bold text-white">Administrador</div>
+            <div id="current-user-role" class="text-[11px] text-slate-400">Administração</div>
+          </div>
+          <button type="button" onclick="logoutUser()" class="px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-600 text-white font-bold text-[11px] cursor-pointer">
+            Sair
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Área de Conteúdo -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 sticky top-0 z-20">
+        <div class="flex items-center gap-2.5 text-xs text-slate-600">
+          <button type="button" id="toggle-sidebar-btn" onclick="toggleSidebar()" title="Alternar visibilidade do menu" aria-label="Alternar visibilidade do menu"
+            class="px-2.5 py-1.5 rounded-xl bg-navy-900 text-white hover:bg-navy-800 flex items-center gap-1.5 font-semibold cursor-pointer">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            <span id="toggle-sidebar-label">Esconder Menu</span>
+          </button>
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span><strong>CONTECH ERP</strong> — Itaporanga - PB</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="openLgpdModal()" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer">
+            LGPD &amp; Privacidade
+          </button>
+          <button type="button" onclick="navigateTo('administracao')" class="px-3 py-1.5 rounded-lg bg-navy-100 hover:bg-navy-200 text-navy-900 text-xs font-semibold cursor-pointer">
+            Sincronizar Sheets
+          </button>
+        </div>
+      </header>
+
+      <main id="main-content" class="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto"></main>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL GENÉRICO, TOAST E ÁREA DE IMPRESSÃO                               -->
+  <!-- ======================================================================= -->
+  <div id="modal-backdrop" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div id="modal-box" class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-4 bg-navy-900 text-white flex items-center justify-between">
+        <h3 id="modal-title" class="text-sm sm:text-base font-extrabold">Modal</h3>
+        <button type="button" onclick="closeModal()" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold cursor-pointer">✕</button>
+      </div>
+      <div id="modal-body" class="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm"></div>
+      <div id="modal-footer" class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2"></div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+  <div id="print-area" class="hidden"></div>
+
+  <script>
+    // =========================================================================
+    // CONSTANTES, LOGOMARCA OFICIAL E ESTADO GLOBAL
+    // =========================================================================
+    const STORAGE_KEY = 'CONTECH_ERP_STATE_V3';
+    const SESSION_KEY = 'CONTECH_ERP_SESSION_V3';
+
+    const TAX_REGIMES = ['Simples Nacional', 'MEI', 'Lucro Presumido', 'Lucro Real', 'Imune/Isenta', 'Pessoa Física'];
+    const TASK_AREAS = ['Contábil / Fiscal', 'Certificação Digital', 'TI / Suporte', 'Licitações', 'Administrativo'];
+    const OS_STATUSES = ['Aberta', 'Em Execução', 'Aguardando Peça / Aprovação', 'Concluída', 'Entregue / Faturada'];
+    const PMI_STATUSES = ['Pendente', 'Empenhado', 'Aguardando NF', 'Pago'];
+    const EXPENSE_CATEGORIES = ['Energia / Água / Internet', 'Softwares & Sistemas (Alterdata)', 'Folha & Encargos', 'Impostos & Taxas', 'Material de Escritório / TI', 'Outros'];
+
+    const NAV_ITEMS = [
+      {
+        id: 'dashboard',
+        label: 'Painel Executivo',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>'
+      },
+      {
+        id: 'contabeis',
+        label: 'Clientes Contábeis',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>'
+      },
+      {
+        id: 'gerais',
+        label: 'Clientes Gerais & TI',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+      },
+      {
+        id: 'certificados',
+        label: 'Certificados Digitais',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>'
+      },
+      {
+        id: 'pagar',
+        label: 'Contas a Pagar',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>'
+      },
+      {
+        id: 'receber',
+        label: 'Contas a Receber',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 4 4 4-4"/><path d="M12 8v8"/></svg>'
+      },
+      {
+        id: 'tarefas',
+        label: 'Tarefas & Prazos',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>'
+      },
+      {
+        id: 'licitacoes',
+        label: 'Monitor de Licitações',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/><path d="m21 11-8-8"/></svg>'
+      },
+      {
+        id: 'pmi',
+        label: 'Serviços PMI (Itaporanga)',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>'
+      },
+      {
+        id: 'os',
+        label: 'Ordens de Serviço (OS)',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
+      },
+      {
+        id: 'estudo',
+        label: 'Estudo & Cursos',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>'
+      },
+      {
+        id: 'relatorios',
+        label: 'Central de Relatórios',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'
+      },
+      {
+        id: 'administracao',
+        label: 'Administração & Sync',
+        icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
+      }
+    ];
+
+    const REPORT_TYPES = [
+      { id: 'fluxo', label: '01. Fluxo Financeiro Consolidado' },
+      { id: 'receber', label: '02. Contas a Receber' },
+      { id: 'pagar', label: '03. Contas a Pagar' },
+      { id: 'contabeis', label: '04. Clientes Contábeis' },
+      { id: 'gerais', label: '05. Clientes Gerais & TI' },
+      { id: 'certificados', label: '06. Certificados Digitais' },
+      { id: 'pmi', label: '07. Serviços PMI (por Secretaria)' },
+      { id: 'os', label: '08. Ordens de Serviço (OS)' },
+      { id: 'tarefas', label: '09. Tarefas & Prazos' },
+      { id: 'estudo', label: '10. Estudos & Atividades' }
+    ];
+
+    function getContechLogoSVG(compact = false) {
+      const h = compact ? 42 : 76;
+      return `
+        <svg height="${h}" viewBox="0 0 360 135" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="CONTECH Contabilidade & Informática">
+          <defs>
+            <linearGradient id="cBlueGrad" x1="120" y1="6" x2="145" y2="75" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#0b46e5"/>
+              <stop offset="100%" stop-color="#06227a"/>
+            </linearGradient>
+            <linearGradient id="cOrangeGrad" x1="145" y1="55" x2="215" y2="68" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#f59e0b"/>
+              <stop offset="100%" stop-color="#f95b0c"/>
+            </linearGradient>
+          </defs>
+          <!-- Símbolo C Tecnológico -->
+          <path d="M210 24C198 11 179 6 161 10C136 15 123 36 125 56C128 73 145 81 169 78C189 75 206 67 212 56C216 49 209 42 201 46C188 53 175 64 159 64C144 64 136 53 139 39C142 26 155 21 173 24C183 26 190 31 196 34C204 38 216 31 210 24Z" fill="url(#cBlueGrad)"/>
+          <path d="M142 66C153 79 175 83 196 75C208 70 216 61 213 53C210 46 200 46 192 52C181 61 163 68 142 66Z" fill="url(#cOrangeGrad)"/>
+          <path d="M137 22C154 14 174 15 190 22" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+          <circle cx="195" cy="24" r="7.5" fill="#ffffff"/>
+          <circle cx="195" cy="24" r="3.8" fill="#f95b0c"/>
+          <!-- CONTECH -->
+          <text x="18" y="108" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="37" letter-spacing="1" fill="#0b46e5">CON</text>
+          <text x="115" y="108" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="37" letter-spacing="1" fill="#f9440c">TECH</text>
+          <path d="M236 102C246 95 258 94 268 96" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="272" cy="96" r="5.5" fill="#ffffff"/>
+          <circle cx="272" cy="96" r="2.8" fill="#f9440c"/>
+          <!-- Subtítulo -->
+          <text x="20" y="123" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="11.2" letter-spacing="0.6" fill="#0b46e5">CONTABILIDADE &amp; INFORMÁTICA</text>
+          <line x1="20" y1="128" x2="262" y2="128" stroke="#f9440c" stroke-width="2.5"/>
+          <circle cx="268" cy="128" r="4.5" stroke="#f9440c" stroke-width="2.5" fill="#ffffff"/>
+        </svg>
+      `;
+    }
+
+    function addDaysISO(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function createInitialState() {
+      const today = new Date().toISOString().slice(0, 10);
+      return {
+        users: [
+          { id: 'USR-01', name: 'Administrador CONTECH', username: 'admin', password: 'contech2026', role: 'Administrador' }
+        ],
+        clientesContabeis: [
+          {
+            id: 'CC-001',
+            idAlterdata: 'ALT-1042',
+            nomeRazao: 'SUPERMERCADO VALE DO PIANCO LTDA',
+            cpf: '123.456.789-00',
+            rg: '2.845.110 SSP/PB',
+            cnh: '04589123410',
+            tituloEleitor: '0345 8812 1245',
+            dataNascimento: '1982-05-14',
+            celular: '(83) 99912-3456',
+            email: 'fiscal@supermercadopianco.com.br',
+            cnpj: '14.892.310/0001-45',
+            inscricaoEstadual: '16.234.891-0',
+            inscricaoMunicipal: '4589-1',
+            dataAbertura: '2012-03-10',
+            regimeTributario: 'Simples Nacional',
+            capitalSocial: 150000,
+            producoes: ['F', 'J'],
+            parcelamentos: ['Estadual', 'Federal'],
+            obrigacoes: { EFD: 'Entregue', MIT: 'Entregue', DEFIS: 'Entregue', DASN: 'N/A' },
+            certificadoVencimento: addDaysISO(18),
+            senhas: { gov: 'Pianco@2026', nfse: 'Nfse#4589', email: 'Mail@2026' }
+          },
+          {
+            id: 'CC-002',
+            idAlterdata: 'ALT-1089',
+            nomeRazao: 'FARMACIA SAO JOSE DE ITAPORANGA ME',
+            cpf: '321.654.987-11',
+            rg: '3.112.409 SSP/PB',
+            cnh: '05981234500',
+            tituloEleitor: '0412 7731 1290',
+            dataNascimento: '1979-11-22',
+            celular: '(83) 99844-1122',
+            email: 'contato@farmaciasaojosepb.com.br',
+            cnpj: '27.410.988/0001-12',
+            inscricaoEstadual: '16.309.442-8',
+            inscricaoMunicipal: '5120-4',
+            dataAbertura: '2017-07-04',
+            regimeTributario: 'Simples Nacional',
+            capitalSocial: 80000,
+            producoes: ['J'],
+            parcelamentos: ['PGFN'],
+            obrigacoes: { EFD: 'Pendente', MIT: 'N/A', DEFIS: 'Entregue', DASN: 'N/A' },
+            certificadoVencimento: addDaysISO(-5),
+            senhas: { gov: 'Farma@123', nfse: 'FarmaNf26', email: 'FarmaMail@26' }
+          }
+        ],
+        clientesGerais: [
+          {
+            id: 'CG-001',
+            idAlterdata: 'TI-201',
+            nomeRazao: 'CLINICA MEDICA SANTA RITA LTDA',
+            cpf: '456.789.123-22',
+            rg: '2.990.112 SSP/PB',
+            cnh: '',
+            tituloEleitor: '',
+            dataNascimento: '1985-08-19',
+            celular: '(83) 99610-7788',
+            email: 'ti@clinicasantarita.com.br',
+            cnpj: '33.120.445/0001-80',
+            inscricaoEstadual: 'Isento',
+            inscricaoMunicipal: '6012-9',
+            dataAbertura: '2019-02-15',
+            regimeTributario: 'Lucro Presumido',
+            capitalSocial: 120000,
+            producoes: ['J'],
+            parcelamentos: [],
+            obrigacoes: { EFD: 'Entregue', MIT: 'Entregue', DEFIS: 'N/A', DASN: 'N/A' },
+            certificadoVencimento: addDaysISO(95),
+            senhas: { gov: 'SantaRita26', nfse: 'SR@2026', email: 'TiSR@2026' }
+          }
+        ],
+        contasPagar: [
+          { id: 'CP-001', descricao: 'Licença Mensal Alterdata Contábil', categoria: 'Softwares & Sistemas (Alterdata)', parcela: '1/12', vencimento: addDaysISO(5), valor: 890.00, status: 'Pendente', dataPagamento: '' },
+          { id: 'CP-002', descricao: 'Energia Elétrica Escritório (Energisa)', categoria: 'Energia / Água / Internet', parcela: '1/1', vencimento: addDaysISO(-3), valor: 412.50, status: 'Pago', dataPagamento: today }
+        ],
+        contasReceber: [
+          { id: 'CR-001', cliente: 'SUPERMERCADO VALE DO PIANCO LTDA', descricao: 'Honorários Contábeis Mensais', parcela: '1/12', vencimento: addDaysISO(4), valor: 1450.00, status: 'Pendente', dataRecebimento: '' },
+          { id: 'CR-002', cliente: 'CLINICA MEDICA SANTA RITA LTDA', descricao: 'Contrato Suporte TI & Rede', parcela: '1/12', vencimento: addDaysISO(-2), valor: 950.00, status: 'Recebido', dataRecebimento: today }
+        ],
+        tarefas: [
+          { id: 'TAR-001', titulo: 'Transmitir EFD Contribuições e PGDAS-D', area: 'Contábil / Fiscal', prioridade: 'Alta', prazo: addDaysISO(3), status: 'Em andamento', responsavel: 'Setor Fiscal' },
+          { id: 'TAR-002', titulo: 'Renovar Certificado Digital e-CNPJ A1 Farmácia São José', area: 'Certificação Digital', prioridade: 'Alta', prazo: addDaysISO(1), status: 'Pendente', responsavel: 'Atendimento' },
+          { id: 'TAR-003', titulo: 'Manutenção preventiva servidor Secretaria de Saúde', area: 'TI / Suporte', prioridade: 'Média', prazo: addDaysISO(6), status: 'Pendente', responsavel: 'Equipe TI' }
+        ],
+        licitacoes: [
+          {
+            id: 'LIC-001',
+            numeroEdital: 'PE 014/2026',
+            orgao: 'Prefeitura Municipal de Itaporanga - PB',
+            municipio: 'Itaporanga',
+            portal: 'Portal de Compras Públicas',
+            uf: 'PB',
+            modalidade: 'Pregão Eletrônico',
+            objeto: 'Contratação de empresa especializada em assessoria contábil e suporte de TI.',
+            valorEstimado: 48000.00,
+            dataAbertura: addDaysISO(10),
+            link: 'https://www.portaldecompraspublicas.com.br'
+          }
+        ],
+        servicosPmi: [
+          { id: 'PMI-001', data: today, secretaria: 'Secretaria Municipal de Saúde', servico: 'Manutenção de Rede e Servidores e-SUS', complemento: 'Sede e UBS Centro', valor: 1850.00, status: 'Empenhado', empenho: '00412/2026', nf: '' },
+          { id: 'PMI-002', data: addDaysISO(-12), secretaria: 'Secretaria Municipal de Educação', servico: 'Configuração de Laboratório de Informática', complemento: 'Escola Municipal', valor: 1200.00, status: 'Pago', empenho: '00389/2026', nf: 'NF-104' }
+        ],
+        ordensServico: [
+          { id: 'OS-2026-001', data: today, clienteNome: 'SUPERMERCADO VALE DO PIANCO LTDA', telefone: '(83) 99912-3456', equipamento: 'Servidor PDV Dell PowerEdge', defeito: 'Lentidão no banco de dados e backup', servicoExecutado: 'Otimização SSD e rotina automática de backup', valor: 350.00, status: 'Concluída' }
+        ],
+        cursos: [
+          { id: 'CUR-01', nome: 'Atualização Reforma Tributária & EFD', instituicao: 'CRC-PB', cargaHoraria: '40h', status: 'Em andamento' }
+        ],
+        atividadesEstudo: [
+          { id: 'EST-01', data: today, cursoId: 'CUR-01', titulo: 'Módulo 1 — CBS e IBS na prática contábil', status: 'Pendente' }
+        ],
+        config: {
+          gasUrl: '',
+          autoSyncMinutes: 0,
+          lastSyncAt: '',
+          lastSyncMessage: 'Aguardando configuração do Google Apps Script.'
+        }
+      };
+    }
+
+    function loadState() {
+      const base = createInitialState();
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return base;
+        const parsed = JSON.parse(raw);
+        return {
+          ...base,
+          ...parsed,
+          users: Array.isArray(parsed.users) && parsed.users.length ? parsed.users : base.users,
+          config: { ...base.config, ...(parsed.config || {}) }
+        };
+      } catch (e) {
+        return base;
+      }
+    }
+
+    function toggleSidebar(forceVisible) {
+      const sidebar = document.getElementById('sidebar');
+      const label = document.getElementById('toggle-sidebar-label');
+      const isHidden = sidebar.classList.contains('hidden');
+      const shouldShow = typeof forceVisible === 'boolean' ? forceVisible : isHidden;
+
+      if (shouldShow) {
+        sidebar.classList.remove('hidden');
+        if (label) label.textContent = 'Esconder Menu';
+      } else {
+        sidebar.classList.add('hidden');
+        if (label) label.textContent = 'Exibir Menu';
+      }
+    }
+
+    function renderSidebar() {
+      const nav = document.getElementById('sidebar-nav');
+      nav.innerHTML = NAV_ITEMS.map((item) => {
+        const active = item.id === ActiveRoute;
+        return `
+          <button type="button" onclick="navigateTo('${item.id}')"
+            class="w-full flex items-center gap-3 text-left px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
+              active
+                ? 'bg-accent-500 text-white shadow-md shadow-accent-500/20 font-bold'
+                : 'text-slate-300 hover:bg-navy-800 hover:text-white'
+            }">
+            <span class="${active ? 'text-white' : 'text-accent-500/90'}">${item.icon}</span>
+            <span class="truncate">${item.label}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function navigateTo(route) {
+      ActiveRoute = route;
+      renderSidebar();
+      renderRoute(route);
+    }
+
+    let AppState = loadState();
+    let ActiveRoute = 'dashboard';
+    let CurrentUser = null;
+    let autoSyncTimer = null;
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(AppState));
+      } catch (e) {
+        showToast('Erro ao salvar dados localmente.', 'error');
+      }
+    }
+
+    // =========================================================================
+    // UTILITÁRIOS GERAIS
+    // =========================================================================
+    function escapeHTML(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatCurrency(val) {
+      return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatDateBR(iso) {
+      if (!iso) return '—';
+      const clean = String(iso).slice(0, 10);
+      const parts = clean.split('-');
+      if (parts.length !== 3) return clean;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    function daysUntil(iso) {
+      if (!iso) return null;
+      const target = new Date(String(iso).slice(0, 10) + 'T00:00:00');
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return Math.round((target - now) / 86400000);
+    }
+
+    function generateId(prefix) {
+      return `${prefix}-${Date.now().toString(36).toUpperCase().slice(-5)}`;
+    }
+
+    function showToast(message, type = 'success') {
+      const box = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const colors =
+        type === 'error'
+          ? 'bg-red-600 text-white'
+          : type === 'warning'
+          ? 'bg-amber-600 text-white'
+          : 'bg-navy-900 text-white border-l-4 border-accent-500';
+      el.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-xl text-xs font-semibold transition ${colors}`;
+      el.textContent = message;
+      box.appendChild(el);
+      setTimeout(() => el.remove(), 3600);
+    }
+
+    function openModal(title, bodyHTML, footerHTML = '') {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').innerHTML = bodyHTML;
+      document.getElementById('modal-footer').innerHTML =
+        footerHTML || `<button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold cursor-pointer">Fechar</button>`;
+      document.getElementById('modal-backdrop').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('modal-backdrop').classList.add('hidden');
+    }
+
+    function copyText(text, label = 'Texto') {
+      if (!text) return;
+      navigator.clipboard?.writeText(String(text));
+      showToast(`${label} copiado para a área de transferência!`);
+    }
+
+    function downloadCSV(filename, headers, rows) {
+      const escapeCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const csv = [headers.map(escapeCell).join(';'), ...rows.map((r) => r.map(escapeCell).join(';'))].join('\r\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function askConfirm(title, message, onConfirm) {
+      openModal(
+        title,
+        `<p class="text-slate-700">${escapeHTML(message)}</p>`,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="button" id="confirm-yes-btn" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer">Confirmar</button>
+        `
+      );
+      document.getElementById('confirm-yes-btn').onclick = () => {
+        closeModal();
+        onConfirm();
+      };
+    }
+
+    // =========================================================================
+    // 1. AUTENTICAÇÃO E CONTROLE DE ACESSO
+    // =========================================================================
+    function syncAuthScreen() {
+      const savedSession = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
+      if (savedSession) {
+        try {
+          CurrentUser = JSON.parse(savedSession);
+        } catch (e) {
+          CurrentUser = null;
+        }
+      }
+
+      const authScreen = document.getElementById('auth-screen');
+      const appShell = document.getElementById('app-shell');
+
+      if (CurrentUser) {
+        authScreen.classList.add('hidden');
+        appShell.classList.remove('hidden');
+        document.getElementById('current-user-name').textContent = CurrentUser.name || CurrentUser.username;
+        document.getElementById('current-user-role').textContent = CurrentUser.role || 'Operador';
+        renderSidebar();
+        renderRoute(ActiveRoute);
+        setupAutoSync();
+      } else {
+        authScreen.classList.remove('hidden');
+        appShell.classList.add('hidden');
+      }
+    }
+
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const userVal = document.getElementById('login-username').value.trim();
+      const passVal = document.getElementById('login-password').value;
+      const remember = document.getElementById('login-remember').checked;
+      const errBox = document.getElementById('login-error');
+
+      const found = (AppState.users || []).find(
+        (u) => u.username.toLowerCase() === userVal.toLowerCase() && u.password === passVal
+      );
+
+      if (!found) {
+        errBox.textContent = 'Usuário ou senha inválidos. Verifique suas credenciais.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      errBox.classList.add('hidden');
+      CurrentUser = { id: found.id, name: found.name, username: found.username, role: found.role };
+      const serialized = JSON.stringify(CurrentUser);
+      if (remember) {
+        localStorage.setItem(SESSION_KEY, serialized);
+        sessionStorage.removeItem(SESSION_KEY);
+      } else {
+        sessionStorage.setItem(SESSION_KEY, serialized);
+        localStorage.removeItem(SESSION_KEY);
+      }
+      syncAuthScreen();
+      showToast(`Bem-vindo(a), ${CurrentUser.name}!`);
+    });
+
+    function logoutUser() {
+      CurrentUser = null;
+      localStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+      syncAuthScreen();
+    }
+
+    function renderRoute(route) {
+      const main = document.getElementById('main-content');
+      switch (route) {
+        case 'dashboard': return renderDashboard(main);
+        case 'contabeis': return renderClientes(main, 'contabeis');
+        case 'gerais': return renderClientes(main, 'gerais');
+        case 'certificados': return renderCertificados(main);
+        case 'pagar': return renderFinanceiro(main, 'pagar');
+        case 'receber': return renderFinanceiro(main, 'receber');
+        case 'tarefas': return renderTarefas(main);
+        case 'licitacoes': return renderLicitacoes(main);
+        case 'pmi': return renderPmi(main);
+        case 'os': return renderOrdensServico(main);
+        case 'estudo': return renderEstudo(main);
+        case 'relatorios': return renderRelatorios(main);
+        case 'administracao': return renderAdministracao(main);
+        default: return renderDashboard(main);
+      }
+    }
+
+    // =========================================================================
+    // 2. PAINEL EXECUTIVO (DASHBOARD)
+    // =========================================================================
+    function getAllCertificates() {
+      const list = [];
+      (AppState.clientesContabeis || []).forEach((c) => {
+        if (c.certificadoVencimento) list.push({ tipo: 'Contábil', cliente: c.nomeRazao, doc: c.cnpj || c.cpf, celular: c.celular, vencimento: c.certificadoVencimento });
+      });
+      (AppState.clientesGerais || []).forEach((c) => {
+        if (c.certificadoVencimento) list.push({ tipo: 'Geral / TI', cliente: c.nomeRazao, doc: c.cnpj || c.cpf, celular: c.celular, vencimento: c.certificadoVencimento });
+      });
+      return list.sort((a, b) => String(a.vencimento).localeCompare(String(b.vencimento)));
+    }
+
+    function renderDashboard(container) {
+      const totalContabeis = (AppState.clientesContabeis || []).length;
+      const certs = getAllCertificates();
+      const certsAlerta = certs.filter((c) => {
+        const d = daysUntil(c.vencimento);
+        return d !== null && d <= 30;
+      });
+
+      const recPendente = (AppState.contasReceber || []).filter((i) => i.status !== 'Recebido').reduce((s, i) => s + Number(i.valor || 0), 0);
+      const recRecebido = (AppState.contasReceber || []).filter((i) => i.status === 'Recebido').reduce((s, i) => s + Number(i.valor || 0), 0);
+
+      const pagPendente = (AppState.contasPagar || []).filter((i) => i.status !== 'Pago').reduce((s, i) => s + Number(i.valor || 0), 0);
+      const pagPago = (AppState.contasPagar || []).filter((i) => i.status === 'Pago').reduce((s, i) => s + Number(i.valor || 0), 0);
+
+      const pmiAberto = (AppState.servicosPmi || []).filter((i) => i.status !== 'Pago').reduce((s, i) => s + Number(i.valor || 0), 0);
+
+      const totalRec = recPendente + recRecebido || 1;
+      const pctRecebido = Math.round((recRecebido / totalRec) * 100);
+      const totalPag = pagPendente + pagPago || 1;
+      const pctPago = Math.round((pagPago / totalPag) * 100);
+
+      const catTotals = {};
+      (AppState.contasPagar || []).forEach((i) => {
+        const k = i.categoria || 'Outros';
+        catTotals[k] = (catTotals[k] || 0) + Number(i.valor || 0);
+      });
+      const maxCat = Math.max(...Object.values(catTotals), 1);
+
+      const tarefasAtivas = (AppState.tarefas || []).filter((t) => t.status !== 'Concluído').slice(0, 6);
+
+      container.innerHTML = `
+        <div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Painel Executivo</h2>
+          <p class="text-xs sm:text-sm text-slate-600">Visão consolidada da CONTECH Contabilidade &amp; Informática (Itaporanga - PB).</p>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+          <div onclick="navigateTo('contabeis')" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:border-navy-700 cursor-pointer transition">
+            <div class="text-xs font-semibold text-slate-500">Clientes Contábeis</div>
+            <div class="text-2xl font-extrabold text-navy-900 mt-1">${totalContabeis}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Carteiras ativas</div>
+          </div>
+
+          <div onclick="navigateTo('certificados')" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:border-amber-500 cursor-pointer transition">
+            <div class="text-xs font-semibold text-slate-500">Certificados (≤ 30d / Venc.)</div>
+            <div class="text-2xl font-extrabold text-amber-600 mt-1">${certsAlerta.length}</div>
+            <div class="text-[11px] text-slate-500 mt-1">De ${certs.length} monitorados</div>
+          </div>
+
+          <div onclick="navigateTo('receber')" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:border-emerald-600 cursor-pointer transition">
+            <div class="text-xs font-semibold text-slate-500">A Receber (Em Aberto)</div>
+            <div class="text-xl font-extrabold text-emerald-700 mt-1">${formatCurrency(recPendente)}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Recebido: ${formatCurrency(recRecebido)}</div>
+          </div>
+
+          <div onclick="navigateTo('pagar')" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:border-red-500 cursor-pointer transition">
+            <div class="text-xs font-semibold text-slate-500">A Pagar (Em Aberto)</div>
+            <div class="text-xl font-extrabold text-red-600 mt-1">${formatCurrency(pagPendente)}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Pago: ${formatCurrency(pagPago)}</div>
+          </div>
+
+          <div onclick="navigateTo('pmi')" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:border-accent-500 cursor-pointer transition">
+            <div class="text-xs font-semibold text-slate-500">Serviços PMI em Aberto</div>
+            <div class="text-xl font-extrabold text-accent-600 mt-1">${formatCurrency(pmiAberto)}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Prefeitura de Itaporanga</div>
+          </div>
+        </div>
+
+        <!-- Gráficos Compactos -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+            <h3 class="text-sm font-extrabold text-navy-900">Proporção Financeira (Liquidado vs. Pendente)</h3>
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span>Contas a Receber (${pctRecebido}% recebido)</span>
+                <span class="text-emerald-700">${formatCurrency(recRecebido)} / ${formatCurrency(recRecebido + recPendente)}</span>
+              </div>
+              <div class="w-full h-3 rounded-full bg-amber-100 overflow-hidden">
+                <div class="h-full bg-emerald-600 rounded-full" style="width:${pctRecebido}%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span>Contas a Pagar (${pctPago}% pago)</span>
+                <span class="text-navy-900">${formatCurrency(pagPago)} / ${formatCurrency(pagPago + pagPendente)}</span>
+              </div>
+              <div class="w-full h-3 rounded-full bg-red-100 overflow-hidden">
+                <div class="h-full bg-navy-900 rounded-full" style="width:${pctPago}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+            <h3 class="text-sm font-extrabold text-navy-900">Distribuição de Despesas por Categoria</h3>
+            ${
+              Object.entries(catTotals).map(([cat, val]) => {
+                const w = Math.max(8, Math.round((val / maxCat) * 100));
+                return `
+                  <div>
+                    <div class="flex justify-between text-xs mb-1">
+                      <span class="font-medium text-slate-700">${escapeHTML(cat)}</span>
+                      <span class="font-bold text-navy-900">${formatCurrency(val)}</span>
+                    </div>
+                    <div class="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div class="h-full bg-accent-500 rounded-full" style="width:${w}%"></div>
+                    </div>
+                  </div>
+                `;
+              }).join('') || `<p class="text-xs text-slate-500">Nenhuma despesa cadastrada.</p>`
+            }
+          </div>
+        </div>
+
+        <!-- Radar de Certificados e Tarefas Prioritárias -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-extrabold text-navy-900">Radar de Certificados Digitais</h3>
+              <button type="button" onclick="navigateTo('certificados')" class="text-xs font-bold text-accent-600 hover:underline cursor-pointer">Ver todos</button>
+            </div>
+            <div class="divide-y divide-slate-100 text-xs">
+              ${
+                certs.slice(0, 5).map((c) => {
+                  const d = daysUntil(c.vencimento);
+                  const badge =
+                    d < 0
+                      ? `<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">Vencido (${Math.abs(d)}d)</span>`
+                      : d <= 30
+                      ? `<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">Vence em ${d}d</span>`
+                      : `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">${formatDateBR(c.vencimento)}</span>`;
+                  return `
+                    <div class="py-2.5 flex items-center justify-between gap-2">
+                      <div>
+                        <div class="font-bold text-navy-900">${escapeHTML(c.cliente)}</div>
+                        <div class="text-[11px] text-slate-500">${escapeHTML(c.tipo)} • Venc: ${formatDateBR(c.vencimento)}</div>
+                      </div>
+                      ${badge}
+                    </div>
+                  `;
+                }).join('') || `<p class="text-slate-500 py-3">Nenhum certificado cadastrado.</p>`
+              }
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-extrabold text-navy-900">Tarefas Prioritárias Ativas</h3>
+              <button type="button" onclick="navigateTo('tarefas')" class="text-xs font-bold text-accent-600 hover:underline cursor-pointer">Gerenciar</button>
+            </div>
+            <div class="divide-y divide-slate-100 text-xs">
+              ${
+                tarefasAtivas.map((t) => `
+                  <div class="py-2.5 flex items-center justify-between gap-2">
+                    <div>
+                      <div class="font-bold text-navy-900">${escapeHTML(t.titulo)}</div>
+                      <div class="text-[11px] text-slate-500">${escapeHTML(t.area)} • Prazo: ${formatDateBR(t.prazo)}</div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full font-bold ${
+                      t.prioridade === 'Alta' ? 'bg-red-100 text-red-700' : t.prioridade === 'Média' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+                    }">${escapeHTML(t.prioridade)}</span>
+                  </div>
+                `).join('') || `<p class="text-slate-500 py-3">Nenhuma tarefa pendente.</p>`
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 3. CADASTROS DE CLIENTES (CONTÁBEIS E GERAIS — 25 CAMPOS COMPLETOS)
+    // =========================================================================
+    let clientSearchQuery = '';
+    let clientRegimeFilter = '';
+
+    function renderClientes(container, kind) {
+      const isContabil = kind === 'contabeis';
+      const list = isContabil ? AppState.clientesContabeis : AppState.clientesGerais;
+      const title = isContabil ? 'Clientes Contábeis' : 'Clientes Gerais & Suporte TI';
+      const subtitle = isContabil
+        ? 'Gestão cadastral, fiscal, parcelamentos, obrigações acessórias e certificados digitais (25 campos).'
+        : 'Cadastro de clientes gerais, atendimentos de informática/TI, documentos e credenciais (25 campos).';
+
+      const filtered = (list || []).filter((c) => {
+        const q = clientSearchQuery.trim().toLowerCase();
+        const matchesText =
+          !q ||
+          [c.id, c.idAlterdata, c.nomeRazao, c.cnpj, c.cpf, c.email, c.celular]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(q));
+        const matchesRegime = !clientRegimeFilter || c.regimeTributario === clientRegimeFilter;
+        return matchesText && matchesRegime;
+      });
+
+      container.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">${title}</h2>
+            <p class="text-xs sm:text-sm text-slate-600">${subtitle}</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="exportClientesCSV('${kind}')" class="px-3.5 py-2 rounded-xl bg-navy-800 hover:bg-navy-700 text-white text-xs font-semibold cursor-pointer">
+              Exportar CSV
+            </button>
+            <button type="button" onclick="openClienteFormModal('${kind}')" class="px-3.5 py-2 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold cursor-pointer">
+              + Novo Cadastro
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-3">
+          <input
+            type="text"
+            value="${escapeHTML(clientSearchQuery)}"
+            oninput="clientSearchQuery = this.value; renderRoute(ActiveRoute);"
+            placeholder="Buscar por nome, razão social, CNPJ, CPF, ID ou e-mail..."
+            class="md:col-span-2 px-3.5 py-2 rounded-xl border border-slate-300 focus:border-accent-500 outline-none text-xs sm:text-sm"
+          />
+          <select
+            onchange="clientRegimeFilter = this.value; renderRoute(ActiveRoute);"
+            class="px-3.5 py-2 rounded-xl border border-slate-300 focus:border-accent-500 outline-none text-xs sm:text-sm bg-white"
+          >
+            <option value="">Todos os Regimes Tributários</option>
+            ${TAX_REGIMES.map((r) => `<option value="${r}" ${clientRegimeFilter === r ? 'selected' : ''}>${r}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="px-4 py-2 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Exibindo todas as <strong>25 colunas</strong> cadastrais (${filtered.length} registro(s))</span>
+            <span>← Deslize horizontalmente na barra inferior para ver todos os campos →</span>
+          </div>
+          <div class="w-full overflow-x-auto pb-1">
+            <table class="w-max min-w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-navy-900 text-white text-[11px] uppercase tracking-wider whitespace-nowrap">
+                  <th class="py-3 px-3.5">1. ID</th>
+                  <th class="py-3 px-3.5">2. ID Alterdata</th>
+                  <th class="py-3 px-3.5">3. Nome / Razão Social</th>
+                  <th class="py-3 px-3.5">4. CPF</th>
+                  <th class="py-3 px-3.5">5. RG</th>
+                  <th class="py-3 px-3.5">6. CNH</th>
+                  <th class="py-3 px-3.5">7. Título de Eleitor</th>
+                  <th class="py-3 px-3.5">8. Data Nascimento</th>
+                  <th class="py-3 px-3.5">9. Celular</th>
+                  <th class="py-3 px-3.5">10. E-mail</th>
+                  <th class="py-3 px-3.5">11. CNPJ</th>
+                  <th class="py-3 px-3.5">12. Inscrição Estadual</th>
+                  <th class="py-3 px-3.5">13. Inscrição Municipal</th>
+                  <th class="py-3 px-3.5">14. Data Abertura</th>
+                  <th class="py-3 px-3.5">15. Regime Tributário</th>
+                  <th class="py-3 px-3.5">16. Capital Social</th>
+                  <th class="py-3 px-3.5">17. Produções</th>
+                  <th class="py-3 px-3.5">18. Parcelamentos</th>
+                  <th class="py-3 px-3.5">19. EFD</th>
+                  <th class="py-3 px-3.5">20. MIT</th>
+                  <th class="py-3 px-3.5">21. DEFIS</th>
+                  <th class="py-3 px-3.5">22. DASN</th>
+                  <th class="py-3 px-3.5">23. Venc. Certificado</th>
+                  <th class="py-3 px-3.5">24. Senha GOV</th>
+                  <th class="py-3 px-3.5">25. Senha NFSe / E-mail</th>
+                  <th class="py-3 px-3.5 text-right sticky right-0 bg-navy-900 shadow-[-4px_0_8px_rgba(0,0,0,0.18)]">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-xs whitespace-nowrap">
+                ${
+                  filtered.map((c) => {
+                    const diasCert = c.certificadoVencimento ? daysUntil(c.certificadoVencimento) : null;
+                    const certBadge =
+                      diasCert === null
+                        ? `<span class="text-slate-400">—</span>`
+                        : diasCert < 0
+                        ? `<span class="px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700">${formatDateBR(c.certificadoVencimento)}</span>`
+                        : diasCert <= 30
+                        ? `<span class="px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">${formatDateBR(c.certificadoVencimento)}</span>`
+                        : `<span class="px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700">${formatDateBR(c.certificadoVencimento)}</span>`;
+                    const senhasNfseEmail = [c.senhas?.nfse, c.senhas?.email].filter(Boolean).join(' | ') || '—';
+                    return `
+                      <tr class="group hover:bg-navy-50/70 transition">
+                        <td class="py-3 px-3.5 font-bold text-navy-900">${escapeHTML(c.id)}</td>
+                        <td class="py-3 px-3.5 text-slate-600">${escapeHTML(c.idAlterdata || '—')}</td>
+                        <td class="py-3 px-3.5 font-bold text-navy-900">${escapeHTML(c.nomeRazao)}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.cpf || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.rg || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.cnh || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.tituloEleitor || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${formatDateBR(c.dataNascimento)}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.celular || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-600">${escapeHTML(c.email || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.cnpj || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.inscricaoEstadual || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.inscricaoMunicipal || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${formatDateBR(c.dataAbertura)}</td>
+                        <td class="py-3 px-3.5"><span class="px-2 py-0.5 rounded-lg bg-navy-100 text-navy-900 font-semibold">${escapeHTML(c.regimeTributario || '—')}</span></td>
+                        <td class="py-3 px-3.5 font-semibold text-slate-800">${formatCurrency(c.capitalSocial)}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML((c.producoes || []).join(', ') || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML((c.parcelamentos || []).join(', ') || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.obrigacoes?.EFD || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.obrigacoes?.MIT || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.obrigacoes?.DEFIS || '—')}</td>
+                        <td class="py-3 px-3.5 text-slate-700">${escapeHTML(c.obrigacoes?.DASN || '—')}</td>
+                        <td class="py-3 px-3.5">${certBadge}</td>
+                        <td class="py-3 px-3.5 font-mono text-slate-700">${escapeHTML(c.senhas?.gov || '—')}</td>
+                        <td class="py-3 px-3.5 font-mono text-slate-700">${escapeHTML(senhasNfseEmail)}</td>
+                        <td class="py-3 px-3.5 text-right whitespace-nowrap space-x-1 sticky right-0 bg-white group-hover:bg-navy-50 shadow-[-4px_0_8px_rgba(15,41,74,0.06)]">
+                          <button type="button" onclick="openClienteFichaModal('${kind}', '${c.id}')" class="px-2.5 py-1.5 rounded-lg bg-navy-100 hover:bg-navy-200 text-navy-900 font-semibold cursor-pointer">Ficha</button>
+                          <button type="button" onclick="openClienteFormModal('${kind}', '${c.id}')" class="px-2.5 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold cursor-pointer">Editar</button>
+                          <button type="button" onclick="deleteCliente('${kind}', '${c.id}')" class="px-2.5 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 font-semibold cursor-pointer">Excluir</button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('') ||
+                  `<tr><td colspan="26" class="py-8 text-center text-slate-500">Nenhum registro encontrado para os filtros atuais.</td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function openClienteFichaModal(kind, id) {
+      const list = kind === 'contabeis' ? AppState.clientesContabeis : AppState.clientesGerais;
+      const c = (list || []).find((x) => x.id === id);
+      if (!c) return;
+
+      openModal(
+        `Ficha Cadastral Completa — ${c.nomeRazao}`,
+        `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 border"><strong>ID / Alterdata:</strong> ${escapeHTML(c.id)} / ${escapeHTML(c.idAlterdata || '—')}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border"><strong>Regime Tributário:</strong> ${escapeHTML(c.regimeTributario || '—')}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border"><strong>CNPJ / CPF:</strong> ${escapeHTML(c.cnpj || '—')} / ${escapeHTML(c.cpf || '—')}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border"><strong>RG / CNH / Título:</strong> ${escapeHTML(c.rg || '—')} / ${escapeHTML(c.cnh || '—')} / ${escapeHTML(c.tituloEleitor || '—')}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border"><strong>Nascimento / Abertura:</strong> ${formatDateBR(c.dataNascimento)} / ${formatDateBR(c.dataAbertura)}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border"><strong>IE / IM:</strong> ${escapeHTML(c.inscricaoEstadual || '—')} / ${escapeHTML(c.inscricaoMunicipal || '—')}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border"><strong>Celular / E-mail:</strong> ${escapeHTML(c.celular || '—')} / ${escapeHTML(c.email || '—')}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border"><strong>Capital Social / Produções:</strong> ${formatCurrency(c.capitalSocial)} / ${escapeHTML((c.producoes || []).join(', ') || '—')}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border sm:col-span-2"><strong>Parcelamentos:</strong> ${escapeHTML((c.parcelamentos || []).join(', ') || 'Nenhum')}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border sm:col-span-2"><strong>Obrigações Acessórias:</strong> EFD: ${escapeHTML(c.obrigacoes?.EFD || '—')} | MIT: ${escapeHTML(c.obrigacoes?.MIT || '—')} | DEFIS: ${escapeHTML(c.obrigacoes?.DEFIS || '—')} | DASN: ${escapeHTML(c.obrigacoes?.DASN || '—')}</div>
+            <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 sm:col-span-2"><strong>Vencimento Certificado Digital:</strong> ${formatDateBR(c.certificadoVencimento)}</div>
+          </div>
+          <div class="p-3 rounded-xl bg-navy-50 border border-navy-200 space-y-2 text-xs">
+            <div class="font-bold text-navy-900">Credenciais &amp; Senhas</div>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="copyText('${escapeHTML(c.senhas?.gov || '')}', 'Senha GOV')" class="px-3 py-1.5 rounded-lg bg-white border font-mono cursor-pointer">GOV: ${escapeHTML(c.senhas?.gov || '—')} (Copiar)</button>
+              <button type="button" onclick="copyText('${escapeHTML(c.senhas?.nfse || '')}', 'Senha NFSe')" class="px-3 py-1.5 rounded-lg bg-white border font-mono cursor-pointer">NFSe: ${escapeHTML(c.senhas?.nfse || '—')} (Copiar)</button>
+              <button type="button" onclick="copyText('${escapeHTML(c.senhas?.email || '')}', 'Senha E-mail')" class="px-3 py-1.5 rounded-lg bg-white border font-mono cursor-pointer">E-mail: ${escapeHTML(c.senhas?.email || '—')} (Copiar)</button>
+            </div>
+          </div>
+        `
+      );
+    }
+
+    function openClienteFormModal(kind, editId = null) {
+      const list = kind === 'contabeis' ? AppState.clientesContabeis : AppState.clientesGerais;
+      const item = editId ? (list || []).find((x) => x.id === editId) : null;
+      const c = item || {
+        id: generateId(kind === 'contabeis' ? 'CC' : 'CG'),
+        idAlterdata: '', nomeRazao: '', cpf: '', rg: '', cnh: '', tituloEleitor: '',
+        dataNascimento: '', celular: '', email: '', cnpj: '', inscricaoEstadual: '',
+        inscricaoMunicipal: '', dataAbertura: '', regimeTributario: 'Simples Nacional',
+        capitalSocial: 0, producoes: [], parcelamentos: [],
+        obrigacoes: { EFD: 'Pendente', MIT: 'N/A', DEFIS: 'Pendente', DASN: 'N/A' },
+        certificadoVencimento: '', senhas: { gov: '', nfse: '', email: '' }
+      };
+
+      const prodOptions = ['F', 'J', 'FJ'];
+      const parcOptions = ['Estadual', 'Municipal', 'Federal', 'MEI', 'PGFN'];
+      const obStatuses = ['Pendente', 'Entregue', 'N/A'];
+
+      openModal(
+        item ? `Editar Cliente — ${c.nomeRazao}` : 'Novo Cadastro de Cliente (25 Campos)',
+        `
+          <form id="cliente-form" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div><label class="font-semibold">1. ID *</label><input name="id" required value="${escapeHTML(c.id)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">2. ID Alterdata</label><input name="idAlterdata" value="${escapeHTML(c.idAlterdata)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">15. Regime Tributário</label>
+              <select name="regimeTributario" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">
+                ${TAX_REGIMES.map((r) => `<option value="${r}" ${c.regimeTributario === r ? 'selected' : ''}>${r}</option>`).join('')}
+              </select>
+            </div>
+            <div class="sm:col-span-3"><label class="font-semibold">3. Nome / Razão Social *</label><input name="nomeRazao" required value="${escapeHTML(c.nomeRazao)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">4. CPF</label><input name="cpf" value="${escapeHTML(c.cpf)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">5. RG</label><input name="rg" value="${escapeHTML(c.rg)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">6. CNH</label><input name="cnh" value="${escapeHTML(c.cnh)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">7. Título de Eleitor</label><input name="tituloEleitor" value="${escapeHTML(c.tituloEleitor)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">8. Data de Nascimento</label><input type="date" name="dataNascimento" value="${escapeHTML(c.dataNascimento)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">9. Celular / WhatsApp</label><input name="celular" value="${escapeHTML(c.celular)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div class="sm:col-span-2"><label class="font-semibold">10. E-mail</label><input type="email" name="email" value="${escapeHTML(c.email)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">11. CNPJ</label><input name="cnpj" value="${escapeHTML(c.cnpj)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">12. Inscrição Estadual</label><input name="inscricaoEstadual" value="${escapeHTML(c.inscricaoEstadual)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">13. Inscrição Municipal</label><input name="inscricaoMunicipal" value="${escapeHTML(c.inscricaoMunicipal)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">14. Data de Abertura</label><input type="date" name="dataAbertura" value="${escapeHTML(c.dataAbertura)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">16. Capital Social (R$)</label><input type="number" step="0.01" name="capitalSocial" value="${Number(c.capitalSocial || 0)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">23. Vencimento Certificado</label><input type="date" name="certificadoVencimento" value="${escapeHTML(c.certificadoVencimento)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">24. Senha GOV</label><input name="senhaGov" value="${escapeHTML(c.senhas?.gov || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">25a. Senha NFSe</label><input name="senhaNfse" value="${escapeHTML(c.senhas?.nfse || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">25b. Senha E-mail</label><input name="senhaEmail" value="${escapeHTML(c.senhas?.email || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+
+            <div class="sm:col-span-3">
+              <label class="font-semibold block mb-1">17. Produções</label>
+              <div class="flex flex-wrap gap-3">
+                ${prodOptions.map((p) => `<label class="inline-flex items-center gap-1"><input type="checkbox" name="producoes" value="${p}" ${(c.producoes || []).includes(p) ? 'checked' : ''} /> ${p}</label>`).join('')}
+              </div>
+            </div>
+
+            <div class="sm:col-span-3">
+              <label class="font-semibold block mb-1">18. Parcelamentos Ativos</label>
+              <div class="flex flex-wrap gap-3">
+                ${parcOptions.map((p) => `<label class="inline-flex items-center gap-1"><input type="checkbox" name="parcelamentos" value="${p}" ${(c.parcelamentos || []).includes(p) ? 'checked' : ''} /> ${p}</label>`).join('')}
+              </div>
+            </div>
+
+            <div><label class="font-semibold">19. Status EFD</label><select name="EFD" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${obStatuses.map((s) => `<option ${c.obrigacoes?.EFD === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+            <div><label class="font-semibold">20. Status MIT</label><select name="MIT" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${obStatuses.map((s) => `<option ${c.obrigacoes?.MIT === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+            <div><label class="font-semibold">21. Status DEFIS</label><select name="DEFIS" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${obStatuses.map((s) => `<option ${c.obrigacoes?.DEFIS === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+            <div><label class="font-semibold">22. Status DASN</label><select name="DASN" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${obStatuses.map((s) => `<option ${c.obrigacoes?.DASN === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+          </form>
+        `,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="submit" form="cliente-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar Cadastro</button>
+        `
+      );
+
+      document.getElementById('cliente-form').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const record = {
+          id: fd.get('id').trim(),
+          idAlterdata: fd.get('idAlterdata').trim(),
+          nomeRazao: fd.get('nomeRazao').trim(),
+          cpf: fd.get('cpf').trim(),
+          rg: fd.get('rg').trim(),
+          cnh: fd.get('cnh').trim(),
+          tituloEleitor: fd.get('tituloEleitor').trim(),
+          dataNascimento: fd.get('dataNascimento'),
+          celular: fd.get('celular').trim(),
+          email: fd.get('email').trim(),
+          cnpj: fd.get('cnpj').trim(),
+          inscricaoEstadual: fd.get('inscricaoEstadual').trim(),
+          inscricaoMunicipal: fd.get('inscricaoMunicipal').trim(),
+          dataAbertura: fd.get('dataAbertura'),
+          regimeTributario: fd.get('regimeTributario'),
+          capitalSocial: Number(fd.get('capitalSocial') || 0),
+          producoes: fd.getAll('producoes'),
+          parcelamentos: fd.getAll('parcelamentos'),
+          obrigacoes: { EFD: fd.get('EFD'), MIT: fd.get('MIT'), DEFIS: fd.get('DEFIS'), DASN: fd.get('DASN') },
+          certificadoVencimento: fd.get('certificadoVencimento'),
+          senhas: { gov: fd.get('senhaGov'), nfse: fd.get('senhaNfse'), email: fd.get('senhaEmail') }
+        };
+
+        const targetArr = kind === 'contabeis' ? AppState.clientesContabeis : AppState.clientesGerais;
+        if (item) {
+          const idx = targetArr.findIndex((x) => x.id === editId);
+          if (idx >= 0) targetArr[idx] = record;
+        } else {
+          targetArr.unshift(record);
+        }
+        saveState();
+        closeModal();
+        renderRoute(ActiveRoute);
+        showToast('Cadastro salvo com sucesso!');
+      };
+    }
+
+    function deleteCliente(kind, id) {
+      askConfirm('Excluir Cadastro', 'Deseja remover permanentemente este cliente?', () => {
+        if (kind === 'contabeis') {
+          AppState.clientesContabeis = AppState.clientesContabeis.filter((x) => x.id !== id);
+        } else {
+          AppState.clientesGerais = AppState.clientesGerais.filter((x) => x.id !== id);
+        }
+        saveState();
+        renderRoute(ActiveRoute);
+        showToast('Cadastro excluído.');
+      });
+    }
+
+    function exportClientesCSV(kind) {
+      const list = kind === 'contabeis' ? AppState.clientesContabeis : AppState.clientesGerais;
+      const headers = ['ID', 'ID_Alterdata', 'Nome_Razao_Social', 'CPF', 'RG', 'CNH', 'Titulo_Eleitor', 'Data_Nascimento', 'Celular', 'Email', 'CNPJ', 'Inscricao_Estadual', 'Inscricao_Municipal', 'Data_Abertura', 'Regime_Tributario', 'Capital_Social', 'Producoes', 'Parcelamentos', 'EFD', 'MIT', 'DEFIS', 'DASN', 'Vencimento_Certificado', 'Senha_GOV', 'Senha_NFSe_Email'];
+      const rows = (list || []).map((c) => [
+        c.id, c.idAlterdata, c.nomeRazao, c.cpf, c.rg, c.cnh, c.tituloEleitor, c.dataNascimento, c.celular, c.email,
+        c.cnpj, c.inscricaoEstadual, c.inscricaoMunicipal, c.dataAbertura, c.regimeTributario, c.capitalSocial,
+        (c.producoes || []).join(', '), (c.parcelamentos || []).join(', '),
+        c.obrigacoes?.EFD, c.obrigacoes?.MIT, c.obrigacoes?.DEFIS, c.obrigacoes?.DASN,
+        c.certificadoVencimento, c.senhas?.gov, [c.senhas?.nfse, c.senhas?.email].filter(Boolean).join(' | ')
+      ]);
+      downloadCSV(`clientes_${kind}_contech.csv`, headers, rows);
+    }
+
+    // =========================================================================
+    // 4. CONTROLE DE CERTIFICADOS DIGITAIS
+    // =========================================================================
+    function renderCertificados(container) {
+      const certs = getAllCertificates();
+
+      container.innerHTML = `
+        <div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Controle de Certificados Digitais</h2>
+          <p class="text-xs sm:text-sm text-slate-600">Sincronizado automaticamente com os cadastros de Clientes Contábeis e Clientes Gerais &amp; TI.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr class="bg-navy-900 text-white text-[11px] uppercase tracking-wider">
+                <th class="py-3 px-4">Origem</th>
+                <th class="py-3 px-4">Cliente / Razão Social</th>
+                <th class="py-3 px-4">CNPJ / CPF</th>
+                <th class="py-3 px-4">Vencimento</th>
+                <th class="py-3 px-4">Situação</th>
+                <th class="py-3 px-4 text-right">WhatsApp</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs">
+              ${
+                certs.map((c) => {
+                  const d = daysUntil(c.vencimento);
+                  const statusBadge =
+                    d < 0
+                      ? `<span class="px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">Vencido há ${Math.abs(d)} dia(s)</span>`
+                      : d <= 30
+                      ? `<span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">Vence em ${d} dia(s)</span>`
+                      : `<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">Dentro do prazo (${d}d)</span>`;
+                  const phone = String(c.celular || '').replace(/\D/g, '');
+                  const msg = encodeURIComponent(`Olá! Aqui é da CONTECH Contabilidade & Informática (Itaporanga-PB). Lembramos que o Certificado Digital de ${c.cliente} vence em ${formatDateBR(c.vencimento)}. Podemos agendar a renovação?`);
+                  return `
+                    <tr class="hover:bg-navy-50/50">
+                      <td class="py-3 px-4 font-semibold">${escapeHTML(c.tipo)}</td>
+                      <td class="py-3 px-4 font-bold text-navy-900">${escapeHTML(c.cliente)}</td>
+                      <td class="py-3 px-4">${escapeHTML(c.doc || '—')}</td>
+                      <td class="py-3 px-4 font-bold">${formatDateBR(c.vencimento)}</td>
+                      <td class="py-3 px-4">${statusBadge}</td>
+                      <td class="py-3 px-4 text-right">
+                        ${
+                          phone
+                            ? `<a href="https://wa.me/55${phone}?text=${msg}" target="_blank" rel="noopener" class="inline-block px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">Avisar WhatsApp</a>`
+                            : `<span class="text-slate-400">Sem celular</span>`
+                        }
+                      </td>
+                    </tr>
+                  `;
+                }).join('') || `<tr><td colspan="6" class="py-8 text-center text-slate-500">Nenhum certificado digital cadastrado.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 5. GESTÃO FINANCEIRA (CONTAS A PAGAR E CONTAS A RECEBER)
+    // =========================================================================
+    function renderFinanceiro(container, mode) {
+      const isPagar = mode === 'pagar';
+      const list = isPagar ? AppState.contasPagar || [] : AppState.contasReceber || [];
+      const doneStatus = isPagar ? 'Pago' : 'Recebido';
+      const openStatus = 'Pendente';
+
+      const abertos = list.filter((i) => i.status !== doneStatus);
+      const realizados = list.filter((i) => i.status === doneStatus);
+
+      const totalPendente = abertos.reduce((s, i) => s + Number(i.valor || 0), 0);
+      const totalRealizado = realizados.reduce((s, i) => s + Number(i.valor || 0), 0);
+
+      const renderFinTable = (items, emptyMessage) => `
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[760px]">
+            <thead>
+              <tr class="bg-navy-900 text-white text-[11px] uppercase tracking-wider">
+                <th class="py-2.5 px-3.5">${isPagar ? 'Descrição / Categoria' : 'Cliente / Serviço'}</th>
+                <th class="py-2.5 px-3.5">Parcela</th>
+                <th class="py-2.5 px-3.5">Vencimento</th>
+                <th class="py-2.5 px-3.5">Valor</th>
+                <th class="py-2.5 px-3.5">Status</th>
+                <th class="py-2.5 px-3.5 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs">
+              ${
+                items.map((item) => {
+                  const isDone = item.status === doneStatus;
+                  return `
+                    <tr class="hover:bg-navy-50/50">
+                      <td class="py-3 px-3.5">
+                        <div class="font-bold text-navy-900">${escapeHTML(isPagar ? item.descricao : item.cliente)}</div>
+                        <div class="text-[11px] text-slate-500">${escapeHTML(isPagar ? item.categoria : item.descricao)}</div>
+                      </td>
+                      <td class="py-3 px-3.5 font-semibold">${escapeHTML(item.parcela || '1/1')}</td>
+                      <td class="py-3 px-3.5">${formatDateBR(item.vencimento)}</td>
+                      <td class="py-3 px-3.5 font-bold text-navy-900">${formatCurrency(item.valor)}</td>
+                      <td class="py-3 px-3.5">
+                        <span class="px-2.5 py-0.5 rounded-full font-bold ${isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}">${escapeHTML(item.status)}</span>
+                      </td>
+                      <td class="py-3 px-3.5 text-right whitespace-nowrap space-x-1">
+                        ${
+                          !isDone
+                            ? `<button type="button" onclick="toggleFinanceiroStatus('${mode}', '${item.id}', '${doneStatus}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer">${isPagar ? 'Baixar Pago' : 'Baixar Recebido'}</button>`
+                            : `<button type="button" onclick="toggleFinanceiroStatus('${mode}', '${item.id}', '${openStatus}')" class="px-2.5 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold cursor-pointer">Estornar</button>`
+                        }
+                        <button type="button" onclick="deleteFinanceiroItem('${mode}', '${item.id}')" class="px-2.5 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 font-semibold cursor-pointer">Excluir</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('') ||
+                `<tr><td colspan="6" class="py-6 text-center text-slate-500">${emptyMessage}</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      container.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">${isPagar ? 'Contas a Pagar' : 'Contas a Receber'}</h2>
+            <p class="text-xs sm:text-sm text-slate-600">${
+              isPagar
+                ? 'Controle de despesas, parcelamento automático mensal (1/N), baixas e estornos.'
+                : 'Controle de honorários e serviços por cliente, parcelamento automático mensal e recebimentos.'
+            }</p>
+          </div>
+          <button type="button" onclick="openLancamentoFinanceiroModal('${mode}')" class="px-4 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold cursor-pointer">
+            + ${isPagar ? 'Nova Despesa' : 'Novo Lançamento'}
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+            <div class="text-xs font-semibold text-slate-500">Total Pendente / Em Aberto</div>
+            <div class="text-2xl font-extrabold text-accent-600 mt-1">${formatCurrency(totalPendente)}</div>
+          </div>
+          <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+            <div class="text-xs font-semibold text-slate-500">Total ${doneStatus}</div>
+            <div class="text-2xl font-extrabold text-emerald-700 mt-1">${formatCurrency(totalRealizado)}</div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border-2 border-accent-500/40 shadow-sm overflow-hidden">
+          <div class="px-4 py-3 bg-accent-50 border-b border-accent-200 flex items-center justify-between">
+            <h3 class="text-sm font-extrabold text-navy-900">${isPagar ? 'Contas Pendentes / Em Aberto' : 'Recebimentos Pendentes / Em Aberto'} (${abertos.length})</h3>
+            <span class="text-xs font-bold text-accent-700">${formatCurrency(totalPendente)}</span>
+          </div>
+          ${renderFinTable(abertos, 'Nenhum lançamento pendente ou em aberto.')}
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="px-4 py-3 bg-emerald-50 border-b border-emerald-200 flex items-center justify-between">
+            <h3 class="text-sm font-extrabold text-emerald-900">${isPagar ? 'Contas Pagas' : 'Contas Recebidas'} (${realizados.length})</h3>
+            <span class="text-xs font-bold text-emerald-700">${formatCurrency(totalRealizado)}</span>
+          </div>
+          ${renderFinTable(realizados, isPagar ? 'Nenhuma conta paga registrada.' : 'Nenhum recebimento liquidado registrado.')}
+        </div>
+      `;
+    }
+
+    function openLancamentoFinanceiroModal(mode) {
+      const isPagar = mode === 'pagar';
+      const clients = [...(AppState.clientesContabeis || []), ...(AppState.clientesGerais || [])];
+
+      openModal(
+        isPagar ? 'Nova Despesa (Contas a Pagar)' : 'Novo Lançamento (Contas a Receber)',
+        `
+          <form id="fin-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            ${
+              isPagar
+                ? `<div class="sm:col-span-2"><label class="font-semibold">Categoria</label>
+                    <select name="categoria" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">
+                      ${EXPENSE_CATEGORIES.map((c) => `<option>${c}</option>`).join('')}
+                    </select></div>`
+                : `<div class="sm:col-span-2"><label class="font-semibold">Cliente *</label>
+                    <input list="fin-clients-list" name="cliente" required placeholder="Selecione ou digite o nome do cliente" class="w-full mt-1 px-3 py-2 rounded-xl border" />
+                    <datalist id="fin-clients-list">${clients.map((c) => `<option value="${escapeHTML(c.nomeRazao)}"></option>`).join('')}</datalist></div>`
+            }
+            <div class="sm:col-span-2"><label class="font-semibold">Descrição *</label><input name="descricao" required placeholder="${isPagar ? 'Ex: Aluguel Sala Comercial' : 'Ex: Honorários Contábeis'}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Valor da Parcela (R$) *</label><input type="number" step="0.01" name="valor" required class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">1º Vencimento *</label><input type="date" name="vencimento" required value="${new Date().toISOString().slice(0, 10)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Quantidade de Parcelas Mensais</label><input type="number" min="1" max="60" name="parcelas" value="1" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+          </form>
+        `,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="submit" form="fin-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Gerar Lançamento(s)</button>
+        `
+      );
+
+      document.getElementById('fin-form').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const count = Math.max(1, Number(fd.get('parcelas') || 1));
+        const baseDate = new Date(fd.get('vencimento') + 'T00:00:00');
+        const valor = Number(fd.get('valor') || 0);
+
+        for (let i = 0; i < count; i++) {
+          const d = new Date(baseDate);
+          d.setMonth(d.getMonth() + i);
+          const iso = d.toISOString().slice(0, 10);
+
+          if (isPagar) {
+            AppState.contasPagar.unshift({
+              id: generateId('CP'),
+              descricao: fd.get('descricao').trim(),
+              categoria: fd.get('categoria'),
+              parcela: `${i + 1}/${count}`,
+              vencimento: iso,
+              valor,
+              status: 'Pendente',
+              dataPagamento: ''
+            });
+          } else {
+            AppState.contasReceber.unshift({
+              id: generateId('CR'),
+              cliente: fd.get('cliente').trim(),
+              descricao: fd.get('descricao').trim(),
+              parcela: `${i + 1}/${count}`,
+              vencimento: iso,
+              valor,
+              status: 'Pendente',
+              dataRecebimento: ''
+            });
+          }
+        }
+        saveState();
+        closeModal();
+        renderRoute(mode);
+        showToast(`${count} parcela(s) lançada(s) com sucesso!`);
+      };
+    }
+
+    function toggleFinanceiroStatus(mode, id, newStatus) {
+      const list = mode === 'pagar' ? AppState.contasPagar : AppState.contasReceber;
+      const item = (list || []).find((x) => x.id === id);
+      if (!item) return;
+      item.status = newStatus;
+      const today = new Date().toISOString().slice(0, 10);
+      if (mode === 'pagar') item.dataPagamento = newStatus === 'Pago' ? today : '';
+      else item.dataRecebimento = newStatus === 'Recebido' ? today : '';
+      saveState();
+      renderRoute(mode);
+      showToast(`Status atualizado para ${newStatus}.`);
+    }
+
+    function deleteFinanceiroItem(mode, id) {
+      askConfirm('Excluir Lançamento', 'Confirma a exclusão deste lançamento financeiro?', () => {
+        if (mode === 'pagar') AppState.contasPagar = AppState.contasPagar.filter((x) => x.id !== id);
+        else AppState.contasReceber = AppState.contasReceber.filter((x) => x.id !== id);
+        saveState();
+        renderRoute(mode);
+        showToast('Lançamento excluído.');
+      });
+    }
+
+    // =========================================================================
+    // 6. TAREFAS & PRAZOS
+    // =========================================================================
+    function renderTarefas(container) {
+      const ativas = (AppState.tarefas || []).filter((t) => t.status !== 'Concluído');
+      const concluidas = (AppState.tarefas || []).filter((t) => t.status === 'Concluído');
+
+      container.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Tarefas &amp; Prazos</h2>
+            <p class="text-xs sm:text-sm text-slate-600">Controle operacional por área, prioridade e fluxo rápido de status.</p>
+          </div>
+          <button type="button" onclick="openTarefaModal()" class="px-4 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold cursor-pointer">
+            + Nova Tarefa
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+          <div class="px-4 py-3 bg-navy-50 border-b font-extrabold text-xs text-navy-900">Tarefas Ativas (${ativas.length})</div>
+          <table class="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr class="bg-navy-900 text-white text-[11px] uppercase">
+                <th class="py-2.5 px-3.5">Tarefa</th>
+                <th class="py-2.5 px-3.5">Área</th>
+                <th class="py-2.5 px-3.5">Prioridade</th>
+                <th class="py-2.5 px-3.5">Prazo</th>
+                <th class="py-2.5 px-3.5">Status</th>
+                <th class="py-2.5 px-3.5 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs">
+              ${
+                ativas.map((t) => `
+                  <tr>
+                    <td class="py-3 px-3.5 font-bold text-navy-900">${escapeHTML(t.titulo)}</td>
+                    <td class="py-3 px-3.5">${escapeHTML(t.area)}</td>
+                    <td class="py-3 px-3.5"><span class="px-2 py-0.5 rounded-full font-bold ${t.prioridade === 'Alta' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${escapeHTML(t.prioridade)}</span></td>
+                    <td class="py-3 px-3.5">${formatDateBR(t.prazo)}</td>
+                    <td class="py-3 px-3.5">
+                      <select onchange="updateTarefaStatus('${t.id}', this.value)" class="px-2.5 py-1 rounded-lg border bg-white font-semibold">
+                        ${['Pendente', 'Em andamento', 'Concluído'].map((s) => `<option ${t.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                      </select>
+                    </td>
+                    <td class="py-3 px-3.5 text-right space-x-1">
+                      <button type="button" onclick="openTarefaModal('${t.id}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-semibold cursor-pointer">Editar</button>
+                      <button type="button" onclick="deleteTarefa('${t.id}')" class="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-semibold cursor-pointer">Excluir</button>
+                    </td>
+                  </tr>
+                `).join('') || `<tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma tarefa ativa.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+          <div class="px-4 py-3 bg-emerald-50 border-b font-extrabold text-xs text-emerald-900">Tarefas Concluídas (${concluidas.length})</div>
+          <div class="divide-y divide-slate-100 text-xs">
+            ${
+              concluidas.map((t) => `
+                <div class="px-4 py-2.5 flex items-center justify-between gap-2">
+                  <div>
+                    <span class="line-through text-slate-500 font-semibold">${escapeHTML(t.titulo)}</span>
+                    <span class="text-[11px] text-slate-400 ml-2">(${escapeHTML(t.area)})</span>
+                  </div>
+                  <button type="button" onclick="updateTarefaStatus('${t.id}', 'Pendente')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer">Reabrir</button>
+                </div>
+              `).join('') || `<p class="p-4 text-slate-500">Nenhuma tarefa concluída ainda.</p>`
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    function openTarefaModal(editId = null, prefill = null) {
+      const item = editId ? (AppState.tarefas || []).find((x) => x.id === editId) : null;
+      const t = item || prefill || { titulo: '', area: TASK_AREAS[0], prioridade: 'Alta', prazo: addDaysISO(3), status: 'Pendente', responsavel: '' };
+
+      openModal(
+        item ? 'Editar Tarefa' : 'Nova Tarefa',
+        `
+          <form id="tarefa-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="sm:col-span-2"><label class="font-semibold">Título *</label><input name="titulo" required value="${escapeHTML(t.titulo)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Área</label><select name="area" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${TASK_AREAS.map((a) => `<option ${t.area === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
+            <div><label class="font-semibold">Prioridade</label><select name="prioridade" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${['Alta', 'Média', 'Baixa'].map((p) => `<option ${t.prioridade === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+            <div><label class="font-semibold">Prazo *</label><input type="date" name="prazo" required value="${escapeHTML(t.prazo)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Responsável</label><input name="responsavel" value="${escapeHTML(t.responsavel || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+          </form>
+        `,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="submit" form="tarefa-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar Tarefa</button>
+        `
+      );
+
+      document.getElementById('tarefa-form').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const rec = {
+          id: item ? item.id : generateId('TAR'),
+          titulo: fd.get('titulo').trim(),
+          area: fd.get('area'),
+          prioridade: fd.get('prioridade'),
+          prazo: fd.get('prazo'),
+          status: item ? item.status : 'Pendente',
+          responsavel: fd.get('responsavel').trim()
+        };
+        if (item) {
+          const idx = AppState.tarefas.findIndex((x) => x.id === item.id);
+          if (idx >= 0) AppState.tarefas[idx] = rec;
+        } else {
+          AppState.tarefas.unshift(rec);
+        }
+        saveState();
+        closeModal();
+        renderRoute('tarefas');
+        showToast('Tarefa salva!');
+      };
+    }
+
+    function updateTarefaStatus(id, status) {
+      const t = (AppState.tarefas || []).find((x) => x.id === id);
+      if (t) {
+        t.status = status;
+        saveState();
+        renderRoute('tarefas');
+      }
+    }
+
+    function deleteTarefa(id) {
+      askConfirm('Excluir Tarefa', 'Deseja remover esta tarefa?', () => {
+        AppState.tarefas = AppState.tarefas.filter((x) => x.id !== id);
+        saveState();
+        renderRoute('tarefas');
+      });
+    }
+
+    // =========================================================================
+    // 7. BUSCA & MONITORAMENTO DE LICITAÇÕES (MULTI-PORTAL APIs)
+    // =========================================================================
+    let licitacoesRemoteResults = [];
+    let licitacoesSourceStatus = [];
+    let licitacoesLoading = false;
+    let licFilter = { query: '', uf: 'PB', portal: '', maxDate: '', minVal: '', maxVal: '', sort: 'asc' };
+
+    async function searchAllTenderPortals() {
+      licitacoesLoading = true;
+      licitacoesSourceStatus = [];
+      renderRoute('licitacoes');
+
+      const uf = (licFilter.uf || '').trim().toUpperCase();
+      const q = (licFilter.query || '').trim();
+      const collected = [];
+
+      // 1. PNCP - Propostas Abertas
+      try {
+        const dFin = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
+        const ufParam = uf ? `&uf=${encodeURIComponent(uf)}` : '';
+        const res = await fetch(`https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=${dFin}${ufParam}&pagina=1&tamanhoPagina=50`);
+        if (res.ok) {
+          const data = await res.json();
+          const items = data.data || [];
+          items.forEach((it) => {
+            const cnpj = it.orgaoEntidade?.cnpj || '';
+            const ano = it.anoCompra || '';
+            const seq = it.sequencialCompra || '';
+            collected.push({
+              id: it.numeroControlePNCP || generateId('PNCP'),
+              numeroEdital: `${it.numeroCompra || 'S/N'}/${ano}`,
+              orgao: it.orgaoEntidade?.razaoSocial || 'Órgão Público',
+              municipio: it.unidadeOrgao?.municipioNome || '',
+              portal: 'PNCP (Propostas Abertas)',
+              uf: it.unidadeOrgao?.ufSigla || uf || 'BR',
+              modalidade: it.modalidadeNome || 'Pregão Eletrônico',
+              objeto: it.objetoCompra || '',
+              valorEstimado: Number(it.valorTotalEstimado || 0),
+              dataAbertura: String(it.dataAberturaProposta || it.dataPublicacaoPncp || '').slice(0, 10),
+              link: cnpj && ano && seq ? `https://pncp.gov.br/app/editais/${cnpj}/${ano}/${seq}` : 'https://pncp.gov.br/app/editais'
+            });
+          });
+          licitacoesSourceStatus.push({ name: 'PNCP Propostas', ok: true, count: items.length });
+        } else {
+          licitacoesSourceStatus.push({ name: 'PNCP Propostas', ok: false, count: 0 });
+        }
+      } catch (e) {
+        licitacoesSourceStatus.push({ name: 'PNCP Propostas', ok: false, count: 0 });
+      }
+
+      // 2. Querido Diário (Diários Oficiais Municipais)
+      try {
+        const term = encodeURIComponent(q || 'pregão eletrônico licitação');
+        const resQD = await fetch(`https://queridodiario.ok.org.br/api/gazettes?querystring=${term}&size=20`);
+        if (resQD.ok) {
+          const dataQD = await resQD.json();
+          const gazettes = dataQD.gazettes || [];
+          gazettes.forEach((g, idx) => {
+            if (uf && g.state_code && g.state_code.toUpperCase() !== uf) return;
+            collected.push({
+              id: `QD-${g.territory_id || idx}-${g.date || idx}`,
+              numeroEdital: `Diário Oficial (${formatDateBR(g.date)})`,
+              orgao: `Município de ${g.territory_name || 'N/I'} - ${g.state_code || ''}`,
+              municipio: g.territory_name || '',
+              portal: 'Querido Diário (DOM)',
+              uf: g.state_code || uf || 'BR',
+              modalidade: 'Publicação Oficial',
+              objeto: (g.excerpts && g.excerpts[0] ? g.excerpts[0].replace(/<[^>]+>/g, '') : 'Aviso de licitação publicado em Diário Oficial.'),
+              valorEstimado: 0,
+              dataAbertura: String(g.date || '').slice(0, 10),
+              link: g.url || 'https://queridodiario.ok.org.br'
+            });
+          });
+          licitacoesSourceStatus.push({ name: 'Diários Oficiais', ok: true, count: gazettes.length });
+        }
+      } catch (e) {
+        licitacoesSourceStatus.push({ name: 'Diários Oficiais', ok: false, count: 0 });
+      }
+
+      // 3. Google Apps Script (/exec?action=licitacoes) se configurado
+      if (AppState.config?.gasUrl) {
+        try {
+          const url = `${AppState.config.gasUrl}?action=licitacoes&uf=${encodeURIComponent(uf)}&q=${encodeURIComponent(q)}`;
+          const resGas = await fetch(url);
+          if (resGas.ok) {
+            const jsonGas = await resGas.json();
+            if (jsonGas.success && Array.isArray(jsonGas.items)) {
+              collected.push(...jsonGas.items);
+              licitacoesSourceStatus.push({ name: 'Apps Script / TCE-PB', ok: true, count: jsonGas.items.length });
+            }
+          }
+        } catch (e) {
+          licitacoesSourceStatus.push({ name: 'Apps Script / TCE-PB', ok: false, count: 0 });
+        }
+      }
+
+      const map = new Map();
+      collected.forEach((item) => map.set(item.id, item));
+      licitacoesRemoteResults = Array.from(map.values());
+      licitacoesLoading = false;
+      renderRoute('licitacoes');
+      showToast(`${licitacoesRemoteResults.length} edital(is) localizado(s) nos portais.`);
+    }
+
+    function renderLicitacoes(container) {
+      const combined = [...(AppState.licitacoes || []), ...licitacoesRemoteResults];
+      const dedup = Array.from(new Map(combined.map((x) => [x.id, x])).values());
+
+      const filtered = dedup
+        .filter((l) => {
+          const q = licFilter.query.trim().toLowerCase();
+          if (q && ![l.numeroEdital, l.orgao, l.objeto, l.municipio, l.portal].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))) return false;
+          if (licFilter.uf && l.uf && l.uf.toUpperCase() !== licFilter.uf.toUpperCase()) return false;
+          if (licFilter.portal && l.portal !== licFilter.portal) return false;
+          if (licFilter.maxDate && l.dataAbertura && l.dataAbertura > licFilter.maxDate) return false;
+          if (licFilter.minVal && Number(l.valorEstimado || 0) < Number(licFilter.minVal)) return false;
+          if (licFilter.maxVal && Number(l.valorEstimado || 0) > Number(licFilter.maxVal)) return false;
+          return true;
+        })
+        .sort((a, b) =>
+          licFilter.sort === 'asc'
+            ? String(a.dataAbertura || '').localeCompare(String(b.dataAbertura || ''))
+            : String(b.dataAbertura || '').localeCompare(String(a.dataAbertura || ''))
+        );
+
+      const portals = Array.from(new Set(dedup.map((x) => x.portal).filter(Boolean)));
+
+      container.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Busca &amp; Monitoramento de Licitações</h2>
+            <p class="text-xs sm:text-sm text-slate-600">Consulta integrada ao PNCP, Diários Oficiais, TCE-PB / Apps Script e base salva.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="searchAllTenderPortals()" class="px-4 py-2 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold cursor-pointer">
+              ${licitacoesLoading ? 'Consultando APIs...' : 'Buscar nas APIs dos Portais'}
+            </button>
+            <button type="button" onclick="openManualLicitacaoModal()" class="px-3.5 py-2 rounded-xl bg-navy-800 hover:bg-navy-700 text-white text-xs font-semibold cursor-pointer">
+              + Incluir Manual
+            </button>
+            <button type="button" onclick="exportLicitacoesCSV()" class="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold cursor-pointer">
+              Exportar CSV
+            </button>
+          </div>
+        </div>
+
+        ${
+          licitacoesSourceStatus.length
+            ? `<div class="flex flex-wrap gap-2 text-xs">
+                ${licitacoesSourceStatus.map((s) => `<span class="px-3 py-1 rounded-full font-semibold ${s.ok ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-700'}">${escapeHTML(s.name)}: ${s.ok ? s.count + ' registro(s)' : 'indisponível'}</span>`).join('')}
+              </div>`
+            : ''
+        }
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
+          <input type="text" value="${escapeHTML(licFilter.query)}" oninput="licFilter.query = this.value; renderRoute('licitacoes');" placeholder="Palavra-chave / Órgão..." class="lg:col-span-2 px-3 py-2 rounded-xl border" />
+          <input type="text" maxlength="2" value="${escapeHTML(licFilter.uf)}" oninput="licFilter.uf = this.value.toUpperCase(); renderRoute('licitacoes');" placeholder="UF (ex: PB)" class="px-3 py-2 rounded-xl border uppercase" />
+          <select onchange="licFilter.portal = this.value; renderRoute('licitacoes');" class="px-3 py-2 rounded-xl border bg-white">
+            <option value="">Todos os Portais</option>
+            ${portals.map((p) => `<option value="${escapeHTML(p)}" ${licFilter.portal === p ? 'selected' : ''}>${escapeHTML(p)}</option>`).join('')}
+          </select>
+          <input type="date" value="${escapeHTML(licFilter.maxDate)}" onchange="licFilter.maxDate = this.value; renderRoute('licitacoes');" title="Data máxima de abertura" class="px-3 py-2 rounded-xl border" />
+          <select onchange="licFilter.sort = this.value; renderRoute('licitacoes');" class="px-3 py-2 rounded-xl border bg-white">
+            <option value="asc" ${licFilter.sort === 'asc' ? 'selected' : ''}>Recentes → Longe</option>
+            <option value="desc" ${licFilter.sort === 'desc' ? 'selected' : ''}>Longe → Recentes</option>
+          </select>
+        </div>
+
+        <div class="space-y-3">
+          ${
+            filtered.slice(0, 60).map((l) => {
+              const isSaved = (AppState.licitacoes || []).some((x) => x.id === l.id);
+              return `
+                <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                  <div class="space-y-1">
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                      <span class="px-2.5 py-0.5 rounded-full bg-navy-900 text-white font-bold">${escapeHTML(l.portal)}</span>
+                      <span class="font-bold text-accent-600">${escapeHTML(l.numeroEdital)}</span>
+                      <span class="text-slate-500">• ${escapeHTML(l.uf)} • Abertura: <strong>${formatDateBR(l.dataAbertura)}</strong></span>
+                    </div>
+                    <div class="text-sm font-extrabold text-navy-900">${escapeHTML(l.orgao)}</div>
+                    <p class="text-xs text-slate-600 line-clamp-2">${escapeHTML(l.objeto)}</p>
+                    <div class="text-xs font-bold text-emerald-700">Valor Estimado: ${formatCurrency(l.valorEstimado)}</div>
+                  </div>
+                  <div class="flex flex-wrap gap-2 shrink-0 text-xs">
+                    ${!isSaved ? `<button type="button" onclick="saveRemoteLicitacao('${escapeHTML(l.id)}')" class="px-3 py-1.5 rounded-xl bg-navy-100 hover:bg-navy-200 text-navy-900 font-bold cursor-pointer">Salvar na Base</button>` : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-bold">Salvo</span>`}
+                    <button type="button" onclick="convertLicitacaoToTask('${escapeHTML(l.id)}')" class="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold cursor-pointer">Criar Tarefa</button>
+                    ${l.link ? `<a href="${escapeHTML(l.link)}" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white font-bold">Abrir Edital</a>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('') || `<div class="bg-white rounded-2xl p-8 text-center text-xs text-slate-500 border">Nenhuma licitação encontrada. Clique em <strong>Buscar nas APIs dos Portais</strong> para consultar em tempo real.</div>`
+          }
+        </div>
+      `;
+    }
+
+    function saveRemoteLicitacao(id) {
+      const found = licitacoesRemoteResults.find((x) => x.id === id);
+      if (!found) return;
+      if (!(AppState.licitacoes || []).some((x) => x.id === id)) {
+        AppState.licitacoes.unshift(found);
+        saveState();
+        renderRoute('licitacoes');
+        showToast('Edital salvo na base local!');
+      }
+    }
+
+    function convertLicitacaoToTask(id) {
+      const all = [...(AppState.licitacoes || []), ...licitacoesRemoteResults];
+      const found = all.find((x) => x.id === id);
+      if (!found) return;
+      openTarefaModal(null, {
+        titulo: `Participar Licitação: ${found.numeroEdital} — ${found.orgao}`,
+        area: 'Licitações',
+        prioridade: 'Alta',
+        prazo: found.dataAbertura || addDaysISO(5),
+        responsavel: 'Setor Licitações'
+      });
+    }
+
+    function openManualLicitacaoModal() {
+      openModal(
+        'Incluir Edital Manualmente',
+        `
+          <form id="lic-manual-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div><label class="font-semibold">Nº Edital *</label><input name="numeroEdital" required placeholder="PE 025/2026" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Portal</label><input name="portal" value="Portal de Compras Públicas" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div class="sm:col-span-2"><label class="font-semibold">Órgão *</label><input name="orgao" required placeholder="Prefeitura Municipal de..." class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">UF</label><input name="uf" maxlength="2" value="PB" class="w-full mt-1 px-3 py-2 rounded-xl border uppercase" /></div>
+            <div><label class="font-semibold">Data Abertura *</label><input type="date" name="dataAbertura" required class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Valor Estimado (R$)</label><input type="number" step="0.01" name="valorEstimado" value="0" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Link do Edital</label><input type="url" name="link" placeholder="https://..." class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div class="sm:col-span-2"><label class="font-semibold">Objeto *</label><textarea name="objeto" required rows="3" class="w-full mt-1 px-3 py-2 rounded-xl border"></textarea></div>
+          </form>
+        `,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="submit" form="lic-manual-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar Edital</button>
+        `
+      );
+
+      document.getElementById('lic-manual-form').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        AppState.licitacoes.unshift({
+          id: generateId('LIC'),
+          numeroEdital: fd.get('numeroEdital').trim(),
+          portal: fd.get('portal').trim(),
+          orgao: fd.get('orgao').trim(),
+          uf: fd.get('uf').trim().toUpperCase(),
+          dataAbertura: fd.get('dataAbertura'),
+          valorEstimado: Number(fd.get('valorEstimado') || 0),
+          link: fd.get('link').trim(),
+          objeto: fd.get('objeto').trim()
+        });
+        saveState();
+        closeModal();
+        renderRoute('licitacoes');
+        showToast('Edital adicionado!');
+      };
+    }
+
+    function exportLicitacoesCSV() {
+      const headers = ['ID', 'Portal', 'Numero_Edital', 'Orgao', 'UF', 'Data_Abertura', 'Valor_Estimado', 'Objeto', 'Link'];
+      const rows = (AppState.licitacoes || []).map((l) => [l.id, l.portal, l.numeroEdital, l.orgao, l.uf, l.dataAbertura, l.valorEstimado, l.objeto, l.link]);
+      downloadCSV('licitacoes_contech.csv', headers, rows);
+    }
+
+    // =========================================================================
+    // 8. SERVIÇOS PMI — PREFEITURA DE ITAPORANGA
+    // =========================================================================
+    function renderPmi(container) {
+      const list = AppState.servicosPmi || [];
+      const abertos = list.filter((i) => i.status !== 'Pago');
+      const pagos = list.filter((i) => i.status === 'Pago');
+
+      const totalAberto = abertos.reduce((s, i) => s + Number(i.valor || 0), 0);
+      const totalPago = pagos.reduce((s, i) => s + Number(i.valor || 0), 0);
+
+      const renderPmiRows = (items) =>
+        items.map((s) => `
+          <tr class="hover:bg-navy-50/50">
+            <td class="py-3 px-3.5">${formatDateBR(s.data)}</td>
+            <td class="py-3 px-3.5 font-bold text-navy-900">${escapeHTML(s.secretaria)}</td>
+            <td class="py-3 px-3.5">
+              <div class="font-semibold">${escapeHTML(s.servico)}</div>
+              <div class="text-[11px] text-slate-500">${escapeHTML(s.complemento || '')}</div>
+            </td>
+            <td class="py-3 px-3.5 font-bold">${formatCurrency(s.valor)}</td>
+            <td class="py-3 px-3.5">
+              <span class="px-2.5 py-0.5 rounded-full font-bold ${s.status === 'Pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}">${escapeHTML(s.status)}</span>
+            </td>
+            <td class="py-3 px-3.5 text-right space-x-1">
+              <button type="button" onclick="openPmiModal('${s.id}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-semibold cursor-pointer">Editar</button>
+              <button type="button" onclick="deletePmi('${s.id}')" class="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-semibold cursor-pointer">Excluir</button>
+            </td>
+          </tr>
+        `).join('') || `<tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhum registro nesta seção.</td></tr>`;
+
+      container.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Serviços PMI — Prefeitura de Itaporanga</h2>
+            <p class="text-xs sm:text-sm text-slate-600">Controle de demandas por secretaria, empenhos, notas fiscais e status de pagamento.</p>
+          </div>
+          <button type="button" onclick="openPmiModal()" class="px-4 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold cursor-pointer">
+            + Novo Serviço PMI
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Total Geral</div><div class="text-xl font-extrabold text-navy-900 mt-1">${formatCurrency(totalAberto + totalPago)}</div></div>
+          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Em Aberto / Pendente</div><div class="text-xl font-extrabold text-accent-600 mt-1">${formatCurrency(totalAberto)}</div></div>
+          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Total Pago</div><div class="text-xl font-extrabold text-emerald-700 mt-1">${formatCurrency(totalPago)}</div></div>
+        </div>
+
+        <div class="bg-white rounded-2xl border-2 border-accent-500/40 shadow-sm overflow-x-auto">
+          <div class="px-4 py-3 bg-accent-50 border-b font-extrabold text-xs text-navy-900">Serviços Pendentes / Empenhados / Aguardando NF (${abertos.length})</div>
+          <table class="w-full text-left border-collapse min-w-[740px]">
+            <thead><tr class="bg-navy-900 text-white text-[11px] uppercase"><th class="py-2.5 px-3.5">Data</th><th class="py-2.5 px-3.5">Secretaria</th><th class="py-2.5 px-3.5">Serviço / Complemento</th><th class="py-2.5 px-3.5">Valor</th><th class="py-2.5 px-3.5">Status</th><th class="py-2.5 px-3.5 text-right">Ações</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 text-xs">${renderPmiRows(abertos)}</tbody>
+          </table>
+        </div>
+
+        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
+          <div class="px-4 py-3 bg-emerald-50 border-b font-extrabold text-xs text-emerald-900">Serviços Pagos (${pagos.length})</div>
+          <table class="w-full text-left border-collapse min-w-[740px]">
+            <thead><tr class="bg-navy-900 text-white text-[11px] uppercase"><th class="py-2.5 px-3.5">Data</th><th class="py-2.5 px-3.5">Secretaria</th><th class="py-2.5 px-3.5">Serviço / Complemento</th><th class="py-2.5 px-3.5">Valor</th><th class="py-2.5 px-3.5">Status</th><th class="py-2.5 px-3.5 text-right">Ações</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 text-xs">${renderPmiRows(pagos)}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function openPmiModal(editId = null) {
+      const item = editId ? (AppState.servicosPmi || []).find((x) => x.id === editId) : null;
+      const s = item || { data: new Date().toISOString().slice(0, 10), secretaria: '', servico: '', complemento: '', valor: 0, status: 'Pendente', empenho: '', nf: '' };
+
+      openModal(
+        item ? 'Editar Serviço PMI' : 'Novo Serviço PMI',
+        `
+          <form id="pmi-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div><label class="font-semibold">Data *</label><input type="date" name="data" required value="${escapeHTML(s.data)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Status</label><select name="status" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${PMI_STATUSES.map((st) => `<option ${s.status === st ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
+            <div class="sm:col-span-2"><label class="font-semibold">Secretaria *</label><input name="secretaria" required value="${escapeHTML(s.secretaria)}" placeholder="Ex: Secretaria Municipal de Saúde" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div class="sm:col-span-2"><label class="font-semibold">Serviço Executado *</label><input name="servico" required value="${escapeHTML(s.servico)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Complemento</label><input name="complemento" value="${escapeHTML(s.complemento || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Valor (R$) *</label><input type="number" step="0.01" name="valor" required value="${Number(s.valor || 0)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Nº Empenho</label><input name="empenho" value="${escapeHTML(s.empenho || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Nº Nota Fiscal</label><input name="nf" value="${escapeHTML(s.nf || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+          </form>
+        `,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="submit" form="pmi-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar</button>
+        `
+      );
+
+      document.getElementById('pmi-form').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const rec = {
+          id: item ? item.id : generateId('PMI'),
+          data: fd.get('data'),
+          secretaria: fd.get('secretaria').trim(),
+          servico: fd.get('servico').trim(),
+          complemento: fd.get('complemento').trim(),
+          valor: Number(fd.get('valor') || 0),
+          status: fd.get('status'),
+          empenho: fd.get('empenho').trim(),
+          nf: fd.get('nf').trim()
+        };
+        if (item) {
+          const idx = AppState.servicosPmi.findIndex((x) => x.id === item.id);
+          if (idx >= 0) AppState.servicosPmi[idx] = rec;
+        } else {
+          AppState.servicosPmi.unshift(rec);
+        }
+        saveState();
+        closeModal();
+        renderRoute('pmi');
+        showToast('Serviço PMI salvo!');
+      };
+    }
+
+    function deletePmi(id) {
+      askConfirm('Excluir Serviço PMI', 'Deseja excluir este registro?', () => {
+        AppState.servicosPmi = AppState.servicosPmi.filter((x) => x.id !== id);
+        saveState();
+        renderRoute('pmi');
+      });
+    }
+
+    // =========================================================================
+    // 9. ORDENS DE SERVIÇO (OS)
+    // =========================================================================
+    let osStatusFilter = '';
+
+    function renderOrdensServico(container) {
+      const list = AppState.ordensServico || [];
+      const filtered = list.filter((o) => !osStatusFilter || o.status === osStatusFilter);
+      const abertas = list.filter((o) => !['Concluída', 'Entregue / Faturada'].includes(o.status)).length;
+      const concluidas = list.filter((o) => ['Concluída', 'Entregue / Faturada'].includes(o.status)).length;
+      const faturamento = list.reduce((s, o) => s + Number(o.valor || 0), 0);
+
+      container.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Ordens de Serviço — Suporte TI (OS)</h2>
+            <p class="text-xs sm:text-sm text-slate-600">Abertura, acompanhamento técnico, faturamento e impressão formatada em PDF.</p>
+          </div>
+          <button type="button" onclick="openOsModal()" class="px-4 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold cursor-pointer">
+            + Abrir Ordem de Serviço
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">OS Abertas / Em Execução</div><div class="text-2xl font-extrabold text-accent-600 mt-1">${abertas}</div></div>
+          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">OS Concluídas / Entregues</div><div class="text-2xl font-extrabold text-emerald-700 mt-1">${concluidas}</div></div>
+          <div class="bg-white rounded-2xl p-4 border shadow-sm"><div class="text-xs text-slate-500">Faturamento Total OS</div><div class="text-2xl font-extrabold text-navy-900 mt-1">${formatCurrency(faturamento)}</div></div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border shadow-sm flex flex-wrap gap-3 items-center text-xs">
+          <span class="font-bold text-navy-900">Filtrar Status:</span>
+          <select onchange="osStatusFilter = this.value; renderRoute('os');" class="px-3 py-2 rounded-xl border bg-white">
+            <option value="">Todos</option>
+            ${OS_STATUSES.map((st) => `<option ${osStatusFilter === st ? 'selected' : ''}>${st}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[760px]">
+            <thead>
+              <tr class="bg-navy-900 text-white text-[11px] uppercase">
+                <th class="py-3 px-3.5">Nº OS</th>
+                <th class="py-3 px-3.5">Data</th>
+                <th class="py-3 px-3.5">Cliente / Equipamento</th>
+                <th class="py-3 px-3.5">Status</th>
+                <th class="py-3 px-3.5">Valor</th>
+                <th class="py-3 px-3.5 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs">
+              ${
+                filtered.map((o) => `
+                  <tr class="hover:bg-navy-50/50">
+                    <td class="py-3 px-3.5 font-bold text-navy-900">${escapeHTML(o.id)}</td>
+                    <td class="py-3 px-3.5">${formatDateBR(o.data)}</td>
+                    <td class="py-3 px-3.5">
+                      <div class="font-bold text-navy-900">${escapeHTML(o.clienteNome)}</div>
+                      <div class="text-[11px] text-slate-500">${escapeHTML(o.equipamento)}</div>
+                    </td>
+                    <td class="py-3 px-3.5"><span class="px-2.5 py-0.5 rounded-full font-bold bg-navy-100 text-navy-900">${escapeHTML(o.status)}</span></td>
+                    <td class="py-3 px-3.5 font-bold">${formatCurrency(o.valor)}</td>
+                    <td class="py-3 px-3.5 text-right space-x-1">
+                      <button type="button" onclick="printOs('${o.id}')" class="px-2.5 py-1 rounded-lg bg-navy-100 text-navy-900 font-semibold cursor-pointer">Imprimir / PDF</button>
+                      <button type="button" onclick="openOsModal('${o.id}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-semibold cursor-pointer">Editar</button>
+                      <button type="button" onclick="deleteOs('${o.id}')" class="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-semibold cursor-pointer">Excluir</button>
+                    </td>
+                  </tr>
+                `).join('') || `<tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma OS encontrada.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function openOsModal(editId = null) {
+      const item = editId ? (AppState.ordensServico || []).find((x) => x.id === editId) : null;
+      const o = item || { id: `OS-${new Date().getFullYear()}-${String((AppState.ordensServico || []).length + 1).padStart(3, '0')}`, data: new Date().toISOString().slice(0, 10), clienteNome: '', telefone: '', equipamento: '', defeito: '', servicoExecutado: '', valor: 0, status: 'Aberta' };
+
+      openModal(
+        item ? `Editar ${o.id}` : 'Nova Ordem de Serviço',
+        `
+          <form id="os-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div><label class="font-semibold">Nº OS *</label><input name="id" required value="${escapeHTML(o.id)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Data *</label><input type="date" name="data" required value="${escapeHTML(o.data)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Cliente *</label><input name="clienteNome" required value="${escapeHTML(o.clienteNome)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Telefone</label><input name="telefone" value="${escapeHTML(o.telefone || '')}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div class="sm:col-span-2"><label class="font-semibold">Equipamento *</label><input name="equipamento" required value="${escapeHTML(o.equipamento)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div class="sm:col-span-2"><label class="font-semibold">Defeito Relatado</label><textarea name="defeito" rows="2" class="w-full mt-1 px-3 py-2 rounded-xl border">${escapeHTML(o.defeito || '')}</textarea></div>
+            <div class="sm:col-span-2"><label class="font-semibold">Serviço Executado / Laudo</label><textarea name="servicoExecutado" rows="2" class="w-full mt-1 px-3 py-2 rounded-xl border">${escapeHTML(o.servicoExecutado || '')}</textarea></div>
+            <div><label class="font-semibold">Status</label><select name="status" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${OS_STATUSES.map((st) => `<option ${o.status === st ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
+            <div><label class="font-semibold">Valor Total (R$)</label><input type="number" step="0.01" name="valor" value="${Number(o.valor || 0)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+          </form>
+        `,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="submit" form="os-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar OS</button>
+        `
+      );
+
+      document.getElementById('os-form').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const rec = {
+          id: fd.get('id').trim(),
+          data: fd.get('data'),
+          clienteNome: fd.get('clienteNome').trim(),
+          telefone: fd.get('telefone').trim(),
+          equipamento: fd.get('equipamento').trim(),
+          defeito: fd.get('defeito').trim(),
+          servicoExecutado: fd.get('servicoExecutado').trim(),
+          status: fd.get('status'),
+          valor: Number(fd.get('valor') || 0)
+        };
+        if (item) {
+          const idx = AppState.ordensServico.findIndex((x) => x.id === editId);
+          if (idx >= 0) AppState.ordensServico[idx] = rec;
+        } else {
+          AppState.ordensServico.unshift(rec);
+        }
+        saveState();
+        closeModal();
+        renderRoute('os');
+        showToast('Ordem de Serviço salva!');
+      };
+    }
+
+    function deleteOs(id) {
+      askConfirm('Excluir OS', 'Deseja excluir esta Ordem de Serviço?', () => {
+        AppState.ordensServico = AppState.ordensServico.filter((x) => x.id !== id);
+        saveState();
+        renderRoute('os');
+      });
+    }
+
+    function printOs(id) {
+      const o = (AppState.ordensServico || []).find((x) => x.id === id);
+      if (!o) return;
+      const printArea = document.getElementById('print-area');
+      printArea.innerHTML = `
+        <div class="max-w-3xl mx-auto border border-slate-300 p-6 space-y-5 text-xs">
+          <div class="flex items-center justify-between border-b pb-4">
+            <div>${getContechLogoSVG(true)}</div>
+            <div class="text-right">
+              <div class="text-base font-extrabold text-navy-900">ORDEM DE SERVIÇO Nº ${escapeHTML(o.id)}</div>
+              <div>Data: ${formatDateBR(o.data)} • Status: <strong>${escapeHTML(o.status)}</strong></div>
+              <div>Itaporanga - PB</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 border p-3 rounded-lg">
+            <div><strong>Cliente:</strong> ${escapeHTML(o.clienteNome)}</div>
+            <div><strong>Telefone:</strong> ${escapeHTML(o.telefone || '—')}</div>
+            <div class="col-span-2"><strong>Equipamento:</strong> ${escapeHTML(o.equipamento)}</div>
+          </div>
+          <div class="border p-3 rounded-lg space-y-2">
+            <div><strong>Defeito Relatado:</strong><br/>${escapeHTML(o.defeito || '—')}</div>
+            <div><strong>Serviço Executado / Laudo Técnico:</strong><br/>${escapeHTML(o.servicoExecutado || '—')}</div>
+          </div>
+          <div class="text-right text-base font-extrabold">Valor Total: ${formatCurrency(o.valor)}</div>
+          <div class="grid grid-cols-2 gap-8 pt-10 text-center">
+            <div class="border-t border-slate-500 pt-2">CONTECH Contabilidade &amp; Informática</div>
+            <div class="border-t border-slate-500 pt-2">Assinatura do Cliente</div>
+          </div>
+        </div>
+      `;
+      printArea.classList.remove('hidden');
+      window.print();
+      setTimeout(() => printArea.classList.add('hidden'), 500);
+    }
+
+    // =========================================================================
+    // 10. ESTUDO & CURSOS
+    // =========================================================================
+    function renderEstudo(container) {
+      const cursos = AppState.cursos || [];
+      const atividades = AppState.atividadesEstudo || [];
+      const concluidas = atividades.filter((a) => a.status === 'Concluída').length;
+
+      container.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Estudo, Capacitação &amp; Cursos</h2>
+            <p class="text-xs sm:text-sm text-slate-600">Catálogo de cursos e controle de atividades de estudo (${concluidas}/${atividades.length} concluídas).</p>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" onclick="openCursoModal()" class="px-3.5 py-2 rounded-xl bg-navy-800 text-white text-xs font-semibold cursor-pointer">+ Novo Curso</button>
+            <button type="button" onclick="openAtividadeEstudoModal()" class="px-3.5 py-2 rounded-xl bg-accent-500 text-white text-xs font-semibold cursor-pointer">+ Nova Atividade</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ${cursos.map((c) => `
+            <div class="bg-white rounded-2xl p-4 border shadow-sm flex items-center justify-between">
+              <div>
+                <div class="font-extrabold text-navy-900 text-sm">${escapeHTML(c.nome)}</div>
+                <div class="text-xs text-slate-500">${escapeHTML(c.instituicao)} • Carga: ${escapeHTML(c.cargaHoraria)}</div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-navy-100 text-navy-900 text-xs font-bold">${escapeHTML(c.status)}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[640px]">
+            <thead><tr class="bg-navy-900 text-white text-[11px] uppercase"><th class="py-2.5 px-3.5">Data</th><th class="py-2.5 px-3.5">Curso</th><th class="py-2.5 px-3.5">Atividade</th><th class="py-2.5 px-3.5">Status</th><th class="py-2.5 px-3.5 text-right">Ações</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 text-xs">
+              ${
+                atividades.map((a) => {
+                  const c = cursos.find((x) => x.id === a.cursoId);
+                  return `
+                    <tr>
+                      <td class="py-3 px-3.5">${formatDateBR(a.data)}</td>
+                      <td class="py-3 px-3.5 font-semibold">${escapeHTML(c ? c.nome : 'Geral')}</td>
+                      <td class="py-3 px-3.5 font-bold text-navy-900">${escapeHTML(a.titulo)}</td>
+                      <td class="py-3 px-3.5">
+                        <select onchange="updateAtividadeStatus('${a.id}', this.value)" class="px-2.5 py-1 rounded-lg border bg-white font-semibold">
+                          ${['Pendente', 'Em Andamento', 'Concluída'].map((st) => `<option ${a.status === st ? 'selected' : ''}>${st}</option>`).join('')}
+                        </select>
+                      </td>
+                      <td class="py-3 px-3.5 text-right">
+                        <button type="button" onclick="deleteAtividadeEstudo('${a.id}')" class="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-semibold cursor-pointer">Excluir</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('') || `<tr><td colspan="5" class="py-6 text-center text-slate-500">Nenhuma atividade cadastrada.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function openCursoModal() {
+      openModal(
+        'Novo Curso',
+        `
+          <form id="curso-form" class="space-y-3 text-xs">
+            <div><label class="font-semibold">Nome do Curso *</label><input name="nome" required class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Instituição</label><input name="instituicao" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Carga Horária</label><input name="cargaHoraria" placeholder="40h" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+          </form>
+        `,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="submit" form="curso-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar Curso</button>
+        `
+      );
+      document.getElementById('curso-form').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        AppState.cursos.unshift({
+          id: generateId('CUR'),
+          nome: fd.get('nome').trim(),
+          instituicao: fd.get('instituicao').trim(),
+          cargaHoraria: fd.get('cargaHoraria').trim(),
+          status: 'Em andamento'
+        });
+        saveState();
+        closeModal();
+        renderRoute('estudo');
+      };
+    }
+
+    function openAtividadeEstudoModal() {
+      openModal(
+        'Nova Atividade de Estudo',
+        `
+          <form id="estudo-form" class="space-y-3 text-xs">
+            <div><label class="font-semibold">Data *</label><input type="date" name="data" required value="${new Date().toISOString().slice(0, 10)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Curso</label><select name="cursoId" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white"><option value="">Geral</option>${(AppState.cursos || []).map((c) => `<option value="${c.id}">${escapeHTML(c.nome)}</option>`).join('')}</select></div>
+            <div><label class="font-semibold">Atividade *</label><input name="titulo" required class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+          </form>
+        `,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="submit" form="estudo-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar</button>
+        `
+      );
+      document.getElementById('estudo-form').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        AppState.atividadesEstudo.unshift({
+          id: generateId('EST'),
+          data: fd.get('data'),
+          cursoId: fd.get('cursoId'),
+          titulo: fd.get('titulo').trim(),
+          status: 'Pendente'
+        });
+        saveState();
+        closeModal();
+        renderRoute('estudo');
+      };
+    }
+
+    function updateAtividadeStatus(id, status) {
+      const a = (AppState.atividadesEstudo || []).find((x) => x.id === id);
+      if (a) {
+        a.status = status;
+        saveState();
+        renderRoute('estudo');
+      }
+    }
+
+    function deleteAtividadeEstudo(id) {
+      AppState.atividadesEstudo = AppState.atividadesEstudo.filter((x) => x.id !== id);
+      saveState();
+      renderRoute('estudo');
+    }
+
+    // =========================================================================
+    // 11. CENTRAL DE RELATÓRIOS (10 RELATÓRIOS CONSOLIDADOS)
+    // =========================================================================
+    let reportFilter = { type: 'fluxo', startDate: '', endDate: '', status: '', secretaria: '' };
+
+    function buildReportDataset() {
+      const { type, startDate, endDate, status, secretaria } = reportFilter;
+      const inRange = (d) => (!startDate || (d && d >= startDate)) && (!endDate || (d && d <= endDate));
+
+      if (type === 'fluxo') {
+        const rec = (AppState.contasReceber || []).filter((i) => inRange(i.vencimento)).map((i) => ({ tipo: 'Receita', desc: `${i.cliente} — ${i.descricao}`, data: i.vencimento, status: i.status, valor: Number(i.valor || 0) }));
+        const pag = (AppState.contasPagar || []).filter((i) => inRange(i.vencimento)).map((i) => ({ tipo: 'Despesa', desc: `${i.descricao} (${i.categoria})`, data: i.vencimento, status: i.status, valor: -Number(i.valor || 0) }));
+        const all = [...rec, ...pag].filter((x) => !status || x.status.toLowerCase().includes(status.toLowerCase()));
+        const saldo = all.reduce((s, x) => s + x.valor, 0);
+        return {
+          title: 'Relatório de Fluxo Financeiro Consolidado',
+          headers: ['Tipo', 'Descrição', 'Vencimento', 'Status', 'Valor'],
+          rows: all.map((x) => [x.tipo, x.desc, formatDateBR(x.data), x.status, formatCurrency(x.valor)]),
+          rawRows: all.map((x) => [x.tipo, x.desc, x.data, x.status, x.valor]),
+          summary: `Saldo Líquido: ${formatCurrency(saldo)} (${all.length} lançamentos)`
+        };
+      }
+
+      if (type === 'receber') {
+        const list = (AppState.contasReceber || []).filter((i) => inRange(i.vencimento) && (!status || i.status.toLowerCase().includes(status.toLowerCase())));
+        const total = list.reduce((s, i) => s + Number(i.valor || 0), 0);
+        return {
+          title: 'Relatório de Contas a Receber',
+          headers: ['Cliente', 'Descrição', 'Parcela', 'Vencimento', 'Status', 'Valor'],
+          rows: list.map((i) => [i.cliente, i.descricao, i.parcela, formatDateBR(i.vencimento), i.status, formatCurrency(i.valor)]),
+          rawRows: list.map((i) => [i.cliente, i.descricao, i.parcela, i.vencimento, i.status, i.valor]),
+          summary: `Total: ${formatCurrency(total)} (${list.length} registros)`
+        };
+      }
+
+      if (type === 'pagar') {
+        const list = (AppState.contasPagar || []).filter((i) => inRange(i.vencimento) && (!status || i.status.toLowerCase().includes(status.toLowerCase())));
+        const total = list.reduce((s, i) => s + Number(i.valor || 0), 0);
+        return {
+          title: 'Relatório de Contas a Pagar',
+          headers: ['Descrição', 'Categoria', 'Parcela', 'Vencimento', 'Status', 'Valor'],
+          rows: list.map((i) => [i.descricao, i.categoria, i.parcela, formatDateBR(i.vencimento), i.status, formatCurrency(i.valor)]),
+          rawRows: list.map((i) => [i.descricao, i.categoria, i.parcela, i.vencimento, i.status, i.valor]),
+          summary: `Total: ${formatCurrency(total)} (${list.length} registros)`
+        };
+      }
+
+      if (type === 'contabeis' || type === 'gerais') {
+        const list = type === 'contabeis' ? AppState.clientesContabeis || [] : AppState.clientesGerais || [];
+        return {
+          title: type === 'contabeis' ? 'Relatório de Clientes Contábeis' : 'Relatório de Clientes Gerais & TI',
+          headers: ['ID', 'Nome / Razão Social', 'CNPJ / CPF', 'Regime', 'Celular', 'Certificado'],
+          rows: list.map((c) => [c.id, c.nomeRazao, c.cnpj || c.cpf, c.regimeTributario, c.celular, formatDateBR(c.certificadoVencimento)]),
+          rawRows: list.map((c) => [c.id, c.nomeRazao, c.cnpj || c.cpf, c.regimeTributario, c.celular, c.certificadoVencimento]),
+          summary: `Total de Clientes: ${list.length}`
+        };
+      }
+
+      if (type === 'certificados') {
+        const list = getAllCertificates().filter((c) => inRange(c.vencimento));
+        return {
+          title: 'Relatório de Certificados Digitais',
+          headers: ['Origem', 'Cliente', 'Documento', 'Vencimento', 'Celular'],
+          rows: list.map((c) => [c.tipo, c.cliente, c.doc, formatDateBR(c.vencimento), c.celular]),
+          rawRows: list.map((c) => [c.tipo, c.cliente, c.doc, c.vencimento, c.celular]),
+          summary: `Total Monitorados: ${list.length}`
+        };
+      }
+
+      if (type === 'pmi') {
+        const list = (AppState.servicosPmi || []).filter((s) => inRange(s.data) && (!secretaria || s.secretaria.toLowerCase().includes(secretaria.toLowerCase())));
+        const total = list.reduce((acc, s) => acc + Number(s.valor || 0), 0);
+        return {
+          title: 'Relatório de Serviços PMI — Prefeitura de Itaporanga',
+          headers: ['Data', 'Secretaria', 'Serviço', 'Status', 'Valor'],
+          rows: list.map((s) => [formatDateBR(s.data), s.secretaria, s.servico, s.status, formatCurrency(s.valor)]),
+          rawRows: list.map((s) => [s.data, s.secretaria, s.servico, s.status, s.valor]),
+          summary: `Total Serviços PMI: ${formatCurrency(total)} (${list.length} serviços)`
+        };
+      }
+
+      if (type === 'os') {
+        const list = (AppState.ordensServico || []).filter((o) => inRange(o.data) && (!status || o.status.toLowerCase().includes(status.toLowerCase())));
+        const total = list.reduce((acc, o) => acc + Number(o.valor || 0), 0);
+        return {
+          title: 'Relatório de Ordens de Serviço (OS)',
+          headers: ['Nº OS', 'Data', 'Cliente', 'Equipamento', 'Status', 'Valor'],
+          rows: list.map((o) => [o.id, formatDateBR(o.data), o.clienteNome, o.equipamento, o.status, formatCurrency(o.valor)]),
+          rawRows: list.map((o) => [o.id, o.data, o.clienteNome, o.equipamento, o.status, o.valor]),
+          summary: `Total Ordens de Serviço: ${formatCurrency(total)} (${list.length} OS)`
+        };
+      }
+
+      if (type === 'tarefas') {
+        const list = (AppState.tarefas || []).filter((t) => inRange(t.prazo) && (!status || t.status.toLowerCase().includes(status.toLowerCase())));
+        return {
+          title: 'Relatório de Tarefas & Prazos',
+          headers: ['Título', 'Área', 'Prioridade', 'Prazo', 'Responsável', 'Status'],
+          rows: list.map((t) => [t.titulo, t.area, t.prioridade, formatDateBR(t.prazo), t.responsavel || '—', t.status]),
+          rawRows: list.map((t) => [t.titulo, t.area, t.prioridade, t.prazo, t.responsavel || '', t.status]),
+          summary: `Total de Tarefas: ${list.length}`
+        };
+      }
+
+      const list = (AppState.atividadesEstudo || []).filter((a) => inRange(a.data) && (!status || a.status.toLowerCase().includes(status.toLowerCase())));
+      return {
+        title: 'Relatório de Estudos & Atividades',
+        headers: ['Data', 'Curso', 'Atividade', 'Status'],
+        rows: list.map((a) => {
+          const c = (AppState.cursos || []).find((x) => x.id === a.cursoId);
+          return [formatDateBR(a.data), c ? c.nome : 'Geral', a.titulo, a.status];
+        }),
+        rawRows: list.map((a) => [a.data, a.cursoId, a.titulo, a.status]),
+        summary: `Total de Atividades de Estudo: ${list.length}`
+      };
+    }
+
+    function renderRelatorios(container) {
+      const ds = buildReportDataset();
+
+      container.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Central de Relatórios</h2>
+            <p class="text-xs sm:text-sm text-slate-600">10 relatórios consolidados com filtros por período/status, prévia em tela, CSV e impressão/PDF.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="exportActiveReportCSV()" class="px-3.5 py-2 rounded-xl bg-navy-800 hover:bg-navy-700 text-white text-xs font-semibold cursor-pointer">Exportar CSV</button>
+            <button type="button" onclick="printActiveReport()" class="px-3.5 py-2 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold cursor-pointer">Imprimir / PDF</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+          <div class="lg:col-span-2">
+            <label class="font-semibold text-slate-700 block mb-1">Tipo de Relatório</label>
+            <select onchange="reportFilter.type = this.value; reportFilter.status = ''; renderRoute('relatorios');" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold">
+              ${REPORT_TYPES.map((rt) => `<option value="${rt.id}" ${reportFilter.type === rt.id ? 'selected' : ''}>${rt.label}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Data Inicial</label>
+            <input type="date" value="${escapeHTML(reportFilter.startDate)}" onchange="reportFilter.startDate = this.value; renderRoute('relatorios');" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Data Final</label>
+            <input type="date" value="${escapeHTML(reportFilter.endDate)}" onchange="reportFilter.endDate = this.value; renderRoute('relatorios');" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">${reportFilter.type === 'pmi' ? 'Secretaria' : 'Filtrar Status'}</label>
+            ${
+              reportFilter.type === 'pmi'
+                ? `<input type="text" value="${escapeHTML(reportFilter.secretaria)}" oninput="reportFilter.secretaria = this.value; renderRoute('relatorios');" placeholder="Nome da secretaria..." class="w-full px-3 py-2 rounded-xl border border-slate-300" />`
+                : `<input type="text" value="${escapeHTML(reportFilter.status)}" oninput="reportFilter.status = this.value; renderRoute('relatorios');" placeholder="Ex: Pendente, Pago..." class="w-full px-3 py-2 rounded-xl border border-slate-300" />`
+            }
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-3 gap-2">
+            <div>
+              <h3 class="text-base font-extrabold text-navy-900">${escapeHTML(ds.title)}</h3>
+              <p class="text-[11px] text-slate-500">CONTECH Contabilidade &amp; Informática • Itaporanga - PB</p>
+            </div>
+            <div class="text-xs font-bold text-accent-700 bg-accent-50 px-3 py-1.5 rounded-xl border border-accent-200">
+              ${escapeHTML(ds.summary)}
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[680px]">
+              <thead>
+                <tr class="bg-navy-900 text-white text-[11px] uppercase tracking-wider">
+                  ${ds.headers.map((h) => `<th class="py-2.5 px-3">${escapeHTML(h)}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-xs">
+                ${
+                  ds.rows.map((r) => `<tr class="hover:bg-slate-50">${r.map((cell) => `<td class="py-2.5 px-3">${escapeHTML(cell)}</td>`).join('')}</tr>`).join('') ||
+                  `<tr><td colspan="${ds.headers.length}" class="py-6 text-center text-slate-500">Nenhum dado para os filtros selecionados.</td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function exportActiveReportCSV() {
+      const ds = buildReportDataset();
+      downloadCSV(`relatorio_${reportFilter.type}_contech.csv`, ds.headers, ds.rawRows);
+    }
+
+    function printActiveReport() {
+      const ds = buildReportDataset();
+      const printArea = document.getElementById('print-area');
+      printArea.innerHTML = `
+        <div class="space-y-4 text-xs">
+          <div class="flex items-center justify-between border-b pb-3">
+            <div>${getContechLogoSVG(true)}</div>
+            <div class="text-right">
+              <div class="text-base font-extrabold">${escapeHTML(ds.title)}</div>
+              <div>Emitido em ${new Date().toLocaleString('pt-BR')}</div>
+              <div class="font-bold mt-1">${escapeHTML(ds.summary)}</div>
+            </div>
+          </div>
+          <table class="w-full border-collapse border border-slate-300">
+            <thead>
+              <tr class="bg-slate-200">${ds.headers.map((h) => `<th class="border border-slate-300 p-2 text-left">${escapeHTML(h)}</th>`).join('')}</tr>
+            </thead>
+            <tbody>
+              ${ds.rows.map((r) => `<tr>${r.map((c) => `<td class="border border-slate-300 p-2">${escapeHTML(c)}</td>`).join('')}</tr>`).join('')}
+            </tbody>
+          </table>
+          <div class="pt-10 text-center">
+            <div class="inline-block border-t border-slate-500 px-12 pt-2">CONTECH Contabilidade &amp; Informática — Itaporanga - PB</div>
+          </div>
+        </div>
+      `;
+      printArea.classList.remove('hidden');
+      window.print();
+      setTimeout(() => printArea.classList.add('hidden'), 500);
+    }
+
+    // =========================================================================
+    // 12. ADMINISTRAÇÃO, USUÁRIOS, GOOGLE SHEETS (GAS) & BACKUP JSON
+    // =========================================================================
+    function renderAdministracao(container) {
+      const users = AppState.users || [];
+      const cfg = AppState.config || {};
+
+      container.innerHTML = `
+        <div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Administração, Usuários &amp; Integrações</h2>
+          <p class="text-xs sm:text-sm text-slate-600">Controle de acesso, sincronização bidirecional com Google Sheets e backup completo JSON.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-bold text-navy-900">Usuários Autorizados (${users.length})</h3>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="restoreDefaultAdmin()" class="px-3 py-1.5 rounded-xl bg-navy-100 hover:bg-navy-200 text-navy-900 text-xs font-semibold cursor-pointer">
+                Restaurar Padrão (admin)
+              </button>
+              <button type="button" onclick="openUserModal()" class="px-3 py-1.5 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold cursor-pointer">
+                + Novo Usuário
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[540px]">
+              <thead>
+                <tr class="bg-navy-900 text-white text-[11px] uppercase">
+                  <th class="py-2.5 px-3">Nome</th>
+                  <th class="py-2.5 px-3">Usuário (Login)</th>
+                  <th class="py-2.5 px-3">Perfil</th>
+                  <th class="py-2.5 px-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-xs">
+                ${users.map((u) => `
+                  <tr>
+                    <td class="py-2.5 px-3 font-bold text-navy-900">${escapeHTML(u.name)}</td>
+                    <td class="py-2.5 px-3 font-mono">${escapeHTML(u.username)}</td>
+                    <td class="py-2.5 px-3">${escapeHTML(u.role)}</td>
+                    <td class="py-2.5 px-3 text-right space-x-1">
+                      <button type="button" onclick="openUserModal('${u.id}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-semibold cursor-pointer">Editar / Senha</button>
+                      ${
+                        u.username !== 'admin'
+                          ? `<button type="button" onclick="deleteUser('${u.id}')" class="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-semibold cursor-pointer">Remover</button>`
+                          : ''
+                      }
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-navy-900">Google Sheets — Sincronização Bidirecional (Apps Script)</h3>
+              <p class="text-xs text-slate-600">Configure a URL do Web App (<code>/exec</code>) publicada a partir da planilha Google.</p>
+            </div>
+            <button type="button" onclick="openGasCodeModal()" class="px-3 py-1.5 rounded-xl bg-navy-100 hover:bg-navy-200 text-navy-900 text-xs font-semibold cursor-pointer">
+              Ver / Copiar Codigo.gs
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+            <div class="md:col-span-3">
+              <label class="font-semibold text-slate-700 block mb-1">URL do Web App Google Apps Script (/exec)</label>
+              <input id="gas-url-input" type="url" value="${escapeHTML(cfg.gasUrl || '')}" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+            </div>
+            <div>
+              <label class="font-semibold text-slate-700 block mb-1">Sync Automática</label>
+              <select id="gas-interval-select" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+                <option value="0" ${Number(cfg.autoSyncMinutes || 0) === 0 ? 'selected' : ''}>Manual</option>
+                <option value="5" ${Number(cfg.autoSyncMinutes) === 5 ? 'selected' : ''}>A cada 5 min</option>
+                <option value="15" ${Number(cfg.autoSyncMinutes) === 15 ? 'selected' : ''}>A cada 15 min</option>
+                <option value="30" ${Number(cfg.autoSyncMinutes) === 30 ? 'selected' : ''}>A cada 30 min</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="saveGasSettings()" class="px-3.5 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold cursor-pointer">Salvar Configuração</button>
+            <button type="button" onclick="testGasRead()" class="px-3.5 py-2 rounded-xl bg-navy-100 hover:bg-navy-200 text-navy-900 text-xs font-semibold cursor-pointer">Testar Leitura (GET)</button>
+            <button type="button" onclick="pullAllFromGas()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer">Puxar da Nuvem</button>
+            <button type="button" onclick="syncAllToGas()" class="px-3.5 py-2 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold cursor-pointer">Enviar Tudo para Planilha</button>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
+            <strong>Status da Integração:</strong> ${escapeHTML(cfg.lastSyncMessage || 'Pronto.')}
+            ${cfg.lastSyncAt ? `<span class="text-slate-500 ml-2">(${new Date(cfg.lastSyncAt).toLocaleString('pt-BR')})</span>` : ''}
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h3 class="text-sm font-bold text-navy-900">Backup Completo &amp; Restauração (JSON)</h3>
+            <p class="text-xs text-slate-600">Exporte todos os cadastros, lançamentos, tarefas e configurações em um arquivo JSON ou restaure um backup.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="exportFullBackupJSON()" class="px-3.5 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold cursor-pointer">
+              Exportar Backup JSON
+            </button>
+            <label class="px-3.5 py-2 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold cursor-pointer">
+              Restaurar JSON
+              <input type="file" accept=".json" onchange="restoreFullBackupJSON(this)" class="hidden" />
+            </label>
+          </div>
+        </div>
+      `;
+    }
+
+    function openUserModal(editId = null) {
+      const item = editId ? (AppState.users || []).find((x) => x.id === editId) : null;
+      const u = item || { name: '', username: '', password: '', role: 'Operador' };
+
+      openModal(
+        item ? 'Editar Usuário' : 'Novo Usuário Autorizado',
+        `
+          <form id="user-form" class="space-y-3 text-xs">
+            <div><label class="font-semibold">Nome Completo *</label><input name="name" required value="${escapeHTML(u.name)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Usuário (Login) *</label><input name="username" required value="${escapeHTML(u.username)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Senha *</label><input type="password" name="password" required value="${escapeHTML(u.password)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
+            <div><label class="font-semibold">Perfil</label><select name="role" class="w-full mt-1 px-3 py-2 rounded-xl border bg-white">${['Administrador', 'Contábil / Fiscal', 'Suporte TI', 'Operador'].map((r) => `<option ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+          </form>
+        `,
+        `
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+          <button type="submit" form="user-form" class="px-4 py-2 rounded-xl bg-accent-500 text-white text-xs font-bold cursor-pointer">Salvar Usuário</button>
+        `
+      );
+
+      document.getElementById('user-form').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const rec = {
+          id: item ? item.id : generateId('USR'),
+          name: fd.get('name').trim(),
+          username: fd.get('username').trim(),
+          password: fd.get('password'),
+          role: fd.get('role')
+        };
+        if (item) {
+          const idx = AppState.users.findIndex((x) => x.id === item.id);
+          if (idx >= 0) AppState.users[idx] = rec;
+        } else {
+          AppState.users.push(rec);
+        }
+        saveState();
+        closeModal();
+        renderRoute('administracao');
+        showToast('Usuário salvo!');
+      };
+    }
+
+    function deleteUser(id) {
+      askConfirm('Remover Usuário', 'Confirma a remoção deste usuário?', () => {
+        AppState.users = AppState.users.filter((x) => x.id !== id);
+        saveState();
+        renderRoute('administracao');
+      });
+    }
+
+    function restoreDefaultAdmin() {
+      const existing = (AppState.users || []).find((u) => u.username === 'admin');
+      if (existing) {
+        existing.password = 'contech2026';
+      } else {
+        AppState.users.unshift({ id: 'USR-01', name: 'Administrador CONTECH', username: 'admin', password: 'contech2026', role: 'Administrador' });
+      }
+      saveState();
+      renderRoute('administracao');
+      showToast('Credencial padrão admin restaurada.');
+    }
+
+    function saveGasSettings() {
+      AppState.config.gasUrl = document.getElementById('gas-url-input').value.trim();
+      AppState.config.autoSyncMinutes = Number(document.getElementById('gas-interval-select').value || 0);
+      saveState();
+      setupAutoSync();
+      showToast('Configurações do Google Sheets salvas!');
+    }
+
+    function setupAutoSync() {
+      if (autoSyncTimer) clearInterval(autoSyncTimer);
+      const mins = Number(AppState.config?.autoSyncMinutes || 0);
+      if (mins > 0 && AppState.config?.gasUrl) {
+        autoSyncTimer = setInterval(() => syncAllToGas(true), mins * 60000);
+      }
+    }
+
+    async function testGasRead() {
+      const url = document.getElementById('gas-url-input')?.value.trim() || AppState.config.gasUrl;
+      if (!url) return showToast('Informe a URL /exec do Google Apps Script.', 'error');
+      try {
+        const res = await fetch(`${url}?action=test`);
+        const data = await res.json();
+        AppState.config.lastSyncAt = new Date().toISOString();
+        AppState.config.lastSyncMessage = data.success ? `Conectado: ${data.spreadsheet || 'Planilha ativa'}` : `Erro: ${data.error}`;
+        saveState();
+        renderRoute('administracao');
+        showToast(AppState.config.lastSyncMessage, data.success ? 'success' : 'error');
+      } catch (err) {
+        showToast('Falha ao conectar com a URL informada.', 'error');
+      }
+    }
+
+    function mapClientToSheetRow(c) {
+      return {
+        ID: c.id, ID_Alterdata: c.idAlterdata, Nome_Razao_Social: c.nomeRazao, CPF: c.cpf, RG: c.rg, CNH: c.cnh,
+        Titulo_Eleitor: c.tituloEleitor, Data_Nascimento: c.dataNascimento, Celular: c.celular, Email: c.email,
+        CNPJ: c.cnpj, Inscricao_Estadual: c.inscricaoEstadual, Inscricao_Municipal: c.inscricaoMunicipal,
+        Data_Abertura: c.dataAbertura, Regime_Tributario: c.regimeTributario, Capital_Social: c.capitalSocial,
+        Producoes: (c.producoes || []).join(', '), Parcelamentos: (c.parcelamentos || []).join(', '),
+        Status_EFD: c.obrigacoes?.EFD || '', Status_MIT: c.obrigacoes?.MIT || '',
+        Status_DEFIS: c.obrigacoes?.DEFIS || '', Status_DASN: c.obrigacoes?.DASN || '',
+        Vencimento_Certificado: c.certificadoVencimento, Senha_GOV: c.senhas?.gov || '',
+        Senha_NFSe_Email: [c.senhas?.nfse, c.senhas?.email].filter(Boolean).join(' | ')
+      };
+    }
+
+    function mapSheetRowToClient(r) {
+      const senhasSplit = String(r.Senha_NFSe_Email || '').split('|').map((s) => s.trim());
+      return {
+        id: r.ID || generateId('CL'),
+        idAlterdata: r.ID_Alterdata || '',
+        nomeRazao: r.Nome_Razao_Social || '',
+        cpf: r.CPF || '',
+        rg: r.RG || '',
+        cnh: r.CNH || '',
+        tituloEleitor: r.Titulo_Eleitor || '',
+        dataNascimento: r.Data_Nascimento || '',
+        celular: r.Celular || '',
+        email: r.Email || '',
+        cnpj: r.CNPJ || '',
+        inscricaoEstadual: r.Inscricao_Estadual || '',
+        inscricaoMunicipal: r.Inscricao_Municipal || '',
+        dataAbertura: r.Data_Abertura || '',
+        regimeTributario: r.Regime_Tributario || 'Simples Nacional',
+        capitalSocial: Number(r.Capital_Social || 0),
+        producoes: r.Producoes ? String(r.Producoes).split(',').map((s) => s.trim()).filter(Boolean) : [],
+        parcelamentos: r.Parcelamentos ? String(r.Parcelamentos).split(',').map((s) => s.trim()).filter(Boolean) : [],
+        obrigacoes: { EFD: r.Status_EFD || 'Pendente', MIT: r.Status_MIT || 'N/A', DEFIS: r.Status_DEFIS || 'Pendente', DASN: r.Status_DASN || 'N/A' },
+        certificadoVencimento: r.Vencimento_Certificado || '',
+        senhas: { gov: r.Senha_GOV || '', nfse: senhasSplit[0] || '', email: senhasSplit[1] || '' }
+      };
+    }
+
+    async function syncAllToGas(silent = false) {
+      const url = document.getElementById('gas-url-input')?.value.trim() || AppState.config.gasUrl;
+      if (!url) {
+        if (!silent) showToast('Configure a URL /exec do Google Apps Script.', 'error');
+        return;
+      }
+
+      const payload = {
+        action: 'syncAll',
+        data: {
+          contabeis: (AppState.clientesContabeis || []).map(mapClientToSheetRow),
+          gerais: (AppState.clientesGerais || []).map(mapClientToSheetRow),
+          pagar: (AppState.contasPagar || []).map((i) => ({ ID: i.id, Data_Lancamento: i.vencimento, Fornecedor_Descricao: i.descricao, Categoria: i.categoria, Parcela: i.parcela, Vencimento: i.vencimento, Valor: i.valor, Status: i.status, Data_Pagamento: i.dataPagamento || '', Observacoes: '' })),
+          receber: (AppState.contasReceber || []).map((i) => ({ ID: i.id, Data_Lancamento: i.vencimento, Cliente: i.cliente, Descricao_Servico: i.descricao, Parcela: i.parcela, Vencimento: i.vencimento, Valor: i.valor, Status: i.status, Data_Recebimento: i.dataRecebimento || '', Observacoes: '' })),
+          tarefas: (AppState.tarefas || []).map((t) => ({ ID: t.id, Titulo: t.titulo, Area: t.area, Prioridade: t.prioridade, Prazo: t.prazo, Status: t.status, Responsavel: t.responsavel || '', Observacoes: '' })),
+          licitacoes: (AppState.licitacoes || []).map((l) => ({ ID: l.id, Portal: l.portal, Numero_Edital: l.numeroEdital, Orgao: l.orgao, UF: l.uf, Modalidade: l.modalidade || 'Pregão Eletrônico', Objeto: l.objeto, Data_Abertura: l.dataAbertura, Valor_Estimado: l.valorEstimado, Link_Edital: l.link || '', Status_Acompanhamento: 'Monitorado' })),
+          cursos: (AppState.cursos || []).map((c) => ({ ID: c.id, Curso: c.nome, Instituicao: c.instituicao, Carga_Horaria: c.cargaHoraria, Status: c.status })),
+          estudos: (AppState.atividadesEstudo || []).map((a) => ({ ID: a.id, Data: a.data, Curso_ID: a.cursoId, Materia: '', Atividade: a.titulo, Status: a.status, Observacoes: '' })),
+          pmi: (AppState.servicosPmi || []).map((s) => ({ ID: s.id, Data: s.data, Secretaria: s.secretaria, Servico: s.servico, Complemento: s.complemento || '', Valor: s.valor, Status_Pagamento: s.status, Numero_Empenho: s.empenho || '', Numero_NF: s.nf || '' })),
+          os: (AppState.ordensServico || []).map((o) => ({ Numero_OS: o.id, Data_Abertura: o.data, Cliente: o.clienteNome, Telefone: o.telefone || '', Equipamento: o.equipamento, Defeito_Relatado: o.defeito || '', Servico_Executado: o.servicoExecutado || '', Valor: o.valor, Status: o.status, Data_Conclusao: '' })),
+          usuarios: (AppState.users || []).map((u) => ({ ID: u.id, Usuario: u.username, Nome_Completo: u.name, Senha_Hash: u.password, Perfil: u.role, Ativo: 'Sim' }))
+        }
+      };
+
+      try {
+        const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
+        const json = await res.json();
+        AppState.config.lastSyncAt = new Date().toISOString();
+        AppState.config.lastSyncMessage = json.message || 'Dados enviados para o Google Sheets.';
+        saveState();
+        if (ActiveRoute === 'administracao') renderRoute('administracao');
+        if (!silent) showToast('Sincronização com Google Sheets concluída!');
+      } catch (err) {
+        if (!silent) showToast('Erro ao enviar dados para a planilha.', 'error');
+      }
+    }
+
+    async function pullAllFromGas() {
+      const url = document.getElementById('gas-url-input')?.value.trim() || AppState.config.gasUrl;
+      if (!url) return showToast('Configure a URL /exec do Google Apps Script.', 'error');
+      try {
+        const res = await fetch(`${url}?action=readAll`);
+        const json = await res.json();
+        if (!json.success || !json.data) throw new Error(json.error || 'Resposta inválida');
+
+        const d = json.data;
+        if (Array.isArray(d.contabeis) && d.contabeis.length) AppState.clientesContabeis = d.contabeis.map(mapSheetRowToClient);
+        if (Array.isArray(d.gerais) && d.gerais.length) AppState.clientesGerais = d.gerais.map(mapSheetRowToClient);
+        if (Array.isArray(d.pagar) && d.pagar.length) AppState.contasPagar = d.pagar.map((i) => ({ id: i.ID, descricao: i.Fornecedor_Descricao, categoria: i.Categoria, parcela: i.Parcela, vencimento: i.Vencimento, valor: Number(i.Valor || 0), status: i.Status, dataPagamento: i.Data_Pagamento }));
+        if (Array.isArray(d.receber) && d.receber.length) AppState.contasReceber = d.receber.map((i) => ({ id: i.ID, cliente: i.Cliente, descricao: i.Descricao_Servico, parcela: i.Parcela, vencimento: i.Vencimento, valor: Number(i.Valor || 0), status: i.Status, dataRecebimento: i.Data_Recebimento }));
+        if (Array.isArray(d.tarefas) && d.tarefas.length) AppState.tarefas = d.tarefas.map((t) => ({ id: t.ID, titulo: t.Titulo, area: t.Area, prioridade: t.Prioridade, prazo: t.Prazo, status: t.Status, responsavel: t.Responsavel }));
+        if (Array.isArray(d.pmi) && d.pmi.length) AppState.servicosPmi = d.pmi.map((s) => ({ id: s.ID, data: s.Data, secretaria: s.Secretaria, servico: s.Servico, complemento: s.Complemento, valor: Number(s.Valor || 0), status: s.Status_Pagamento, empenho: s.Numero_Empenho, nf: s.Numero_NF }));
+        if (Array.isArray(d.os) && d.os.length) AppState.ordensServico = d.os.map((o) => ({ id: o.Numero_OS, data: o.Data_Abertura, clienteNome: o.Cliente, telefone: o.Telefone, equipamento: o.Equipamento, defeito: o.Defeito_Relatado, servicoExecutado: o.Servico_Executado, valor: Number(o.Valor || 0), status: o.Status }));
+
+        AppState.config.lastSyncAt = new Date().toISOString();
+        AppState.config.lastSyncMessage = 'Dados importados da planilha com sucesso.';
+        saveState();
+        renderRoute('administracao');
+        showToast('Dados puxados da nuvem com sucesso!');
+      } catch (err) {
+        showToast('Erro ao puxar dados do Google Sheets.', 'error');
+      }
+    }
+
+    function openGasCodeModal() {
+      openModal(
+        'Instruções de Implantação — Codigo.gs',
+        `
+          <p class="text-xs text-slate-600">Cole o arquivo <strong>Codigo.gs</strong> gerado na conversa em <em>Extensões &gt; Apps Script</em> da sua planilha Google, implante como <strong>App da Web</strong> (<em>Executar como: Eu</em> | <em>Quem pode acessar: Qualquer pessoa</em>) e informe a URL terminada em <code>/exec</code> no campo da tela de Administração.</p>
+        `
+      );
+    }
+
+    function exportFullBackupJSON() {
+      const blob = new Blob([JSON.stringify(AppState, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup_contech_erp_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function restoreFullBackupJSON(input) {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          AppState = { ...createInitialState(), ...parsed };
+          saveState();
+          renderRoute(ActiveRoute);
+          showToast('Backup JSON restaurado com sucesso!');
+        } catch (e) {
+          showToast('Arquivo JSON inválido.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function openLgpdModal() {
+      openModal(
+        'Governança de Dados & Conformidade LGPD (Lei nº 13.709/2018)',
+        `
+          <div class="space-y-3 text-xs text-slate-700 leading-relaxed">
+            <p><strong>1. Finalidade e Base Legal:</strong> Os dados pessoais e fiscais tratados no <strong>CONTECH ERP</strong> destinam-se exclusivamente à execução de contratos contábeis, cumprimento de obrigações legais/regulatórias junto aos órgãos fazendários e suporte técnico de TI (Art. 7º, II e V da LGPD).</p>
+            <p><strong>2. Armazenamento e Controle:</strong> Os registros são armazenados localmente no navegador do operador e sincronizados sob demanda com a planilha institucional protegida da CONTECH Contabilidade &amp; Informática.</p>
+            <p><strong>3. Segurança de Credenciais:</strong> O acesso ao painel exige autenticação individualizada, recomenda-se o bloqueio da sessão ao ausentar-se da estação de trabalho e a realização periódica de backups criptografados/restritos.</p>
+          </div>
+        `
+      );
+    }
+
+    // =========================================================================
+    // INICIALIZAÇÃO
+    // =========================================================================
+    document.getElementById('login-logo-slot').innerHTML = getContechLogoSVG(false);
+    document.getElementById('sidebar-logo-slot').innerHTML = getContechLogoSVG(true);
+    syncAuthScreen();
+  </script>
+</body>
+</html>
