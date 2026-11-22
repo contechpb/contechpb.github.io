@@ -804,32 +804,32 @@
     // =========================================================================
     function mapClientToSheetRow(c) {
       return {
-        id: c.id,
-        id_alterdata: c.idAlterdata,
-        nome: c.nomeRazao,
-        cpf: c.cpf,
-        rg: c.rg,
-        cnh: c.cnh,
-        titulo: c.tituloEleitor,
-        data_nascimento: c.dataNascimento,
-        celular: c.celular,
-        email: c.email,
-        cnpj: c.cnpj,
-        inscricao_estadual: c.inscricaoEstadual,
-        inscricao_municipal: c.inscricaoMunicipal,
-        data_abertura: c.dataAbertura,
-        regime: c.regimeTributario,
-        capital_social: c.capitalSocial,
-        procuracoes: (c.procuracoes || c.producoes || []).join(','),
-        parcelamento: (c.parcelamentos || []).join(','),
-        efd: c.obrigacoes?.EFD || '',
-        mit: c.obrigacoes?.MIT || '',
-        defis: c.obrigacoes?.DEFIS || '',
-        dasn: c.obrigacoes?.DASN || '',
-        vencimento_certificado: c.certificadoVencimento,
-        senha_gov: c.senhas?.gov || '',
-        senha_nfse: c.senhas?.nfse || '',
-        senha_email: c.senhas?.email || ''
+        "ID": c.id,
+        "ID ALTERDATA": c.idAlterdata,
+        "NOME": c.nomeRazao,
+        "CPF": c.cpf,
+        "SENHA GOV": c.senhas?.gov || '',
+        "CNPJ": c.cnpj,
+        "IE": c.inscricaoEstadual,
+        "IM": c.inscricaoMunicipal,
+        "DATA ABERTURA": c.dataAbertura,
+        "DATA NASCIMENTO": c.dataNascimento,
+        "VENC CERTIFICADO": c.certificadoVencimento,
+        "REGIME": c.regimeTributario,
+        "CAPITAL SOCIAL": c.capitalSocial,
+        "PROCURACOES": (c.procuracoes || c.producoes || []).join(','),
+        "PARCELAMENTO": (c.parcelamentos || []).join(','),
+        "EFD": c.obrigacoes?.EFD || '',
+        "MIT": c.obrigacoes?.MIT || '',
+        "DEFIS": c.obrigacoes?.DEFIS || '',
+        "DASN": c.obrigacoes?.DASN || '',
+        "CELULAR": c.celular,
+        "RG": c.rg,
+        "CNH": c.cnh,
+        "TITULO": c.tituloEleitor,
+        "EMAIL": c.email,
+        "SENHA NFSE": c.senhas?.nfse || '',
+        "SENHA EMAIL": c.senhas?.email || ''
       };
     }
 
@@ -887,35 +887,35 @@
       const parseClientRow = (r, prefix) => {
         const [nfseLegacy = '', emailLegacy = ''] = splitPipe(r.Senha_NFSe_Email);
         return {
-          id: String(r.id ?? r['01. ID'] ?? r.ID ?? generateId(prefix)),
-          idAlterdata: String(r.id_alterdata ?? r['02. ID Alterdata'] ?? r.ID_Alterdata ?? ''),
-          nomeRazao: String(r.nome ?? r['03. Nome / Razão Social'] ?? r.Nome_Razao_Social ?? ''),
-          cpf: String(r.cpf ?? r['04. CPF'] ?? r.CPF ?? ''),
-          rg: String(r.rg ?? r['05. RG'] ?? r.RG ?? ''),
-          cnh: String(r.cnh ?? r['06. CNH'] ?? r.CNH ?? ''),
-          tituloEleitor: String(r.titulo ?? r['07. Título Eleitor'] ?? r.Titulo_Eleitor ?? ''),
-          dataNascimento: String(r.data_nascimento ?? r['08. Nascimento'] ?? r.Data_Nascimento ?? ''),
-          celular: String(r.celular ?? r['09. Celular'] ?? r.Celular ?? ''),
-          email: String(r.email ?? r['10. E-mail'] ?? r.Email ?? ''),
-          cnpj: String(r.cnpj ?? r['11. CNPJ'] ?? r.CNPJ ?? ''),
-          inscricaoEstadual: String(r.inscricao_estadual ?? r['12. Insc. Estadual'] ?? r.Inscricao_Estadual ?? ''),
-          inscricaoMunicipal: String(r.inscricao_municipal ?? r['13. Insc. Municipal'] ?? r.Inscricao_Municipal ?? ''),
-          dataAbertura: String(r.data_abertura ?? r['14. Data Abertura'] ?? r.Data_Abertura ?? ''),
-          regimeTributario: String(r.regime ?? r['15. Regime Tributário'] ?? r.Regime_Tributario ?? 'Simples Nacional'),
-          capitalSocial: Number(r.capital_social ?? r['16. Capital Social'] ?? r.Capital_Social ?? 0),
-          procuracoes: String(r.procuracoes ?? r.producoes ?? r['17. Procurações'] ?? r['17. Produções'] ?? r.Procuracoes ?? r.Producoes ?? '').split(',').map((s) => s.trim()).filter(Boolean),
-          parcelamentos: String(r.parcelamento ?? r['18. Parcelamentos'] ?? r.Parcelamentos ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+          id: String(r["ID"] ?? r.id ?? r['01. ID'] ?? generateId(prefix)),
+          idAlterdata: String(r["ID ALTERDATA"] ?? r.id_alterdata ?? r['02. ID Alterdata'] ?? r.ID_Alterdata ?? ''),
+          nomeRazao: String(r["NOME"] ?? r.nome ?? r['03. Nome / Razão Social'] ?? r.Nome_Razao_Social ?? ''),
+          cpf: String(r["CPF"] ?? r.cpf ?? r['04. CPF'] ?? ''),
+          rg: String(r["RG"] ?? r.rg ?? r['05. RG'] ?? ''),
+          cnh: String(r["CNH"] ?? r.cnh ?? r['06. CNH'] ?? ''),
+          tituloEleitor: String(r["TITULO"] ?? r.titulo ?? r['07. Título Eleitor'] ?? r.Titulo_Eleitor ?? ''),
+          dataNascimento: String(r["DATA NASCIMENTO"] ?? r.data_nascimento ?? r['08. Nascimento'] ?? r.Data_Nascimento ?? ''),
+          celular: String(r["CELULAR"] ?? r.celular ?? r['09. Celular'] ?? ''),
+          email: String(r["EMAIL"] ?? r.email ?? r['10. E-mail'] ?? ''),
+          cnpj: String(r["CNPJ"] ?? r.cnpj ?? r['11. CNPJ'] ?? ''),
+          inscricaoEstadual: String(r["IE"] ?? r.inscricao_estadual ?? r['12. Insc. Estadual'] ?? r.Inscricao_Estadual ?? ''),
+          inscricaoMunicipal: String(r["IM"] ?? r.inscricao_municipal ?? r['13. Insc. Municipal'] ?? r.Inscricao_Municipal ?? ''),
+          dataAbertura: String(r["DATA ABERTURA"] ?? r.data_abertura ?? r['14. Data Abertura'] ?? r.Data_Abertura ?? ''),
+          regimeTributario: String(r["REGIME"] ?? r.regime ?? r['15. Regime Tributário'] ?? r.Regime_Tributario ?? 'Simples Nacional'),
+          capitalSocial: Number(r["CAPITAL SOCIAL"] ?? r.capital_social ?? r['16. Capital Social'] ?? r.Capital_Social ?? 0),
+          procuracoes: String(r["PROCURACOES"] ?? r.procuracoes ?? r.producoes ?? r['17. Procurações'] ?? r['17. Produções'] ?? r.Procuracoes ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+          parcelamentos: String(r["PARCELAMENTO"] ?? r.parcelamento ?? r['18. Parcelamentos'] ?? r.Parcelamentos ?? '').split(',').map((s) => s.trim()).filter(Boolean),
           obrigacoes: {
-            EFD: String(r.efd ?? r['19. EFD'] ?? r.Status_EFD ?? 'N/A'),
-            MIT: String(r.mit ?? r['20. MIT'] ?? r.Status_MIT ?? 'N/A'),
-            DEFIS: String(r.defis ?? r['21. DEFIS'] ?? r.Status_DEFIS ?? 'N/A'),
-            DASN: String(r.dasn ?? r['22. DASN'] ?? r.Status_DASN ?? 'N/A')
+            EFD: String(r["EFD"] ?? r.efd ?? r['19. EFD'] ?? r.Status_EFD ?? 'N/A'),
+            MIT: String(r["MIT"] ?? r.mit ?? r['20. MIT'] ?? r.Status_MIT ?? 'N/A'),
+            DEFIS: String(r["DEFIS"] ?? r.defis ?? r['21. DEFIS'] ?? r.Status_DEFIS ?? 'N/A'),
+            DASN: String(r["DASN"] ?? r.dasn ?? r['22. DASN'] ?? r.Status_DASN ?? 'N/A')
           },
-          certificadoVencimento: String(r.vencimento_certificado ?? r['23. Venc. Certificado'] ?? r.Vencimento_Certificado ?? ''),
+          certificadoVencimento: String(r["VENC CERTIFICADO"] ?? r.vencimento_certificado ?? r['23. Venc. Certificado'] ?? r.Vencimento_Certificado ?? ''),
           senhas: {
-            gov: String(r.senha_gov ?? r['24. Senha GOV'] ?? r.Senha_GOV ?? ''),
-            nfse: String(r.senha_nfse ?? r['25. Senha NFSe'] ?? r.Senha_NFSe ?? nfseLegacy ?? ''),
-            email: String(r.senha_email ?? r['26. Senha E-mail'] ?? r.Senha_Email ?? emailLegacy ?? '')
+            gov: String(r["SENHA GOV"] ?? r.senha_gov ?? r['24. Senha GOV'] ?? r.Senha_GOV ?? ''),
+            nfse: String(r["SENHA NFSE"] ?? r.senha_nfse ?? r['25. Senha NFSe'] ?? r.Senha_NFSe ?? nfseLegacy ?? ''),
+            email: String(r["SENHA EMAIL"] ?? r.senha_email ?? r['26. Senha E-mail'] ?? r.Senha_Email ?? emailLegacy ?? '')
           }
         };
       };
@@ -1436,32 +1436,32 @@
           <table class="min-w-[2950px] w-full text-xs text-left border-collapse">
             <thead class="bg-navy-900 text-white text-[11px] whitespace-nowrap">
               <tr>
-                <th class="px-3 py-3">01. ID</th>
-                <th class="px-3 py-3">02. ID Alterdata</th>
-                <th class="px-3 py-3">03. Nome / Razão Social</th>
-                <th class="px-3 py-3">04. CPF</th>
-                <th class="px-3 py-3">05. RG</th>
-                <th class="px-3 py-3">06. CNH</th>
-                <th class="px-3 py-3">07. Título Eleitor</th>
-                <th class="px-3 py-3">08. Nascimento</th>
-                <th class="px-3 py-3">09. Celular</th>
-                <th class="px-3 py-3">10. E-mail</th>
-                <th class="px-3 py-3">11. CNPJ</th>
-                <th class="px-3 py-3">12. Insc. Estadual</th>
-                <th class="px-3 py-3">13. Insc. Municipal</th>
-                <th class="px-3 py-3">14. Data Abertura</th>
-                <th class="px-3 py-3">15. Regime Tributário</th>
-                <th class="px-3 py-3">16. Capital Social</th>
-                <th class="px-3 py-3">17. Procurações</th>
-                <th class="px-3 py-3">18. Parcelamentos</th>
-                <th class="px-3 py-3">19. EFD</th>
-                <th class="px-3 py-3">20. MIT</th>
-                <th class="px-3 py-3">21. DEFIS</th>
-                <th class="px-3 py-3">22. DASN</th>
-                <th class="px-3 py-3">23. Venc. Certificado</th>
-                <th class="px-3 py-3">24. Senha GOV</th>
-                <th class="px-3 py-3">25. Senha NFSe</th>
-                <th class="px-3 py-3">26. Senha E-mail</th>
+                <th class="px-3 py-3">ID</th>
+                <th class="px-3 py-3">ID ALTERDATA</th>
+                <th class="px-3 py-3">NOME</th>
+                <th class="px-3 py-3">CPF</th>
+                <th class="px-3 py-3">SENHA GOV</th>
+                <th class="px-3 py-3">CNPJ</th>
+                <th class="px-3 py-3">IE</th>
+                <th class="px-3 py-3">IM</th>
+                <th class="px-3 py-3">DATA ABERTURA</th>
+                <th class="px-3 py-3">DATA NASCIMENTO</th>
+                <th class="px-3 py-3">VENC CERTIFICADO</th>
+                <th class="px-3 py-3">REGIME</th>
+                <th class="px-3 py-3">CAPITAL SOCIAL</th>
+                <th class="px-3 py-3">PROCURACOES</th>
+                <th class="px-3 py-3">PARCELAMENTO</th>
+                <th class="px-3 py-3">EFD</th>
+                <th class="px-3 py-3">MIT</th>
+                <th class="px-3 py-3">DEFIS</th>
+                <th class="px-3 py-3">DASN</th>
+                <th class="px-3 py-3">CELULAR</th>
+                <th class="px-3 py-3">RG</th>
+                <th class="px-3 py-3">CNH</th>
+                <th class="px-3 py-3">TITULO</th>
+                <th class="px-3 py-3">EMAIL</th>
+                <th class="px-3 py-3">SENHA NFSE</th>
+                <th class="px-3 py-3">SENHA EMAIL</th>
                 <th class="px-3 py-3 sticky right-0 bg-navy-900 text-right uppercase">Ações</th>
               </tr>
             </thead>
@@ -1472,16 +1472,13 @@
                   <td class="px-3 py-2.5">${escapeHTML(c.idAlterdata)}</td>
                   <td class="px-3 py-2.5 font-bold text-navy-900">${escapeHTML(c.nomeRazao)}</td>
                   <td class="px-3 py-2.5">${escapeHTML(c.cpf)}</td>
-                  <td class="px-3 py-2.5">${escapeHTML(c.rg)}</td>
-                  <td class="px-3 py-2.5">${escapeHTML(c.cnh)}</td>
-                  <td class="px-3 py-2.5">${escapeHTML(c.tituloEleitor)}</td>
-                  <td class="px-3 py-2.5">${formatDateBR(c.dataNascimento)}</td>
-                  <td class="px-3 py-2.5">${escapeHTML(c.celular)}</td>
-                  <td class="px-3 py-2.5">${escapeHTML(c.email)}</td>
+                  <td class="px-3 py-2.5 font-mono">${escapeHTML(c.senhas?.gov || '—')}</td>
                   <td class="px-3 py-2.5 font-mono">${escapeHTML(c.cnpj)}</td>
                   <td class="px-3 py-2.5">${escapeHTML(c.inscricaoEstadual)}</td>
                   <td class="px-3 py-2.5">${escapeHTML(c.inscricaoMunicipal)}</td>
                   <td class="px-3 py-2.5">${formatDateBR(c.dataAbertura)}</td>
+                  <td class="px-3 py-2.5">${formatDateBR(c.dataNascimento)}</td>
+                  <td class="px-3 py-2.5 font-semibold">${formatDateBR(c.certificadoVencimento)}</td>
                   <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded-full bg-blue-50 text-navy-800 font-semibold">${escapeHTML(c.regimeTributario)}</span></td>
                   <td class="px-3 py-2.5 font-semibold">${formatCurrency(c.capitalSocial)}</td>
                   <td class="px-3 py-2.5">${escapeHTML((c.procuracoes || c.producoes || []).join(', '))}</td>
@@ -1490,8 +1487,11 @@
                   <td class="px-3 py-2.5">${escapeHTML(c.obrigacoes?.MIT || 'N/A')}</td>
                   <td class="px-3 py-2.5">${escapeHTML(c.obrigacoes?.DEFIS || 'N/A')}</td>
                   <td class="px-3 py-2.5">${escapeHTML(c.obrigacoes?.DASN || 'N/A')}</td>
-                  <td class="px-3 py-2.5 font-semibold">${formatDateBR(c.certificadoVencimento)}</td>
-                  <td class="px-3 py-2.5 font-mono">${escapeHTML(c.senhas?.gov || '—')}</td>
+                  <td class="px-3 py-2.5">${escapeHTML(c.celular)}</td>
+                  <td class="px-3 py-2.5">${escapeHTML(c.rg)}</td>
+                  <td class="px-3 py-2.5">${escapeHTML(c.cnh)}</td>
+                  <td class="px-3 py-2.5">${escapeHTML(c.tituloEleitor)}</td>
+                  <td class="px-3 py-2.5">${escapeHTML(c.email)}</td>
                   <td class="px-3 py-2.5 font-mono">${escapeHTML(c.senhas?.nfse || '—')}</td>
                   <td class="px-3 py-2.5 font-mono">${escapeHTML(c.senhas?.email || '—')}</td>
                   <td class="px-3 py-2.5 sticky right-0 bg-white border-l border-slate-100 text-right whitespace-nowrap space-x-1">
@@ -1657,18 +1657,17 @@
     function exportClientesCSV(kind) {
       const list = kind === 'contabeis' ? AppState.clientesContabeis : AppState.clientesGerais;
       const headers = [
-        '01. ID', '02. ID Alterdata', '03. Nome / Razão Social', '04. CPF', '05. RG', '06. CNH',
-        '07. Título Eleitor', '08. Nascimento', '09. Celular', '10. E-mail', '11. CNPJ',
-        '12. Insc. Estadual', '13. Insc. Municipal', '14. Data Abertura', '15. Regime Tributário',
-        '16. Capital Social', '17. Procurações', '18. Parcelamentos', '19. EFD', '20. MIT',
-        '21. DEFIS', '22. DASN', '23. Venc. Certificado', '24. Senha GOV', '25. Senha NFSe', '26. Senha E-mail'
+        'ID', 'ID ALTERDATA', 'NOME', 'CPF', 'SENHA GOV', 'CNPJ', 'IE', 'IM',
+        'DATA ABERTURA', 'DATA NASCIMENTO', 'VENC CERTIFICADO', 'REGIME', 'CAPITAL SOCIAL',
+        'PROCURACOES', 'PARCELAMENTO', 'EFD', 'MIT', 'DEFIS', 'DASN', 'CELULAR',
+        'RG', 'CNH', 'TITULO', 'EMAIL', 'SENHA NFSE', 'SENHA EMAIL'
       ];
       const rows = list.map((c) => [
-        c.id, c.idAlterdata, c.nomeRazao, c.cpf, c.rg, c.cnh, c.tituloEleitor, c.dataNascimento,
-        c.celular, c.email, c.cnpj, c.inscricaoEstadual, c.inscricaoMunicipal, c.dataAbertura,
-        c.regimeTributario, c.capitalSocial, (c.procuracoes || c.producoes || []).join(','), (c.parcelamentos || []).join(','),
+        c.id, c.idAlterdata, c.nomeRazao, c.cpf, c.senhas?.gov || '', c.cnpj, c.inscricaoEstadual, c.inscricaoMunicipal,
+        c.dataAbertura, c.dataNascimento, c.certificadoVencimento, c.regimeTributario, c.capitalSocial,
+        (c.procuracoes || c.producoes || []).join(','), (c.parcelamentos || []).join(','),
         c.obrigacoes?.EFD, c.obrigacoes?.MIT, c.obrigacoes?.DEFIS, c.obrigacoes?.DASN,
-        c.certificadoVencimento, c.senhas?.gov || '', c.senhas?.nfse || '', c.senhas?.email || ''
+        c.celular, c.rg, c.cnh, c.tituloEleitor, c.email, c.senhas?.nfse || '', c.senhas?.email || ''
       ]);
       downloadCSV(`clientes_${kind}.csv`, headers, rows);
     }
