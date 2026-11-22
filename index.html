@@ -142,7 +142,7 @@
     const SESSION_KEY = 'CONTECH_ERP_SESSION_V3';
 
     const REGIMES = ['Simples Nacional', 'MEI', 'Lucro Presumido', 'Lucro Real', 'Imune/Isenta', 'Pessoa Física'];
-    const PRODUCOES_OPTS = ['F', 'J', 'FJ'];
+    const PROCURACOES_OPTS = ['F', 'J', 'FJ'];
     const PARCELAMENTOS_OPTS = ['Estadual', 'Municipal', 'Federal', 'MEI', 'PGFN'];
     const OBRIGACOES_KEYS = ['EFD', 'MIT', 'DEFIS', 'DASN'];
     const OBRIGACOES_STATUS = ['Entregue', 'Pendente', 'Em Processamento', 'Dispensado', 'N/A'];
@@ -396,7 +396,7 @@
             dataAbertura: '2018-03-10',
             regimeTributario: 'Simples Nacional',
             capitalSocial: 85000,
-            producoes: ['F', 'J'],
+            procuracoes: ['F', 'J'],
             parcelamentos: ['Federal', 'Estadual'],
             obrigacoes: { EFD: 'Entregue', MIT: 'N/A', DEFIS: 'Entregue', DASN: 'N/A' },
             certificadoVencimento: addDaysISO(18),
@@ -421,7 +421,7 @@
             dataAbertura: '2020-07-22',
             regimeTributario: 'Lucro Presumido',
             capitalSocial: 150000,
-            producoes: ['J'],
+            procuracoes: ['J'],
             parcelamentos: [],
             obrigacoes: { EFD: 'Entregue', MIT: 'Entregue', DEFIS: 'N/A', DASN: 'N/A' },
             certificadoVencimento: addDaysISO(120),
@@ -820,7 +820,7 @@
         data_abertura: c.dataAbertura,
         regime: c.regimeTributario,
         capital_social: c.capitalSocial,
-        producoes: (c.producoes || []).join(','),
+        procuracoes: (c.procuracoes || c.producoes || []).join(','),
         parcelamento: (c.parcelamentos || []).join(','),
         efd: c.obrigacoes?.EFD || '',
         mit: c.obrigacoes?.MIT || '',
@@ -903,7 +903,7 @@
           dataAbertura: String(r.data_abertura ?? r['14. Data Abertura'] ?? r.Data_Abertura ?? ''),
           regimeTributario: String(r.regime ?? r['15. Regime Tributário'] ?? r.Regime_Tributario ?? 'Simples Nacional'),
           capitalSocial: Number(r.capital_social ?? r['16. Capital Social'] ?? r.Capital_Social ?? 0),
-          producoes: String(r.producoes ?? r['17. Produções'] ?? r.Producoes ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+          procuracoes: String(r.procuracoes ?? r.producoes ?? r['17. Procurações'] ?? r['17. Produções'] ?? r.Procuracoes ?? r.Producoes ?? '').split(',').map((s) => s.trim()).filter(Boolean),
           parcelamentos: String(r.parcelamento ?? r['18. Parcelamentos'] ?? r.Parcelamentos ?? '').split(',').map((s) => s.trim()).filter(Boolean),
           obrigacoes: {
             EFD: String(r.efd ?? r['19. EFD'] ?? r.Status_EFD ?? 'N/A'),
@@ -1368,16 +1368,31 @@
     // =========================================================================
     let ClientSearch = '';
     let ClientRegimeFilter = '';
+    let ClientSortField = 'nomeRazao';
+    let ClientSortDir = 'asc';
 
     function renderClientes(container, kind) {
       const isContabil = kind === 'contabeis';
       const list = isContabil ? (AppState.clientesContabeis || []) : (AppState.clientesGerais || []);
-      const filtered = list.filter((c) => {
-        const hay = `${c.id} ${c.idAlterdata} ${c.nomeRazao} ${c.cpf} ${c.cnpj} ${c.email} ${c.celular}`.toLowerCase();
-        const okText = !ClientSearch || hay.includes(ClientSearch.toLowerCase());
-        const okReg = !ClientRegimeFilter || c.regimeTributario === ClientRegimeFilter;
-        return okText && okReg;
-      });
+      const filtered = list
+        .filter((c) => {
+          const hay = `${c.id} ${c.idAlterdata} ${c.nomeRazao} ${c.cpf} ${c.cnpj} ${c.email} ${c.celular}`.toLowerCase();
+          const okText = !ClientSearch || hay.includes(ClientSearch.toLowerCase());
+          const okReg = !ClientRegimeFilter || c.regimeTributario === ClientRegimeFilter;
+          return okText && okReg;
+        })
+        .sort((a, b) => {
+          const mult = ClientSortDir === 'asc' ? 1 : -1;
+          if (ClientSortField === 'capitalSocial') {
+            return (Number(a.capitalSocial || 0) - Number(b.capitalSocial || 0)) * mult;
+          }
+          const getVal = (obj) => {
+            if (ClientSortField === 'procuracoes') return (obj.procuracoes || obj.producoes || []).join(', ');
+            if (ClientSortField === 'parcelamentos') return (obj.parcelamentos || []).join(', ');
+            return String(obj[ClientSortField] ?? '');
+          };
+          return getVal(a).localeCompare(getVal(b), 'pt-BR', { numeric: true, sensitivity: 'base' }) * mult;
+        });
 
       container.innerHTML = `
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1391,12 +1406,30 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-2xl p-4 border shadow-sm flex flex-col sm:flex-row gap-3 text-xs">
-          <input type="text" value="${escapeHTML(ClientSearch)}" oninput="ClientSearch = this.value; renderRoute('${kind}');" placeholder="Pesquisar por Nome/Razão Social, CNPJ, CPF, ID ou Alterdata..." class="flex-1 px-3 py-2 rounded-xl border" />
+        <div class="bg-white rounded-2xl p-4 border shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <input type="text" value="${escapeHTML(ClientSearch)}" oninput="ClientSearch = this.value; renderRoute('${kind}');" placeholder="Pesquisar por Nome/Razão Social, CNPJ, CPF, ID ou Alterdata..." class="lg:col-span-2 px-3 py-2 rounded-xl border" />
           <select onchange="ClientRegimeFilter = this.value; renderRoute('${kind}');" class="px-3 py-2 rounded-xl border bg-white">
             <option value="">Todos os Regimes Tributários</option>
             ${REGIMES.map((r) => `<option value="${r}" ${ClientRegimeFilter === r ? 'selected' : ''}>${r}</option>`).join('')}
           </select>
+          <div class="flex gap-1.5">
+            <select onchange="ClientSortField = this.value; renderRoute('${kind}');" title="Ordenar por campo" class="flex-1 px-3 py-2 rounded-xl border bg-white">
+              <option value="nomeRazao" ${ClientSortField === 'nomeRazao' ? 'selected' : ''}>Ordenar: Nome / Razão Social</option>
+              <option value="id" ${ClientSortField === 'id' ? 'selected' : ''}>Ordenar: ID</option>
+              <option value="idAlterdata" ${ClientSortField === 'idAlterdata' ? 'selected' : ''}>Ordenar: ID Alterdata</option>
+              <option value="cpf" ${ClientSortField === 'cpf' ? 'selected' : ''}>Ordenar: CPF</option>
+              <option value="cnpj" ${ClientSortField === 'cnpj' ? 'selected' : ''}>Ordenar: CNPJ</option>
+              <option value="dataAbertura" ${ClientSortField === 'dataAbertura' ? 'selected' : ''}>Ordenar: Data Abertura</option>
+              <option value="dataNascimento" ${ClientSortField === 'dataNascimento' ? 'selected' : ''}>Ordenar: Data Nascimento</option>
+              <option value="regimeTributario" ${ClientSortField === 'regimeTributario' ? 'selected' : ''}>Ordenar: Regime Tributário</option>
+              <option value="capitalSocial" ${ClientSortField === 'capitalSocial' ? 'selected' : ''}>Ordenar: Capital Social</option>
+              <option value="procuracoes" ${ClientSortField === 'procuracoes' ? 'selected' : ''}>Ordenar: Procurações</option>
+              <option value="certificadoVencimento" ${ClientSortField === 'certificadoVencimento' ? 'selected' : ''}>Ordenar: Venc. Certificado</option>
+            </select>
+            <button type="button" onclick="ClientSortDir = ClientSortDir === 'asc' ? 'desc' : 'asc'; renderRoute('${kind}');" title="Alternar ordem crescente/decrescente" class="px-3 py-2 rounded-xl border bg-slate-50 hover:bg-slate-100 font-extrabold text-navy-900 cursor-pointer">
+              ${ClientSortDir === 'asc' ? 'A→Z' : 'Z→A'}
+            </button>
+          </div>
         </div>
 
         <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
@@ -1419,7 +1452,7 @@
                 <th class="px-3 py-3">14. Data Abertura</th>
                 <th class="px-3 py-3">15. Regime Tributário</th>
                 <th class="px-3 py-3">16. Capital Social</th>
-                <th class="px-3 py-3">17. Produções</th>
+                <th class="px-3 py-3">17. Procurações</th>
                 <th class="px-3 py-3">18. Parcelamentos</th>
                 <th class="px-3 py-3">19. EFD</th>
                 <th class="px-3 py-3">20. MIT</th>
@@ -1451,7 +1484,7 @@
                   <td class="px-3 py-2.5">${formatDateBR(c.dataAbertura)}</td>
                   <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded-full bg-blue-50 text-navy-800 font-semibold">${escapeHTML(c.regimeTributario)}</span></td>
                   <td class="px-3 py-2.5 font-semibold">${formatCurrency(c.capitalSocial)}</td>
-                  <td class="px-3 py-2.5">${escapeHTML((c.producoes || []).join(', '))}</td>
+                  <td class="px-3 py-2.5">${escapeHTML((c.procuracoes || c.producoes || []).join(', '))}</td>
                   <td class="px-3 py-2.5">${escapeHTML((c.parcelamentos || []).join(', ') || '—')}</td>
                   <td class="px-3 py-2.5">${escapeHTML(c.obrigacoes?.EFD || 'N/A')}</td>
                   <td class="px-3 py-2.5">${escapeHTML(c.obrigacoes?.MIT || 'N/A')}</td>
@@ -1495,7 +1528,7 @@
             <div class="p-3 rounded-xl bg-slate-50 border"><strong>12. Insc. Estadual / 13. Insc. Municipal:</strong> ${escapeHTML(c.inscricaoEstadual || '—')} / ${escapeHTML(c.inscricaoMunicipal || '—')}</div>
             <div class="p-3 rounded-xl bg-slate-50 border"><strong>14. Data Abertura / 15. Regime:</strong> ${formatDateBR(c.dataAbertura)} • ${escapeHTML(c.regimeTributario)}</div>
             <div class="p-3 rounded-xl bg-slate-50 border"><strong>16. Capital Social:</strong> ${formatCurrency(c.capitalSocial)}</div>
-            <div class="p-3 rounded-xl bg-slate-50 border"><strong>17. Produções / 18. Parcelamentos:</strong> ${escapeHTML((c.producoes || []).join(', ') || '—')} / ${escapeHTML((c.parcelamentos || []).join(', ') || '—')}</div>
+            <div class="p-3 rounded-xl bg-slate-50 border"><strong>17. Procurações / 18. Parcelamentos:</strong> ${escapeHTML((c.procuracoes || c.producoes || []).join(', ') || '—')} / ${escapeHTML((c.parcelamentos || []).join(', ') || '—')}</div>
             <div class="p-3 rounded-xl bg-slate-50 border"><strong>23. Venc. Certificado:</strong> ${formatDateBR(c.certificadoVencimento)}</div>
             <div class="p-3 rounded-xl bg-slate-50 border sm:col-span-2"><strong>19-22. Obrigações:</strong> EFD: ${escapeHTML(c.obrigacoes?.EFD || 'N/A')} • MIT: ${escapeHTML(c.obrigacoes?.MIT || 'N/A')} • DEFIS: ${escapeHTML(c.obrigacoes?.DEFIS || 'N/A')} • DASN: ${escapeHTML(c.obrigacoes?.DASN || 'N/A')}</div>
             <div class="p-3 rounded-xl bg-amber-50 border border-amber-200"><strong>24. Senha GOV:</strong> <span class="font-mono">${escapeHTML(c.senhas?.gov || '—')}</span> ${copyBtn(c.senhas?.gov, 'Senha GOV')}</div>
@@ -1512,11 +1545,11 @@
       const c = item || {
         idAlterdata: '', nomeRazao: '', cpf: '', rg: '', cnh: '', tituloEleitor: '', dataNascimento: '',
         celular: '', email: '', cnpj: '', inscricaoEstadual: '', inscricaoMunicipal: '', dataAbertura: '',
-        regimeTributario: 'Simples Nacional', capitalSocial: 0, producoes: [], parcelamentos: [],
+        regimeTributario: 'Simples Nacional', capitalSocial: 0, procuracoes: [], parcelamentos: [],
         obrigacoes: { EFD: 'N/A', MIT: 'N/A', DEFIS: 'N/A', DASN: 'N/A' },
         certificadoVencimento: '', senhas: { gov: '', nfse: '', email: '' }
       };
-
+      const selectedProcs = c.procuracoes || c.producoes || [];
       openModal(
         item ? `Editar Cliente (${c.id})` : 'Novo Cadastro de Cliente',
         `
@@ -1538,8 +1571,8 @@
             <div><label class="font-semibold">16. Capital Social (R$)</label><input type="number" step="0.01" name="capitalSocial" value="${Number(c.capitalSocial || 0)}" class="w-full mt-1 px-3 py-2 rounded-xl border" /></div>
 
             <div class="sm:col-span-3 flex flex-wrap gap-4 p-2.5 rounded-xl bg-slate-50 border">
-              <span class="font-bold">17. Produções:</span>
-              ${PRODUCOES_OPTS.map((p) => `<label class="inline-flex items-center gap-1"><input type="checkbox" name="producoes" value="${p}" ${(c.producoes || []).includes(p) ? 'checked' : ''} /> ${p}</label>`).join('')}
+              <span class="font-bold">17. Procurações:</span>
+              ${PROCURACOES_OPTS.map((p) => `<label class="inline-flex items-center gap-1"><input type="checkbox" name="procuracoes" value="${p}" ${selectedProcs.includes(p) ? 'checked' : ''} /> ${p}</label>`).join('')}
               <span class="font-bold ml-4">18. Parcelamentos:</span>
               ${PARCELAMENTOS_OPTS.map((p) => `<label class="inline-flex items-center gap-1"><input type="checkbox" name="parcelamentos" value="${p}" ${(c.parcelamentos || []).includes(p) ? 'checked' : ''} /> ${p}</label>`).join('')}
             </div>
@@ -1583,7 +1616,7 @@
           dataAbertura: fd.get('dataAbertura'),
           regimeTributario: fd.get('regimeTributario'),
           capitalSocial: Number(fd.get('capitalSocial') || 0),
-          producoes: fd.getAll('producoes'),
+          procuracoes: fd.getAll('procuracoes'),
           parcelamentos: fd.getAll('parcelamentos'),
           obrigacoes: {
             EFD: fd.get('obr_EFD'),
@@ -1627,13 +1660,13 @@
         '01. ID', '02. ID Alterdata', '03. Nome / Razão Social', '04. CPF', '05. RG', '06. CNH',
         '07. Título Eleitor', '08. Nascimento', '09. Celular', '10. E-mail', '11. CNPJ',
         '12. Insc. Estadual', '13. Insc. Municipal', '14. Data Abertura', '15. Regime Tributário',
-        '16. Capital Social', '17. Produções', '18. Parcelamentos', '19. EFD', '20. MIT',
+        '16. Capital Social', '17. Procurações', '18. Parcelamentos', '19. EFD', '20. MIT',
         '21. DEFIS', '22. DASN', '23. Venc. Certificado', '24. Senha GOV', '25. Senha NFSe', '26. Senha E-mail'
       ];
       const rows = list.map((c) => [
         c.id, c.idAlterdata, c.nomeRazao, c.cpf, c.rg, c.cnh, c.tituloEleitor, c.dataNascimento,
         c.celular, c.email, c.cnpj, c.inscricaoEstadual, c.inscricaoMunicipal, c.dataAbertura,
-        c.regimeTributario, c.capitalSocial, (c.producoes || []).join(','), (c.parcelamentos || []).join(','),
+        c.regimeTributario, c.capitalSocial, (c.procuracoes || c.producoes || []).join(','), (c.parcelamentos || []).join(','),
         c.obrigacoes?.EFD, c.obrigacoes?.MIT, c.obrigacoes?.DEFIS, c.obrigacoes?.DASN,
         c.certificadoVencimento, c.senhas?.gov || '', c.senhas?.nfse || '', c.senhas?.email || ''
       ]);
