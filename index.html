@@ -136,163 +136,149 @@
 
   <script>
     // =========================================================================
-    // CONSTANTES, IDENTIDADE VISUAL E ESTADO GLOBAL
+    // 1. CONSTANTES, CHAVES DE ARMAZENAMENTO E CATÁLOGOS DO SISTEMA
     // =========================================================================
-    const STORAGE_KEY = 'CONTECH_ERP_STATE_V3';
-    const SESSION_KEY = 'CONTECH_ERP_SESSION_V3';
+    const STORAGE_KEY = 'contech_erp_state_v3';
+    const SESSION_KEY = 'contech_erp_session_v3';
 
-    const REGIMES = ['Simples Nacional', 'MEI', 'Lucro Presumido', 'Lucro Real', 'Imune/Isenta', 'Pessoa Física'];
-    const PROCURACOES_OPTS = ['F', 'J', 'FJ'];
-    const PARCELAMENTOS_OPTS = ['Estadual', 'Municipal', 'Federal', 'MEI', 'PGFN'];
+    const REGIMES = [
+      'Simples Nacional',
+      'Lucro Presumido',
+      'Lucro Real',
+      'MEI',
+      'Pessoa Física / Autônomo',
+      'Isento / Imune'
+    ];
+
+    const PROCURACOES_OPTS = ['e-CAC / RFB', 'CEF / FGTS', 'Prefeitura / NFSe', 'SEFAZ Estadual'];
+    const PARCELAMENTOS_OPTS = ['Simples Nacional', 'PGFN / Dívida Ativa', 'INSS / Previdenciário', 'Estadual / Municipal'];
     const OBRIGACOES_KEYS = ['EFD', 'MIT', 'DEFIS', 'DASN'];
-    const OBRIGACOES_STATUS = ['Entregue', 'Pendente', 'Em Processamento', 'Dispensado', 'N/A'];
-    const DESPESA_CATEGORIAS = ['Folha / Pró-labore', 'Sistemas & Software', 'Energia / Água / Internet', 'Impostos & Taxas', 'Aluguel & Estrutura', 'Material de Escritório', 'Outros'];
-    const TAREFA_AREAS = ['Contábil / Fiscal', 'Certificação Digital', 'TI / Suporte', 'Licitações', 'Administrativo'];
-    const PMI_STATUSES = ['Pendente', 'Empenhado', 'Aguardando NF', 'Pago'];
+    const OBRIGACOES_STATUS = ['N/A', 'Pendente', 'Transmitida', 'Dispensada'];
+    const DESPESA_CATEGORIAS = ['Folha & Encargos', 'Sistemas & TI', 'Aluguel & Condomínio', 'Energia / Água / Internet', 'Impostos & Taxas', 'Material de Escritório', 'Outros'];
+    const TAREFA_AREAS = ['Fiscal & Tributário', 'Departamento Pessoal', 'Contábil', 'Certificação Digital', 'Suporte TI', 'Licitações', 'Administrativo'];
+    const PMI_STATUSES = ['Pendente', 'Empenhado', 'Liquidado', 'Pago'];
     const OS_STATUSES = ['Aberta', 'Em Execução', 'Aguardando Peça / Aprovação', 'Concluída', 'Entregue / Faturada'];
+
     const ESTADOS_BR = [
-      { uf: 'AC', nome: 'Acre (AC)' },
-      { uf: 'AL', nome: 'Alagoas (AL)' },
-      { uf: 'AP', nome: 'Amapá (AP)' },
-      { uf: 'AM', nome: 'Amazonas (AM)' },
-      { uf: 'BA', nome: 'Bahia (BA)' },
-      { uf: 'CE', nome: 'Ceará (CE)' },
-      { uf: 'DF', nome: 'Distrito Federal (DF)' },
-      { uf: 'ES', nome: 'Espírito Santo (ES)' },
-      { uf: 'GO', nome: 'Goiás (GO)' },
-      { uf: 'MA', nome: 'Maranhão (MA)' },
-      { uf: 'MT', nome: 'Mato Grosso (MT)' },
-      { uf: 'MS', nome: 'Mato Grosso do Sul (MS)' },
-      { uf: 'MG', nome: 'Minas Gerais (MG)' },
-      { uf: 'PA', nome: 'Pará (PA)' },
-      { uf: 'PB', nome: 'Paraíba (PB)' },
-      { uf: 'PR', nome: 'Paraná (PR)' },
-      { uf: 'PE', nome: 'Pernambuco (PE)' },
-      { uf: 'PI', nome: 'Piauí (PI)' },
-      { uf: 'RJ', nome: 'Rio de Janeiro (RJ)' },
-      { uf: 'RN', nome: 'Rio Grande do Norte (RN)' },
-      { uf: 'RS', nome: 'Rio Grande do Sul (RS)' },
-      { uf: 'RO', nome: 'Rondônia (RO)' },
-      { uf: 'RR', nome: 'Roraima (RR)' },
-      { uf: 'SC', nome: 'Santa Catarina (SC)' },
-      { uf: 'SP', nome: 'São Paulo (SP)' },
-      { uf: 'SE', nome: 'Sergipe (SE)' },
-      { uf: 'TO', nome: 'Tocantins (TO)' }
+      { uf: 'AC', nome: 'Acre (AC)' }, { uf: 'AL', nome: 'Alagoas (AL)' }, { uf: 'AP', nome: 'Amapá (AP)' },
+      { uf: 'AM', nome: 'Amazonas (AM)' }, { uf: 'BA', nome: 'Bahia (BA)' }, { uf: 'CE', nome: 'Ceará (CE)' },
+      { uf: 'DF', nome: 'Distrito Federal (DF)' }, { uf: 'ES', nome: 'Espírito Santo (ES)' }, { uf: 'GO', nome: 'Goiás (GO)' },
+      { uf: 'MA', nome: 'Maranhão (MA)' }, { uf: 'MT', nome: 'Mato Grosso (MT)' }, { uf: 'MS', nome: 'Mato Grosso do Sul (MS)' },
+      { uf: 'MG', nome: 'Minas Gerais (MG)' }, { uf: 'PA', nome: 'Pará (PA)' }, { uf: 'PB', nome: 'Paraíba (PB)' },
+      { uf: 'PR', nome: 'Paraná (PR)' }, { uf: 'PE', nome: 'Pernambuco (PE)' }, { uf: 'PI', nome: 'Piauí (PI)' },
+      { uf: 'RJ', nome: 'Rio de Janeiro (RJ)' }, { uf: 'RN', nome: 'Rio Grande do Norte (RN)' }, { uf: 'RS', nome: 'Rio Grande do Sul (RS)' },
+      { uf: 'RO', nome: 'Rondônia (RO)' }, { uf: 'RR', nome: 'Roraima (RR)' }, { uf: 'SC', nome: 'Santa Catarina (SC)' },
+      { uf: 'SP', nome: 'São Paulo (SP)' }, { uf: 'SE', nome: 'Sergipe (SE)' }, { uf: 'TO', nome: 'Tocantins (TO)' }
     ];
 
     const TENDER_PORTALS_20 = [
-      { name: 'Portal Nacional de Contratações Públicas (PNCP)', url: 'https://pncp.gov.br/app/editais', apiMode: 'API Direta (Propostas + Publicações)' },
-      { name: 'Compras.gov.br (ComprasNet)', url: 'https://www.gov.br/compras/pt-br', apiMode: 'API Direta + PNCP' },
-      { name: 'Licitações-e (Banco do Brasil)', url: 'https://licitacoes-e2.bb.com.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'Portal de Compras da Caixa', url: 'https://www.licitacoes.caixa.gov.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'Portal de Compras Públicas', url: 'https://www.portaldecompraspublicas.com.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'BLL Compras', url: 'https://bll.org.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'Licitanet', url: 'https://licitanet.com.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'BNC (Bolsa Nacional de Compras)', url: 'https://bnc.org.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'Licita+Brasil', url: 'https://licitamaisbrasil.com.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'ComprasBR', url: 'https://comprasbr.com.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'BBMNET', url: 'https://novobbmnet.com.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'BEC/SP (Bolsa Eletrônica de Compras de São Paulo)', url: 'https://www.bec.sp.gov.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'Portal de Compras MG', url: 'https://www.compras.mg.gov.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'Compras RS', url: 'https://www.compras.rs.gov.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'Compras RJ', url: 'https://www.compras.rj.gov.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'SEAP-PR', url: 'https://www.comprasparana.pr.gov.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'SISLOG (Goiás)', url: 'https://sislog.go.gov.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'Compras MT', url: 'https://aquisicoes.seplag.mt.gov.br', apiMode: 'Integrado via PNCP / GAS' },
-      { name: 'Portal de Compras PB (Paraíba)', url: 'https://centraldecompras.pb.gov.br', apiMode: 'API Estadual PB + PNCP' },
-      { name: 'TCE PB', url: 'https://tramita.tce.pb.gov.br', apiMode: 'API Dados Abertos TCE-PB' }
+      { name: 'Portal Nacional de Contratações Públicas (PNCP)', url: 'https://pncp.gov.br/app/editais', apiMode: 'API Pública PNCP Direta' },
+      { name: 'Compras.gov.br (ComprasNet)', url: 'https://www.gov.br/compras/pt-br', apiMode: 'API Dados Abertos + PNCP' },
+      { name: 'Licitações-e (Banco do Brasil)', url: 'https://licitacoes-e2.bb.com.br', apiMode: 'Integrado via PNCP' },
+      { name: 'Portal de Compras da Caixa', url: 'https://www.licitacoes.caixa.gov.br', apiMode: 'Integrado via PNCP' },
+      { name: 'Portal de Compras Públicas', url: 'https://www.portaldecompraspublicas.com.br', apiMode: 'Integrado via PNCP' },
+      { name: 'BLL Compras', url: 'https://bll.org.br', apiMode: 'Integrado via PNCP' },
+      { name: 'Licitanet', url: 'https://licitanet.com.br', apiMode: 'Integrado via PNCP' },
+      { name: 'BNC (Bolsa Nacional de Compras)', url: 'https://bnc.org.br', apiMode: 'Integrado via PNCP' },
+      { name: 'Licita+Brasil', url: 'https://licitamaisbrasil.com.br', apiMode: 'Integrado via PNCP' },
+      { name: 'ComprasBR', url: 'https://comprasbr.com.br', apiMode: 'Integrado via PNCP' },
+      { name: 'BBMNET', url: 'https://novobbmnet.com.br', apiMode: 'Integrado via PNCP' },
+      { name: 'BEC/SP (Bolsa Eletrônica de Compras de São Paulo)', url: 'https://www.bec.sp.gov.br', apiMode: 'Integrado via PNCP' },
+      { name: 'Portal de Compras MG', url: 'https://www.compras.mg.gov.br', apiMode: 'Integrado via PNCP' },
+      { name: 'Compras RS', url: 'https://www.compras.rs.gov.br', apiMode: 'Integrado via PNCP' },
+      { name: 'Compras RJ', url: 'https://www.compras.rj.gov.br', apiMode: 'Integrado via PNCP' },
+      { name: 'SEAP-PR', url: 'https://www.comprasparana.pr.gov.br', apiMode: 'Integrado via PNCP' },
+      { name: 'SISLOG (Goiás)', url: 'https://sislog.go.gov.br', apiMode: 'Integrado via PNCP' },
+      { name: 'Compras MT', url: 'https://aquisicoes.seplag.mt.gov.br', apiMode: 'Integrado via PNCP' },
+      { name: 'Portal de Compras PB (Paraíba)', url: 'https://centraldecompras.pb.gov.br', apiMode: 'API Central PB + PNCP' },
+      { name: 'TCE PB', url: 'https://tramita.tce.pb.gov.br', apiMode: 'Mural Tramita TCE-PB' }
     ];
 
     const REPORT_TYPES = [
-      { id: 'fluxo', label: '01. Fluxo Financeiro Consolidado' },
-      { id: 'receber', label: '02. Contas a Receber' },
-      { id: 'pagar', label: '03. Contas a Pagar' },
-      { id: 'contabeis', label: '04. Clientes Contábeis' },
-      { id: 'gerais', label: '05. Clientes Gerais & Suporte TI' },
-      { id: 'certificados', label: '06. Certificados Digitais' },
-      { id: 'pmi', label: '07. Serviços PMI — Prefeitura de Itaporanga' },
-      { id: 'os', label: '08. Ordens de Serviço (OS)' },
-      { id: 'tarefas', label: '09. Tarefas & Prazos' },
-      { id: 'estudo', label: '10. Estudo & Capacitação' }
+      { id: 'fluxo', label: 'Fluxo de Caixa Consolidado (Entradas & Saídas)' },
+      { id: 'receber', label: 'Contas a Receber' },
+      { id: 'pagar', label: 'Contas a Pagar' },
+      { id: 'contabeis', label: 'Clientes Contábeis' },
+      { id: 'gerais', label: 'Clientes Gerais & Suporte TI' },
+      { id: 'certificados', label: 'Vencimento de Certificados Digitais' },
+      { id: 'pmi', label: 'Serviços PMI — Prefeitura de Itaporanga' },
+      { id: 'os', label: 'Ordens de Serviço (OS)' },
+      { id: 'tarefas', label: 'Tarefas & Prazos Operacionais' },
+      { id: 'estudo', label: 'Estudo & Capacitação' }
     ];
 
     const NAV_ITEMS = [
-      { id: 'dashboard', label: 'Painel Executivo', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>' },
-      { id: 'contabeis', label: 'Clientes Contábeis', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>' },
-      { id: 'gerais', label: 'Clientes Gerais & TI', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
-      { id: 'certificados', label: 'Certificados Digitais', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>' },
-      { id: 'pagar', label: 'Contas a Pagar', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>' },
-      { id: 'receber', label: 'Contas a Receber', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>' },
-      { id: 'tarefas', label: 'Tarefas & Prazos', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' },
-      { id: 'licitacoes', label: 'Licitações (20 Portais)', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
-      { id: 'pmi', label: 'Serviços PMI', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>' },
-      { id: 'os', label: 'Ordens de Serviço (OS)', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>' },
-      { id: 'estudo', label: 'Estudo & Cursos', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>' },
-      { id: 'relatorios', label: 'Central de Relatórios', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
-      { id: 'administracao', label: 'Administração & Sync', icon: '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' }
+      { id: 'dashboard', label: 'Painel Executivo', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>' },
+      { id: 'contabeis', label: 'Clientes Contábeis', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>' },
+      { id: 'gerais', label: 'Clientes Gerais & TI', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' },
+      { id: 'certificados', label: 'Certificados Digitais', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>' },
+      { id: 'pagar', label: 'Contas a Pagar', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' },
+      { id: 'receber', label: 'Contas a Receber', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' },
+      { id: 'tarefas', label: 'Tarefas & Prazos', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>' },
+      { id: 'licitacoes', label: 'Licitações (20 Portais)', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>' },
+      { id: 'pmi', label: 'Serviços PMI', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>' },
+      { id: 'os', label: 'Ordens de Serviço', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>' },
+      { id: 'estudo', label: 'Estudo & Cursos', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>' },
+      { id: 'relatorios', label: 'Central de Relatórios', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>' },
+      { id: 'administracao', label: 'Administração & Sync', icon: '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' }
     ];
 
+    // =========================================================================
+    // 2. FUNÇÕES AUXILIARES, LOGO, TOAST, MODAL E ESTADO INICIAL
+    // =========================================================================
     function getContechLogoSVG(compact = false) {
-      if (compact) {
-        return `
-          <div class="flex items-center gap-2 select-none">
-            <svg class="w-8 h-8 shrink-0" viewBox="0 0 120 120" fill="none">
-              <defs>
-                <linearGradient id="cBlueSm" x1="15" y1="15" x2="95" y2="95" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#0B4EEB"/><stop offset="100%" stop-color="#06217A"/>
-                </linearGradient>
-                <linearGradient id="cOrangeSm" x1="35" y1="75" x2="95" y2="95" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#FF9900"/><stop offset="100%" stop-color="#FF3D00"/>
-                </linearGradient>
-              </defs>
-              <path d="M88 32C77 18 57 14 40 22C20 31 12 56 21 77C29 96 51 106 72 99C82 95 90 88 94 79C88 83 80 84 72 82C56 78 46 62 50 46C54 31 69 22 84 26L88 32Z" fill="url(#cBlueSm)"/>
-              <path d="M36 86C47 101 68 106 86 96C94 92 98 83 93 76C88 70 79 71 73 77C64 85 49 85 36 86Z" fill="url(#cOrangeSm)"/>
-              <path d="M33 34C48 25 66 25 80 31" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
-              <circle cx="83" cy="31" r="9" fill="#FFFFFF"/><circle cx="83" cy="31" r="4.5" fill="#FF4D00"/>
-            </svg>
-            <div class="leading-none">
-              <div class="text-base font-black tracking-tight"><span class="text-[#0B4EEB]">CON</span><span class="text-[#FF3D00]">TECH</span></div>
-              <div class="text-[7px] font-extrabold text-[#0B4EEB] tracking-wider uppercase mt-0.5">Contabilidade &amp; Informática</div>
-            </div>
-          </div>
-        `;
-      }
+      const uid = compact ? 'ct-cmp' : 'ct-full';
+      const maxWidthClass = compact ? 'w-40 max-w-full' : 'w-64 max-w-full mx-auto';
       return `
-        <div class="flex flex-col items-center select-none">
-          <svg class="w-24 h-24 mb-2" viewBox="0 0 120 120" fill="none">
+        <div class="${maxWidthClass} select-none" aria-label="CONTECH Contabilidade & Informática">
+          <svg viewBox="0 0 680 185" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto block">
             <defs>
-              <linearGradient id="cBlueLg" x1="15" y1="15" x2="95" y2="95" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#0B4EEB"/><stop offset="100%" stop-color="#06217A"/>
+              <linearGradient id="${uid}-blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0b57f5" />
+                <stop offset="55%" stop-color="#043ad6" />
+                <stop offset="100%" stop-color="#002299" />
               </linearGradient>
-              <linearGradient id="cOrangeLg" x1="35" y1="75" x2="95" y2="95" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#FF9900"/><stop offset="100%" stop-color="#FF3D00"/>
+              <linearGradient id="${uid}-orange-grad" x1="0%" y1="50%" x2="100%" y2="50%">
+                <stop offset="0%" stop-color="#ffaa00" />
+                <stop offset="55%" stop-color="#ff5500" />
+                <stop offset="100%" stop-color="#ff2e00" />
               </linearGradient>
             </defs>
-            <path d="M88 32C77 18 57 14 40 22C20 31 12 56 21 77C29 96 51 106 72 99C82 95 90 88 94 79C88 83 80 84 72 82C56 78 46 62 50 46C54 31 69 22 84 26L88 32Z" fill="url(#cBlueLg)"/>
-            <path d="M36 86C47 101 68 106 86 96C94 92 98 83 93 76C88 70 79 71 73 77C64 85 49 85 36 86Z" fill="url(#cOrangeLg)"/>
-            <path d="M33 34C48 25 66 25 80 31" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
-            <circle cx="83" cy="31" r="9" fill="#FFFFFF"/><circle cx="83" cy="31" r="4.5" fill="#FF4D00"/>
+
+            <!-- Emblema C com traço de circuito superior e curva inferior laranja -->
+            <g transform="translate(8, 12)">
+              <!-- Corpo principal do C em azul -->
+              <path d="M 142 42 C 134 16, 106 4, 74 6 C 32 8, 2 40, 2 82 C 2 126, 34 158, 78 158 C 110 158, 136 144, 146 122 C 151 111, 142 100, 130 104 C 118 108, 108 124, 80 124 C 52 124, 34 106, 34 82 C 34 56, 54 40, 82 40 C 102 40, 114 52, 128 52 C 138 52, 145 48, 142 42 Z" fill="url(#${uid}-blue-grad)" />
+              <!-- Onda laranja na base interna do C -->
+              <path d="M 40 112 C 54 138, 86 156, 124 148 C 142 144, 152 130, 146 116 C 141 105, 126 105, 116 114 C 102 126, 72 128, 40 112 Z" fill="url(#${uid}-orange-grad)" />
+              <!-- Trilha branca interna no topo do C -->
+              <path d="M 10 56 C 24 34, 52 24, 96 28" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" />
+              <!-- Círculo branco + núcleo laranja superior direito -->
+              <circle cx="110" cy="30" r="13.5" fill="#ffffff" />
+              <circle cx="110" cy="30" r="6.8" fill="#ff4500" />
+            </g>
+
+            <!-- Logotipo CON (Azul Royal) -->
+            <text x="174" y="114" font-family="'Arial Black', 'Montserrat', 'Segoe UI', sans-serif" font-weight="900" font-size="94" letter-spacing="-3" fill="#043ad6">CON</text>
+
+            <!-- Logotipo TECH (Laranja-Avermelhado vibrante) -->
+            <text x="392" y="114" font-family="'Arial Black', 'Montserrat', 'Segoe UI', sans-serif" font-weight="900" font-size="94" letter-spacing="-3" fill="#ff3300">TECH</text>
+
+            <!-- Detalhe de circuito branco + nó circular no lado direito do H -->
+            <path d="M 594 114 Q 612 84 646 84" fill="none" stroke="#ffffff" stroke-width="5.5" stroke-linecap="round" />
+            <circle cx="654" cy="84" r="13.5" fill="#ffffff" />
+            <circle cx="654" cy="84" r="7" fill="#ff3300" />
+
+            <!-- Subtítulo CONTABILIDADE & INFORMÁTICA -->
+            <text x="180" y="148" font-family="'Segoe UI', Arial, Helvetica, sans-serif" font-weight="800" font-size="25.5" letter-spacing="0.6" fill="#043ad6">CONTABILIDADE &amp; INFORMÁTICA</text>
+
+            <!-- Linha horizontal laranja com terminal circular -->
+            <line x1="178" y1="158" x2="636" y2="158" stroke="#ff3300" stroke-width="4.5" stroke-linecap="round" />
+            <circle cx="648" cy="158" r="11" fill="#ff3300" />
+            <circle cx="648" cy="158" r="4.2" fill="#ffffff" />
           </svg>
-          <div class="text-3xl font-black tracking-tight leading-none"><span class="text-[#0B4EEB]">CON</span><span class="text-[#FF3D00]">TECH</span></div>
-          <div class="text-[10px] font-extrabold text-[#0B4EEB] tracking-widest uppercase mt-1 pb-1 border-b-2 border-[#FF3D00]">CONTABILIDADE &amp; INFORMÁTICA</div>
         </div>
       `;
-    }
-
-    function generateId(prefix = 'ID') {
-      return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
-    }
-
-    function addDaysISO(days) {
-      const d = new Date();
-      d.setDate(d.getDate() + days);
-      return d.toISOString().slice(0, 10);
-    }
-
-    function addMonthsISO(isoDate, monthsToAdd) {
-      const [y, m, d] = (isoDate || new Date().toISOString().slice(0, 10)).split('-').map(Number);
-      const dt = new Date(y, m - 1 + monthsToAdd, d);
-      return dt.toISOString().slice(0, 10);
     }
 
     function escapeHTML(str) {
@@ -304,40 +290,79 @@
         .replace(/'/g, '&#39;');
     }
 
+    function generateId(prefix = 'ID') {
+      return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+    }
+
     function formatCurrency(val) {
       return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
-    function formatDateBR(iso) {
-      if (!iso) return '—';
-      const parts = String(iso).slice(0, 10).split('-');
-      return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : iso;
+    function formatDateBR(isoStr) {
+      if (!isoStr) return '—';
+      const clean = String(isoStr).trim().slice(0, 10);
+      const parts = clean.split('-');
+      if (parts.length !== 3) return clean;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    function daysUntil(iso) {
-      if (!iso) return null;
-      const target = new Date(`${String(iso).slice(0, 10)}T00:00:00`);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+    function addDaysISO(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + Number(days || 0));
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function addMonthsISO(baseIso, monthsToAdd) {
+      const parts = String(baseIso || addDaysISO(0)).slice(0, 10).split('-').map(Number);
+      const d = new Date(parts[0], (parts[1] || 1) - 1 + Number(monthsToAdd || 0), parts[2] || 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function daysUntil(isoStr) {
+      if (!isoStr) return 9999;
+      const clean = String(isoStr).trim().slice(0, 10);
+      const [y, m, d] = clean.split('-').map(Number);
+      if (!y || !m || !d) return 9999;
+      const target = new Date(y, m - 1, d);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       return Math.round((target - today) / 86400000);
     }
 
-    function showToast(msg, type = 'success') {
+    function downloadCSV(filename, headers, rows) {
+      const escapeCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const lines = [headers.map(escapeCell).join(';'), ...rows.map((r) => r.map(escapeCell).join(';'))];
+      const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function showToast(message, type = 'success') {
       const box = document.getElementById('toast-container');
       if (!box) return;
       const el = document.createElement('div');
       const bg = type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-600' : 'bg-navy-900';
-      el.className = `${bg} text-white px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 pointer-events-auto`;
-      el.textContent = msg;
+      el.className = `${bg} text-white text-xs font-bold px-4 py-3 rounded-xl shadow-lg pointer-events-auto transition`;
+      el.textContent = message;
       box.appendChild(el);
-      setTimeout(() => el.remove(), 3500);
+      setTimeout(() => el.remove(), 4000);
     }
 
     function openModal(title, bodyHTML, footerHTML = '') {
       document.getElementById('modal-title').textContent = title;
       document.getElementById('modal-body').innerHTML = bodyHTML;
-      document.getElementById('modal-footer').innerHTML =
-        footerHTML || `<button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-navy-900 text-white text-xs font-bold cursor-pointer">Fechar</button>`;
+      document.getElementById('modal-footer').innerHTML = footerHTML ||
+        `<button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-navy-900 text-white text-xs font-bold cursor-pointer">Fechar</button>`;
       document.getElementById('modal-backdrop').classList.remove('hidden');
     }
 
@@ -348,11 +373,9 @@
     function askConfirm(title, message, onConfirm) {
       openModal(
         title,
-        `<p class="text-xs sm:text-sm text-slate-700">${escapeHTML(message)}</p>`,
-        `
-          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-slate-800 text-xs font-bold cursor-pointer">Cancelar</button>
-          <button type="button" id="confirm-yes-btn" class="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold cursor-pointer">Confirmar</button>
-        `
+        `<p class="text-xs text-slate-700 leading-relaxed">${escapeHTML(message)}</p>`,
+        `<button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold cursor-pointer">Cancelar</button>
+         <button type="button" id="confirm-yes-btn" class="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold cursor-pointer">Confirmar</button>`
       );
       document.getElementById('confirm-yes-btn').onclick = () => {
         closeModal();
@@ -360,101 +383,85 @@
       };
     }
 
-    function downloadCSV(filename, headers, rows) {
-      const csv = [headers, ...rows]
-        .map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';'))
-        .join('\n');
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
     function createInitialState() {
       return {
         users: [
-          { id: 'USR-01', name: 'Administrador CONTECH', username: 'admin', password: 'contech2026', role: 'Administrador' }
+          { id: 'USR-001', username: 'admin', name: 'Administrador CONTECH', password: '123', role: 'Administrador' }
         ],
         clientesContabeis: [
           {
             id: 'CC-001',
-            idAlterdata: 'ALT-101',
+            idAlterdata: '101',
             nomeRazao: 'Comercial Vale do Piancó Ltda',
-            cpf: '111.222.333-44',
-            rg: '3.456.789 SSP/PB',
-            cnh: '04589632145',
-            tituloEleitor: '0456 7890 1234',
-            dataNascimento: '1984-05-14',
+            cpf: '123.456.789-00',
+            rg: '3.123.456 SSP/PB',
+            cnh: '04589123456',
+            tituloEleitor: '0345 6789 1234',
+            dataNascimento: '1985-04-12',
             celular: '(83) 99911-2233',
-            email: 'fiscal@valedopianco.com.br',
+            email: 'contato@valedopianco.com.br',
             cnpj: '12.345.678/0001-90',
             inscricaoEstadual: '16.123.456-7',
-            inscricaoMunicipal: '4589-2',
-            dataAbertura: '2018-03-10',
+            inscricaoMunicipal: '45890',
+            dataAbertura: '2018-03-15',
             regimeTributario: 'Simples Nacional',
-            capitalSocial: 85000,
-            procuracoes: ['F', 'J'],
-            parcelamentos: ['Federal', 'Estadual'],
-            obrigacoes: { EFD: 'Entregue', MIT: 'N/A', DEFIS: 'Entregue', DASN: 'N/A' },
+            capitalSocial: 80000,
+            procuracoes: ['e-CAC / RFB', 'CEF / FGTS'],
+            parcelamentos: ['Simples Nacional'],
+            obrigacoes: { EFD: 'Dispensada', MIT: 'N/A', DEFIS: 'Transmitida', DASN: 'N/A' },
             certificadoVencimento: addDaysISO(18),
-            senhas: { gov: 'Gov@2026#VP', nfse: 'Nfse#8890', email: 'Mail@VP2026' }
+            senhas: { gov: 'Gov@2026', nfse: 'Nfse#101', email: 'Mail*2026' }
           }
         ],
         clientesGerais: [
           {
             id: 'CG-001',
-            idAlterdata: 'TI-201',
-            nomeRazao: 'Clínica Médica Itaporanga S/S',
-            cpf: '222.333.444-55',
+            idAlterdata: '201',
+            nomeRazao: 'Clínica Médica São José',
+            cpf: '987.654.321-11',
             rg: '2.987.654 SSP/PB',
             cnh: '',
             tituloEleitor: '',
-            dataNascimento: '1979-11-02',
-            celular: '(83) 99877-6655',
-            email: 'ti@clinicaitaporanga.com.br',
-            cnpj: '23.456.789/0001-10',
+            dataNascimento: '1979-09-20',
+            celular: '(83) 98844-5566',
+            email: 'clinica@saojosepb.com.br',
+            cnpj: '23.456.789/0001-12',
             inscricaoEstadual: 'Isento',
-            inscricaoMunicipal: '7845-1',
-            dataAbertura: '2020-07-22',
+            inscricaoMunicipal: '78120',
+            dataAbertura: '2020-07-01',
             regimeTributario: 'Lucro Presumido',
             capitalSocial: 150000,
-            procuracoes: ['J'],
+            procuracoes: ['e-CAC / RFB', 'Prefeitura / NFSe'],
             parcelamentos: [],
-            obrigacoes: { EFD: 'Entregue', MIT: 'Entregue', DEFIS: 'N/A', DASN: 'N/A' },
+            obrigacoes: { EFD: 'Transmitida', MIT: 'Pendente', DEFIS: 'N/A', DASN: 'N/A' },
             certificadoVencimento: addDaysISO(120),
-            senhas: { gov: 'ClinicaGov@26', nfse: 'ClinicaNfse@26', email: '' }
+            senhas: { gov: 'Cli@9090', nfse: 'Nota#781', email: 'Clinica@26' }
           }
         ],
         contasPagar: [
-          { id: 'PAG-01', descricao: 'Licença Sistema Contábil Alterdata', categoria: 'Sistemas & Software', parcela: '1/1', vencimento: addDaysISO(5), valor: 680, status: 'Pendente', dataPagamento: '' },
-          { id: 'PAG-02', descricao: 'Energia Elétrica Escritório', categoria: 'Energia / Água / Internet', parcela: '1/1', vencimento: addDaysISO(-5), valor: 340, status: 'Pago', dataPagamento: addDaysISO(-5) }
+          { id: 'PAG-001', descricao: 'Sistema Contábil Alterdata', categoria: 'Sistemas & TI', parcela: '1/1', vencimento: addDaysISO(5), valor: 680.00, status: 'Pendente', dataPagamento: '' }
         ],
         contasReceber: [
-          { id: 'REC-01', cliente: 'Comercial Vale do Piancó Ltda', descricao: 'Honorários Contábeis Mensais', parcela: '1/1', vencimento: addDaysISO(4), valor: 1200, status: 'Pendente', dataRecebimento: '' },
-          { id: 'REC-02', cliente: 'Clínica Médica Itaporanga S/S', descricao: 'Contrato Suporte TI & Backup', parcela: '1/1', vencimento: addDaysISO(-3), valor: 950, status: 'Recebido', dataRecebimento: addDaysISO(-3) }
+          { id: 'REC-001', cliente: 'Comercial Vale do Piancó Ltda', descricao: 'Honorários Contábeis Mensais', parcela: '1/1', vencimento: addDaysISO(4), valor: 950.00, status: 'Pendente', dataRecebimento: '' }
         ],
         tarefas: [
-          { id: 'TAR-01', titulo: 'Transmitir EFD-ICMS/IPI e PGDAS-D', area: 'Contábil / Fiscal', prioridade: 'Alta', prazo: addDaysISO(3), status: 'Em andamento', responsavel: 'Setor Fiscal' },
-          { id: 'TAR-02', titulo: 'Renovar Certificado Digital A1 — Comercial Vale do Piancó', area: 'Certificação Digital', prioridade: 'Alta', prazo: addDaysISO(7), status: 'Pendente', responsavel: 'Atendimento' }
+          { id: 'TAR-001', titulo: 'Transmitir PGDAS-D Mensal Clientes Simples', area: 'Fiscal & Tributário', prioridade: 'Alta', prazo: addDaysISO(2), status: 'Pendente' }
         ],
         licitacoes: [],
         cursos: [
-          { id: 'CUR-01', nome: 'Atualização Reforma Tributária & EFD', instituicao: 'CRC-PB', cargaHoraria: '20h', status: 'Em andamento' }
+          { id: 'CUR-001', nome: 'Reforma Tributária & SPED na Prática', instituicao: 'CRC / CFC', cargaHoraria: '40h', status: 'Em andamento' }
         ],
         disciplinas: [
-          { id: 'DIS-01', cursoId: 'CUR-01', nome: 'Legislação IBS / CBS' }
+          { id: 'DIS-001', cursoId: 'CUR-001', nome: 'CBS, IBS e Transição Tributária' }
         ],
         atividadesEstudo: [
-          { id: 'EST-01', data: addDaysISO(2), cursoId: 'CUR-01', disciplinaId: 'DIS-01', titulo: 'Módulo 01 — IBS, CBS e Imposto Seletivo', status: 'Pendente' }
+          { id: 'EST-001', data: addDaysISO(2), cursoId: 'CUR-001', disciplinaId: 'DIS-001', titulo: 'Estudo de caso: apuração assistida', status: 'Pendente' }
         ],
         servicosPmi: [
-          { id: 'PMI-01', data: addDaysISO(-10), secretaria: 'Secretaria Municipal de Administração', servico: 'Manutenção de Rede e Servidores', complemento: 'Sede Administrativa', valor: 2800, status: 'Empenhado', empenho: '0412/2026', nf: '' }
+          { id: 'PMI-001', data: addDaysISO(-5), secretaria: 'Secretaria Municipal de Administração', servico: 'Manutenção de Rede e Servidores', complemento: 'Sede Administrativa PMI', valor: 2400.00, status: 'Empenhado', empenho: '00412/2026', nf: '000189' }
         ],
         ordensServico: [
-          { id: 'OS-2026-001', data: addDaysISO(-2), clienteNome: 'Clínica Médica Itaporanga S/S', telefone: '(83) 99877-6655', equipamento: 'Servidor Dell PowerEdge', defeito: 'Lentidão e configuração de rotina de backup em nuvem', servicoExecutado: 'Otimização RAID e agendamento automático', valor: 450, status: 'Concluída' }
+          { id: 'OS-2026-101', data: addDaysISO(-1), clienteNome: 'Clínica Médica São José', telefone: '(83) 98844-5566', equipamento: 'Desktop Dell OptiPlex', defeito: 'Troca de SSD e backup do banco local', servicoExecutado: 'Instalação SSD NVMe 512GB', valor: 420.00, status: 'Em Execução' }
         ],
         config: {
           gasUrl: '',
@@ -462,7 +469,7 @@
           pollSeconds: 5,
           cloudVersion: '0',
           lastSyncAt: '',
-          lastSyncMessage: 'Aguardando configuração do Google Apps Script.'
+          lastSyncMessage: 'Modo local ativo'
         }
       };
     }
@@ -471,9 +478,270 @@
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return createInitialState();
-        return { ...createInitialState(), ...JSON.parse(raw) };
+        const parsed = JSON.parse(raw);
+        const base = createInitialState();
+        const validUsers = Array.isArray(parsed.users) && parsed.users.some((u) => u && u.username && u.password !== undefined)
+          ? parsed.users
+          : base.users;
+        return {
+          ...base,
+          ...parsed,
+          users: validUsers,
+          config: { ...base.config, ...(parsed.config || {}) }
+        };
       } catch (e) {
         return createInitialState();
+      }
+    }
+
+    // =========================================================================
+    // 7. BUSCA & MONITORAMENTO DE LICITAÇÕES (20 PORTAIS VIA API - ABERTURA >= HOJE)
+    // =========================================================================
+    let TenderFilter = { q: '', uf: 'PB', portal: '', maxDate: '', sort: 'asc' };
+    let LiveTenderResults = [];
+    let TenderSearchLoading = false;
+    let TenderSourceDiagnostics = [];
+    let TenderVisibleLimit = 250;
+    function getTodayLocalISO() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function isFutureOrTodayOpening(dateStr, todayIso) {
+      if (!dateStr) return false;
+      const clean = String(dateStr).trim().slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return false;
+      return clean >= todayIso;
+    }
+
+    function classifyTenderPortal(sigText) {
+      const s = String(sigText || '').toLowerCase();
+      if (s.includes('compras.gov') || s.includes('comprasnet') || s.includes('siasg')) return 'Compras.gov.br (ComprasNet)';
+      if (s.includes('licitacoes-e') || s.includes('banco do brasil')) return 'Licitações-e (Banco do Brasil)';
+      if (s.includes('caixa')) return 'Portal de Compras da Caixa';
+      if (s.includes('portaldecompraspublicas') || s.includes('compras públicas') || s.includes('portal de compras')) return 'Portal de Compras Públicas';
+      if (s.includes('bll')) return 'BLL Compras';
+      if (s.includes('licitanet')) return 'Licitanet';
+      if (s.includes('bnc') || s.includes('bolsa nacional')) return 'BNC (Bolsa Nacional de Compras)';
+      if (s.includes('licitamais') || s.includes('licita+brasil')) return 'Licita+Brasil';
+      if (s.includes('comprasbr')) return 'ComprasBR';
+      if (s.includes('bbmnet')) return 'BBMNET';
+      if (s.includes('bec.sp')) return 'BEC/SP (Bolsa Eletrônica de Compras de São Paulo)';
+      if (s.includes('compras.mg')) return 'Portal de Compras MG';
+      if (s.includes('compras.rs')) return 'Compras RS';
+      if (s.includes('compras.rj')) return 'Compras RJ';
+      if (s.includes('seap') || s.includes('comprasparana')) return 'SEAP-PR';
+      if (s.includes('sislog')) return 'SISLOG (Goiás)';
+      if (s.includes('compras.mt')) return 'Compras MT';
+      if (s.includes('centraldecompras.pb') || s.includes('paraíba')) return 'Portal de Compras PB (Paraíba)';
+      if (s.includes('tce.pb') || s.includes('tramita')) return 'TCE PB';
+      return 'Portal Nacional de Contratações Públicas (PNCP)';
+    }
+
+    function parsePncpSearchItem(it, fallbackUf, forcedPortal = '') {
+      const cnpj = it.orgao_cnpj || it.cnpj || '';
+      const ano = it.ano || it.anoCompra || '';
+      const seq = it.numero_sequencial || it.sequencialCompra || '';
+      const detected = classifyTenderPortal(`${it.fonte || ''} ${it.sistema_origem || ''} ${it.url_sistema_origem || ''} ${it.orgao_nome || ''}`);
+      const portal = (detected === 'Portal Nacional de Contratações Públicas (PNCP)' && forcedPortal) ? forcedPortal : detected;
+      const rawDate = it.data_abertura_proposta || it.data_fim_vigencia || '';
+      return {
+        id: it.numero_controle_pncp || it.id || generateId('PNCP'),
+        numeroEdital: `${it.numero || it.numeroCompra || 'S/N'}/${ano || new Date().getFullYear()}`,
+        orgao: it.orgao_nome || it.unidade_nome || 'Órgão Público',
+        portal,
+        uf: it.uf || fallbackUf || 'BR',
+        modalidade: it.modalidade_licitacao_nome || it.tipo_nome || 'Pregão Eletrônico',
+        objeto: it.description || it.title || it.objeto || '',
+        valorEstimado: Number(it.valor_global || it.valor_estimado || 0),
+        dataAbertura: String(rawDate).slice(0, 10),
+        link: it.url_sistema_origem || (cnpj && ano && seq ? `https://pncp.gov.br/app/editais/${cnpj}/${ano}/${seq}` : 'https://pncp.gov.br/app/editais')
+      };
+    }
+
+    function parsePncpConsultaItem(it, fallbackUf) {
+      const cnpj = it.orgaoEntidade?.cnpj || '';
+      const ano = it.anoCompra || '';
+      const seq = it.sequencialCompra || '';
+      const portal = classifyTenderPortal(`${it.usuarioNome || ''} ${it.sistemaOrigem || ''} ${it.linkSistemaOrigem || ''}`);
+      return {
+        id: it.numeroControlePNCP || generateId('PNCP'),
+        numeroEdital: `${it.numeroCompra || 'S/N'}/${ano || new Date().getFullYear()}`,
+        orgao: it.orgaoEntidade?.razaoSocial || 'Órgão Público',
+        portal,
+        uf: it.unidadeOrgao?.ufSigla || fallbackUf || 'BR',
+        modalidade: it.modalidadeNome || 'Pregão Eletrônico',
+        objeto: it.objetoCompra || '',
+        valorEstimado: Number(it.valorTotalEstimado || 0),
+        dataAbertura: String(it.dataAberturaProposta || it.dataEncerramentoProposta || '').slice(0, 10),
+        link: it.linkSistemaOrigem || (cnpj && ano && seq ? `https://pncp.gov.br/app/editais/${cnpj}/${ano}/${seq}` : 'https://pncp.gov.br/app/editais')
+      };
+    }
+
+    async function fetchJsonWithCorsFallback(targetUrl) {
+      const fetchWithTimeout = async (url, ms = 18000) => {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(new Error('Tempo limite excedido')), ms);
+        try {
+          const res = await fetch(url, { signal: ctrl.signal });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res;
+        } finally {
+          clearTimeout(timer);
+        }
+      };
+
+      // 1. Tentativa direta (funciona nativamente em pncp.gov.br/api/search e dadosabertos.compras.gov.br)
+      try {
+        const directRes = await fetchWithTimeout(targetUrl, 12000);
+        return await directRes.json();
+      } catch (e) {}
+
+      // 2. Proxy CORS 1: corsproxy.io
+      try {
+        const p1 = await fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`, 18000);
+        return await p1.json();
+      } catch (e) {}
+
+      // 3. Proxy CORS 2: allorigins /get
+      try {
+        const p2 = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`, 18000);
+        const wrapper = await p2.json();
+        if (wrapper && wrapper.contents) {
+          return JSON.parse(wrapper.contents);
+        }
+      } catch (e) {}
+
+      // 4. Proxy CORS 3: codetabs
+      const p3 = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`, 18000);
+      return await p3.json();
+    }
+
+    async function searchAllTenderPortals() {
+      TenderSearchLoading = true;
+      TenderSourceDiagnostics = [];
+      TenderVisibleLimit = 250;
+      renderRoute('licitacoes');
+
+      const collected = [];
+      const todayIso = getTodayLocalISO();
+      const uf = (TenderFilter.uf || '').trim().toUpperCase();
+      const kw = (TenderFilter.q || '').trim();
+
+      const tasks = [];
+
+      // FONTE 1: PNCP Busca Unificada (CORS nativo habilitado pelo governo - cobre todos os 20 portais)
+      tasks.push((async () => {
+        try {
+          const ufsParam = uf ? `&ufs=${encodeURIComponent(uf)}` : '';
+          const qGeneral = kw ? `&q=${encodeURIComponent(kw)}` : '';
+          let count = 0;
+
+          for (let pag = 1; pag <= 25; pag++) {
+            const url = `https://pncp.gov.br/api/search/?tipos_documento=edital&ordenacao=-data&status=recebendo_proposta${ufsParam}${qGeneral}&pagina=${pag}&tam_pagina=100`;
+            const json = await fetchJsonWithCorsFallback(url);
+            const rows = json.items || json.data || [];
+            if (!rows.length) break;
+            rows.forEach((it) => {
+              const parsed = parsePncpSearchItem(it, uf);
+              if (isFutureOrTodayOpening(parsed.dataAbertura, todayIso)) {
+                collected.push(parsed);
+                count++;
+              }
+            });
+            if (rows.length < 100) break;
+          }
+
+          TenderSourceDiagnostics.push({ source: 'PNCP Busca Unificada (20 Portais)', ok: true, count });
+        } catch (err) {
+          TenderSourceDiagnostics.push({ source: 'PNCP Busca Unificada', ok: false, count: 0, msg: err.message });
+        }
+      })());
+
+      // FONTE 2: Compras.gov.br (Portal Oficial Dados Abertos Lei 14.133)
+      tasks.push((async () => {
+        try {
+          const dtIni = addDaysISO(-30);
+          const dtFim = addDaysISO(90);
+          const ufQ = uf ? `&unidadeOrgaoUfSigla=${encodeURIComponent(uf)}` : '';
+          let count = 0;
+
+          for (let pag = 1; pag <= 10; pag++) {
+            const novoUrl = `https://dadosabertos.compras.gov.br/modulo-contratacoes/1_consultarContratacoes_PNCP_14133?pagina=${pag}&tamanhoPagina=100&dataPublicacaoPncpInicial=${dtIni}&dataPublicacaoPncpFinal=${dtFim}${ufQ}`;
+            const jsonN = await fetchJsonWithCorsFallback(novoUrl);
+            const rowsN = jsonN.resultado || jsonN.data || [];
+            if (!rowsN.length) break;
+            rowsN.forEach((it, idx) => {
+              const abertura = String(it.dataAberturaPropostaPncp || it.dataEncerramentoPropostaPncp || '').slice(0, 10);
+              if (!isFutureOrTodayOpening(abertura, todayIso)) return;
+              const cnpj = it.orgaoEntidadeCnpj || '';
+              const ano = it.anoCompraPncp || new Date().getFullYear();
+              const seq = it.sequencialCompraPncp || '';
+              collected.push({
+                id: it.numeroControlePNCP || `COMPRAS14133-${cnpj}-${ano}-${seq || idx}`,
+                numeroEdital: `${it.numeroCompra || 'S/N'}/${ano}`,
+                orgao: it.orgaoEntidadeRazaoSocial || `UASG ${it.codigoUnidadeCompradora || ''} — Compras.gov.br`,
+                portal: 'Compras.gov.br (ComprasNet)',
+                uf: it.unidadeOrgaoUfSigla || uf || 'BR',
+                modalidade: it.modalidadeNome || 'Pregão Eletrônico',
+                objeto: it.objetoCompra || 'Licitação publicada no Compras.gov.br.',
+                valorEstimado: Number(it.valorTotalEstimado || 0),
+                dataAbertura: abertura,
+                link: (cnpj && ano && seq) ? `https://pncp.gov.br/app/editais/${cnpj}/${ano}/${seq}` : 'https://www.gov.br/compras/pt-br'
+              });
+              count++;
+            });
+            if (rowsN.length < 100) break;
+          }
+
+          TenderSourceDiagnostics.push({ source: 'Compras.gov.br (Dados Abertos)', ok: true, count });
+        } catch (err) {
+          TenderSourceDiagnostics.push({ source: 'Compras.gov.br', ok: false, count: 0, msg: 'Indisponível no navegador (use Apps Script)' });
+        }
+      })());
+
+      // FONTE 3: Backend Google Apps Script (agrega PNCP v1 + Compras.gov + Central PB sem bloqueio de CORS)
+      const gasUrl = AppState.config?.gasUrl?.trim();
+      if (gasUrl) {
+        tasks.push((async () => {
+          try {
+            const gRes = await fetch(`${gasUrl}?action=licitacoes&uf=${encodeURIComponent(uf)}&q=${encodeURIComponent(kw)}&portal=${encodeURIComponent(TenderFilter.portal)}&_t=${Date.now()}`);
+            const gJson = await gRes.json();
+            let count = 0;
+            if (gJson.success && Array.isArray(gJson.items)) {
+              gJson.items.forEach((it) => {
+                if (isFutureOrTodayOpening(it.dataAbertura, todayIso)) {
+                  collected.push(it);
+                  count++;
+                }
+              });
+            }
+            TenderSourceDiagnostics.push({ source: 'Google Apps Script (Servidor)', ok: true, count });
+          } catch (err) {
+            TenderSourceDiagnostics.push({ source: 'Google Apps Script', ok: false, count: 0, msg: err.message });
+          }
+        })());
+      }
+
+      await Promise.allSettled(tasks);
+
+      const map = new Map();
+      collected.forEach((it) => {
+        if (it && it.id && isFutureOrTodayOpening(it.dataAbertura, todayIso)) {
+          map.set(it.id, it);
+        }
+      });
+      LiveTenderResults = Array.from(map.values());
+      TenderSearchLoading = false;
+      renderRoute('licitacoes');
+
+      if (LiveTenderResults.length > 0) {
+        showToast(`${LiveTenderResults.length} edital(is) com abertura a partir de hoje encontrado(s)!`);
+      } else {
+        showToast('Nenhum edital futuro encontrado para os filtros atuais. Experimente selecionar "Todos os Estados".', 'warning');
       }
     }
 
@@ -557,12 +825,19 @@
 
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value;
+      const username = document.getElementById('login-username').value.trim().toLowerCase();
+      const password = String(document.getElementById('login-password').value || '').trim();
       const remember = document.getElementById('login-remember').checked;
       const errBox = document.getElementById('login-error');
 
-      const found = (AppState.users || []).find((u) => u.username === username && u.password === password);
+      if (!Array.isArray(AppState.users) || AppState.users.length === 0) {
+        AppState.users = createInitialState().users;
+        saveState(true);
+      }
+
+      const found = AppState.users.find(
+        (u) => String(u.username || '').trim().toLowerCase() === username && String(u.password ?? '').trim() === password
+      );
       if (!found) {
         errBox.textContent = 'Usuário ou senha inválidos.';
         errBox.classList.remove('hidden');
@@ -580,6 +855,18 @@
       }
       syncAuthScreen();
     });
+
+    function resetDefaultAdminLogin() {
+      const defaultAdmin = { id: 'USR-001', username: 'admin', name: 'Administrador CONTECH', password: '123', role: 'Administrador' };
+      if (!Array.isArray(AppState.users)) AppState.users = [];
+      const idx = AppState.users.findIndex((u) => String(u.username || '').toLowerCase() === 'admin');
+      if (idx >= 0) AppState.users[idx] = defaultAdmin;
+      else AppState.users.unshift(defaultAdmin);
+      saveState(true);
+      const errBox = document.getElementById('login-error');
+      if (errBox) errBox.classList.add('hidden');
+      showToast('Acesso administrativo redefinido.');
+    }
 
     function logoutUser() {
       localStorage.removeItem(SESSION_KEY);
@@ -2055,235 +2342,25 @@
       });
     }
 
-    // =========================================================================
-    // 7. BUSCA & MONITORAMENTO DE LICITAÇÕES (20 PORTAIS VIA API)
-    // =========================================================================
-    let TenderFilter = { q: '', uf: 'PB', portal: '', maxDate: '', sort: 'asc' };
-    let LiveTenderResults = [];
-    let TenderSearchLoading = false;
-    let TenderSourceDiagnostics = [];
-
-    function classifyTenderPortal(sigText) {
-      const s = String(sigText || '').toLowerCase();
-      if (s.includes('compras.gov') || s.includes('comprasnet') || s.includes('siasg')) return 'Compras.gov.br (ComprasNet)';
-      if (s.includes('licitacoes-e') || s.includes('banco do brasil')) return 'Licitações-e (Banco do Brasil)';
-      if (s.includes('caixa')) return 'Portal de Compras da Caixa';
-      if (s.includes('portaldecompraspublicas') || s.includes('compras públicas') || s.includes('portal de compras')) return 'Portal de Compras Públicas';
-      if (s.includes('bll')) return 'BLL Compras';
-      if (s.includes('licitanet')) return 'Licitanet';
-      if (s.includes('bnc') || s.includes('bolsa nacional')) return 'BNC (Bolsa Nacional de Compras)';
-      if (s.includes('licitamais') || s.includes('licita+brasil')) return 'Licita+Brasil';
-      if (s.includes('comprasbr')) return 'ComprasBR';
-      if (s.includes('bbmnet')) return 'BBMNET';
-      if (s.includes('bec.sp')) return 'BEC/SP (Bolsa Eletrônica de Compras de São Paulo)';
-      if (s.includes('compras.mg')) return 'Portal de Compras MG';
-      if (s.includes('compras.rs')) return 'Compras RS';
-      if (s.includes('compras.rj')) return 'Compras RJ';
-      if (s.includes('seap') || s.includes('comprasparana')) return 'SEAP-PR';
-      if (s.includes('sislog')) return 'SISLOG (Goiás)';
-      if (s.includes('compras.mt')) return 'Compras MT';
-      if (s.includes('centraldecompras.pb') || s.includes('paraíba')) return 'Portal de Compras PB (Paraíba)';
-      if (s.includes('tce.pb') || s.includes('tramita')) return 'TCE PB';
-      return 'Portal Nacional de Contratações Públicas (PNCP)';
-    }
-
-    function parsePncpSearchItem(it, fallbackUf) {
-      const cnpj = it.orgao_cnpj || it.cnpj || '';
-      const ano = it.ano || it.anoCompra || '';
-      const seq = it.numero_sequencial || it.sequencialCompra || '';
-      const portal = classifyTenderPortal(`${it.fonte || ''} ${it.sistema_origem || ''} ${it.url_sistema_origem || ''} ${it.orgao_nome || ''}`);
-      const rawDate = it.data_fim_vigencia || it.data_abertura_proposta || it.data_publicacao_pncp || it.createdAt || '';
-      return {
-        id: it.numero_controle_pncp || it.id || generateId('PNCP'),
-        numeroEdital: `${it.numero || it.numeroCompra || 'S/N'}/${ano || new Date().getFullYear()}`,
-        orgao: it.orgao_nome || it.unidade_nome || 'Órgão Público',
-        portal,
-        uf: it.uf || fallbackUf || 'BR',
-        modalidade: it.modalidade_licitacao_nome || it.tipo_nome || 'Pregão Eletrônico',
-        objeto: it.description || it.title || it.objeto || '',
-        valorEstimado: Number(it.valor_global || it.valor_estimado || 0),
-        dataAbertura: String(rawDate).slice(0, 10),
-        link: it.url_sistema_origem || (cnpj && ano && seq ? `https://pncp.gov.br/app/editais/${cnpj}/${ano}/${seq}` : 'https://pncp.gov.br/app/editais')
-      };
-    }
-
-    function parsePncpConsultaItem(it, fallbackUf) {
-      const cnpj = it.orgaoEntidade?.cnpj || '';
-      const ano = it.anoCompra || '';
-      const seq = it.sequencialCompra || '';
-      const portal = classifyTenderPortal(`${it.usuarioNome || ''} ${it.sistemaOrigem || ''} ${it.linkSistemaOrigem || ''}`);
-      return {
-        id: it.numeroControlePNCP || generateId('PNCP'),
-        numeroEdital: `${it.numeroCompra || 'S/N'}/${ano || new Date().getFullYear()}`,
-        orgao: it.orgaoEntidade?.razaoSocial || 'Órgão Público',
-        portal,
-        uf: it.unidadeOrgao?.ufSigla || fallbackUf || 'BR',
-        modalidade: it.modalidadeNome || 'Pregão Eletrônico',
-        objeto: it.objetoCompra || '',
-        valorEstimado: Number(it.valorTotalEstimado || 0),
-        dataAbertura: String(it.dataAberturaProposta || it.dataPublicacaoPncp || '').slice(0, 10),
-        link: it.linkSistemaOrigem || (cnpj && ano && seq ? `https://pncp.gov.br/app/editais/${cnpj}/${ano}/${seq}` : 'https://pncp.gov.br/app/editais')
-      };
-    }
-
-    async function searchAllTenderPortals() {
-      TenderSearchLoading = true;
-      TenderSourceDiagnostics = [];
-      renderRoute('licitacoes');
-
-      const collected = [];
-      const uf = (TenderFilter.uf || '').trim().toUpperCase();
-      const kw = (TenderFilter.q || '').trim();
-
-      const tasks = [];
-
-      // FONTE 1: PNCP API de Busca Nacional (/api/search/) - suporta todos os 20 portais integrados e status=recebendo_proposta
-      tasks.push((async () => {
-        try {
-          const ufsParam = uf ? `&ufs=${encodeURIComponent(uf)}` : '';
-          const qParam = kw ? `&q=${encodeURIComponent(kw)}` : '';
-          let count = 0;
-          for (let pag = 1; pag <= 3; pag++) {
-            const url = `https://pncp.gov.br/api/search/?tipos_documento=edital&ordenacao=-data&status=recebendo_proposta${ufsParam}${qParam}&pagina=${pag}&tam_pagina=50`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const json = await res.json();
-            const rows = json.items || json.data || [];
-            if (!rows.length) break;
-            rows.forEach((it) => { collected.push(parsePncpSearchItem(it, uf)); count++; });
-            if (rows.length < 50) break;
-          }
-          TenderSourceDiagnostics.push({ source: 'PNCP Busca Unificada (20 Portais)', ok: true, count });
-        } catch (err) {
-          TenderSourceDiagnostics.push({ source: 'PNCP Busca Unificada', ok: false, count: 0, msg: err.message });
-        }
-      })());
-
-      // FONTE 2: PNCP API Consulta (/api/consulta/v1/contratacoes/proposta) - limite oficial tamanhoPagina=50
-      tasks.push((async () => {
-        try {
-          const dtFim = addDaysISO(90).replace(/-/g, '');
-          const ufQ = uf ? `&uf=${encodeURIComponent(uf)}` : '';
-          let count = 0;
-          for (let pag = 1; pag <= 3; pag++) {
-            const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=${dtFim}${ufQ}&pagina=${pag}&tamanhoPagina=50`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const json = await res.json();
-            const rows = json.data || [];
-            if (!rows.length) break;
-            rows.forEach((it) => { collected.push(parsePncpConsultaItem(it, uf)); count++; });
-            if (rows.length < 50) break;
-          }
-          TenderSourceDiagnostics.push({ source: 'PNCP Propostas Abertas (v1)', ok: true, count });
-        } catch (err) {
-          TenderSourceDiagnostics.push({ source: 'PNCP Propostas Abertas (v1)', ok: false, count: 0, msg: err.message });
-        }
-      })());
-
-      // FONTE 3: PNCP Publicações Recentes (Pregão Eletrônico = 6 e Dispensa = 8 nos últimos 15 dias)
-      tasks.push((async () => {
-        try {
-          const dtIni = addDaysISO(-15).replace(/-/g, '');
-          const dtFim = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-          const ufQ = uf ? `&uf=${encodeURIComponent(uf)}` : '';
-          let count = 0;
-          for (const mod of [6, 8]) {
-            const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?dataInicial=${dtIni}&dataFinal=${dtFim}&codigoModalidadeContratacao=${mod}${ufQ}&pagina=1&tamanhoPagina=50`;
-            const res = await fetch(url);
-            if (res.ok) {
-              const json = await res.json();
-              (json.data || []).forEach((it) => { collected.push(parsePncpConsultaItem(it, uf)); count++; });
-            }
-          }
-          TenderSourceDiagnostics.push({ source: 'PNCP Publicações Recentes', ok: true, count });
-        } catch (err) {
-          TenderSourceDiagnostics.push({ source: 'PNCP Publicações Recentes', ok: false, count: 0, msg: err.message });
-        }
-      })());
-
-      // FONTE 4: Querido Diário (Diários Oficiais Municipais - Pregões e Editais publicados)
-      tasks.push((async () => {
-        try {
-          const qText = kw ? `${kw} licitacao` : 'pregao eletronico edital licitacao';
-          const dtSince = addDaysISO(-20);
-          const url = `https://queridodiario.ok.org.br/api/gazettes?querystring=${encodeURIComponent(qText)}&published_since=${dtSince}&size=30`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const json = await res.json();
-          let count = 0;
-          (json.gazettes || []).forEach((g, idx) => {
-            if (uf && g.state_code && g.state_code.toUpperCase() !== uf) return;
-            const excerpt = (g.excerpts && g.excerpts[0]) ? g.excerpts[0].replace(/<[^>]+>/g, ' ').trim() : 'Publicação de aviso de licitação em Diário Oficial Municipal.';
-            collected.push({
-              id: `QD-${g.territory_id || idx}-${g.date || idx}`,
-              numeroEdital: `DO ${g.edition || 'Oficial'}`,
-              orgao: `Prefeitura Municipal de ${g.territory_name || 'Município'} (${g.state_code || uf || 'BR'})`,
-              portal: g.state_code === 'PB' ? 'TCE PB' : 'Portal Nacional de Contratações Públicas (PNCP)',
-              uf: g.state_code || uf || 'BR',
-              modalidade: 'Diário Oficial / Aviso de Edital',
-              objeto: excerpt.slice(0, 280),
-              valorEstimado: 0,
-              dataAbertura: String(g.date || '').slice(0, 10),
-              link: g.url || g.txt_url || 'https://queridodiario.ok.org.br'
-            });
-            count++;
-          });
-          TenderSourceDiagnostics.push({ source: 'Diários Oficiais Municipais', ok: true, count });
-        } catch (err) {
-          TenderSourceDiagnostics.push({ source: 'Diários Oficiais Municipais', ok: false, count: 0, msg: err.message });
-        }
-      })());
-
-      // FONTE 5: Backend Google Apps Script (agrega Compras.gov, TCE-PB, Portal PB e PNCP sem CORS)
-      const gasUrl = AppState.config?.gasUrl?.trim();
-      if (gasUrl) {
-        tasks.push((async () => {
-          try {
-            const gRes = await fetch(`${gasUrl}?action=licitacoes&uf=${encodeURIComponent(uf)}&q=${encodeURIComponent(kw)}&portal=${encodeURIComponent(TenderFilter.portal)}&_t=${Date.now()}`);
-            const gJson = await gRes.json();
-            let count = 0;
-            if (gJson.success && Array.isArray(gJson.items)) {
-              gJson.items.forEach((it) => { collected.push(it); count++; });
-            }
-            TenderSourceDiagnostics.push({ source: 'Google Apps Script (Compras.gov + TCE-PB)', ok: true, count });
-          } catch (err) {
-            TenderSourceDiagnostics.push({ source: 'Google Apps Script', ok: false, count: 0, msg: err.message });
-          }
-        })());
-      }
-
-      await Promise.allSettled(tasks);
-
-      const map = new Map();
-      collected.forEach((it) => {
-        if (it && it.id) map.set(it.id, it);
-      });
-      LiveTenderResults = Array.from(map.values());
-      TenderSearchLoading = false;
-      renderRoute('licitacoes');
-
-      if (LiveTenderResults.length > 0) {
-        showToast(`${LiveTenderResults.length} edital(is) encontrado(s) nas APIs!`);
-      } else {
-        showToast('Nenhum edital retornado para os filtros atuais. Tente limpar a UF ou palavra-chave.', 'warning');
-      }
-    }
-
     function openPortalsDirectoryModal() {
       openModal(
-        'Diretório dos 20 Portais de Licitações Monitorados',
+        'Plataformas Eletrônicas & Portais Integrados via PNCP',
         `
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            ${TENDER_PORTALS_20.map((p, idx) => `
-              <a href="${p.url}" target="_blank" class="p-2.5 rounded-xl border hover:border-navy-800 flex items-center justify-between gap-2">
-                <div>
-                  <div class="font-bold text-navy-900">${idx + 1}. ${escapeHTML(p.name)}</div>
-                  <div class="text-[10px] text-slate-500">${escapeHTML(p.apiMode)}</div>
-                </div>
-                <span class="text-accent-600 font-bold">Abrir ↗</span>
-              </a>
-            `).join('')}
+          <div class="space-y-3 text-xs">
+            <p class="text-slate-600 bg-blue-50 border border-blue-200 rounded-xl p-3">
+              <strong>Coleta Otimizada:</strong> A consulta às APIs é feita diretamente na base nacional unificada do <strong>PNCP</strong> e nas APIs diretas (<strong>Compras.gov.br</strong> e <strong>Central PB</strong>), evitando requisições duplicadas e identificando automaticamente a plataforma onde ocorrerá o pregão.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              ${TENDER_PORTALS_20.map((p, idx) => `
+                <a href="${p.url}" target="_blank" class="p-2.5 rounded-xl border hover:border-navy-800 flex items-center justify-between gap-2">
+                  <div>
+                    <div class="font-bold text-navy-900">${idx + 1}. ${escapeHTML(p.name)}</div>
+                    <div class="text-[10px] text-slate-500">${escapeHTML(p.apiMode)}</div>
+                  </div>
+                  <span class="text-accent-600 font-bold">Abrir ↗</span>
+                </a>
+              `).join('')}
+            </div>
           </div>
         `
       );
@@ -2354,11 +2431,13 @@
     }
 
     function renderLicitacoes(container) {
+      const todayIso = getTodayLocalISO();
       const combined = [...(AppState.licitacoes || []), ...LiveTenderResults];
       const dedup = Array.from(new Map(combined.map((x) => [x.id, x])).values());
 
       const filtered = dedup
         .filter((l) => {
+          if (!isFutureOrTodayOpening(l.dataAbertura, todayIso)) return false;
           const hay = `${l.numeroEdital} ${l.orgao} ${l.objeto} ${l.portal}`.toLowerCase();
           if (TenderFilter.q && !hay.includes(TenderFilter.q.toLowerCase())) return false;
           if (TenderFilter.uf && String(l.uf || '').toUpperCase() !== TenderFilter.uf.toUpperCase()) return false;
@@ -2371,11 +2450,14 @@
           : (b.dataAbertura || '').localeCompare(a.dataAbertura || '')
         );
 
+      const visibleRows = filtered.slice(0, TenderVisibleLimit);
+      const hasMoreRows = filtered.length > visibleRows.length;
+
       container.innerHTML = `
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Busca &amp; Monitoramento de Licitações</h2>
-            <p class="text-xs sm:text-sm text-slate-600">Integração com PNCP, Compras.gov.br, TCE-PB, Portal PB e os 20 principais portais eletrônicos.</p>
+            <p class="text-xs sm:text-sm text-slate-600">Somente editais com data de abertura igual ou posterior a hoje (${formatDateBR(todayIso)}) nos 20 portais monitorados.</p>
           </div>
           <div class="flex flex-wrap gap-2 text-xs">
             <button type="button" onclick="openManualTenderModal()" class="px-3.5 py-2 rounded-xl bg-navy-900 text-white font-bold cursor-pointer">+ Incluir Manual</button>
@@ -2388,12 +2470,12 @@
 
         <div class="bg-white rounded-2xl p-4 border shadow-sm space-y-3 text-xs">
           <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
-            <input id="search-licitacoes" type="text" value="${escapeHTML(TenderFilter.q)}" oninput="TenderFilter.q = this.value; renderRoute('licitacoes');" placeholder="Palavra-chave / Objeto..." class="sm:col-span-2 px-3 py-2 rounded-xl border" />
-            <select onchange="TenderFilter.uf = this.value; renderRoute('licitacoes');" class="px-3 py-2 rounded-xl border bg-white">
+            <input id="search-licitacoes" type="text" value="${escapeHTML(TenderFilter.q)}" oninput="TenderFilter.q = this.value; TenderVisibleLimit = 250; renderRoute('licitacoes');" placeholder="Palavra-chave / Objeto..." class="sm:col-span-2 px-3 py-2 rounded-xl border" />
+            <select onchange="TenderFilter.uf = this.value; TenderVisibleLimit = 250; renderRoute('licitacoes');" class="px-3 py-2 rounded-xl border bg-white">
               <option value="" ${TenderFilter.uf === '' ? 'selected' : ''}>Todos os Estados (Brasil)</option>
               ${ESTADOS_BR.map((st) => `<option value="${st.uf}" ${TenderFilter.uf === st.uf ? 'selected' : ''}>${st.nome}</option>`).join('')}
             </select>
-            <select onchange="TenderFilter.portal = this.value; renderRoute('licitacoes');" class="px-3 py-2 rounded-xl border bg-white">
+            <select onchange="TenderFilter.portal = this.value; TenderVisibleLimit = 250; renderRoute('licitacoes');" class="px-3 py-2 rounded-xl border bg-white">
               <option value="">Todos os 20 Portais</option>
               ${TENDER_PORTALS_20.map((p) => `<option value="${escapeHTML(p.name)}" ${TenderFilter.portal === p.name ? 'selected' : ''}>${escapeHTML(p.name)}</option>`).join('')}
             </select>
@@ -2403,7 +2485,7 @@
             </select>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-            <div>Exibindo <strong>${filtered.length}</strong> edital(is) • Selecione <strong>"Todos os Estados"</strong> para buscar em todo o Brasil.</div>
+            <div>Exibindo <strong>${visibleRows.length}</strong> de <strong>${filtered.length}</strong> edital(is) com abertura a partir de <strong>${formatDateBR(todayIso)}</strong> • Selecione <strong>"Todos os Estados"</strong> para buscar em todo o Brasil.</div>
             ${TenderSourceDiagnostics.length > 0 ? `
               <div class="flex flex-wrap gap-1.5">
                 ${TenderSourceDiagnostics.map((d) => `
@@ -2417,7 +2499,7 @@
         </div>
 
         <div class="space-y-3">
-          ${filtered.length === 0 ? '<div class="bg-white rounded-2xl p-6 border text-center text-xs text-slate-500">Nenhum edital exibido. Clique em <strong>"Buscar nas APIs Agora"</strong> (dica: limpe o campo UF para consultar editais abertos em todo o país).</div>' : filtered.slice(0, 100).map((l) => `
+          ${filtered.length === 0 ? `<div class="bg-white rounded-2xl p-6 border text-center text-xs text-slate-500">Nenhum edital com abertura a partir de ${formatDateBR(todayIso)} exibido. Clique em <strong>"Buscar nas APIs Agora"</strong> (dica: selecione <strong>"Todos os Estados"</strong> para ampliar a consulta nos 20 portais).</div>` : visibleRows.map((l) => `
             <div class="bg-white rounded-2xl p-4 border shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 text-xs">
               <div class="space-y-1">
                 <div class="flex flex-wrap items-center gap-2">
@@ -2434,6 +2516,18 @@
               </div>
             </div>
           `).join('')}
+
+          ${hasMoreRows ? `
+            <div class="bg-white rounded-2xl p-4 border shadow-sm flex flex-wrap items-center justify-center gap-3 text-xs">
+              <span class="text-slate-600">Mostrando <strong>${visibleRows.length}</strong> de <strong>${filtered.length}</strong> licitações encontradas.</span>
+              <button type="button" onclick="TenderVisibleLimit += 250; renderRoute('licitacoes');" class="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold cursor-pointer">
+                Carregar +250 Editais
+              </button>
+              <button type="button" onclick="TenderVisibleLimit = ${filtered.length}; renderRoute('licitacoes');" class="px-4 py-2 rounded-xl bg-accent-500 hover:bg-accent-600 text-white font-bold cursor-pointer">
+                Exibir Todos os ${filtered.length} Editais
+              </button>
+            </div>
+          ` : ''}
         </div>
       `;
     }
@@ -3231,8 +3325,25 @@
       window.print();
     }
 
-    // Inicialização
-    syncAuthScreen();
+    // Inicialização segura após carregamento completo da página
+    function bootstrapApp() {
+      try {
+        syncAuthScreen();
+      } catch (err) {
+        console.error('Erro ao inicializar CONTECH ERP:', err);
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_KEY);
+        AppState = createInitialState();
+        syncAuthScreen();
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootstrapApp);
+    } else {
+      bootstrapApp();
+    }
   </script>
 </body>
 </html>
