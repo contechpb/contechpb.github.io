@@ -623,175 +623,169 @@
     function renderRoute(route) {
       const container = document.getElementById('main-content');
       if (!container) return;
+
+      const activeEl = document.activeElement;
+      const shouldRestoreFocus =
+        activeEl &&
+        container.contains(activeEl) &&
+        (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') &&
+        activeEl.id;
+      const focusId = shouldRestoreFocus ? activeEl.id : null;
+      const selStart = shouldRestoreFocus && typeof activeEl.selectionStart === 'number' ? activeEl.selectionStart : null;
+      const selEnd = shouldRestoreFocus && typeof activeEl.selectionEnd === 'number' ? activeEl.selectionEnd : null;
+
       switch (route) {
-        case 'dashboard': return renderDashboard(container);
-        case 'contabeis': return renderClientes(container, 'contabeis');
-        case 'gerais': return renderClientes(container, 'gerais');
-        case 'certificados': return renderCertificados(container);
-        case 'pagar': return renderFinanceiro(container, 'pagar');
-        case 'receber': return renderFinanceiro(container, 'receber');
-        case 'tarefas': return renderTarefas(container);
-        case 'licitacoes': return renderLicitacoes(container);
-        case 'pmi': return renderPmi(container);
-        case 'os': return renderOrdensServico(container);
-        case 'estudo': return renderEstudo(container);
-        case 'relatorios': return renderRelatorios(container);
-        case 'administracao': return renderAdministracao(container);
-        default: return renderDashboard(container);
+        case 'dashboard': renderDashboard(container); break;
+        case 'contabeis': renderClientes(container, 'contabeis'); break;
+        case 'gerais': renderClientes(container, 'gerais'); break;
+        case 'certificados': renderCertificados(container); break;
+        case 'pagar': renderFinanceiro(container, 'pagar'); break;
+        case 'receber': renderFinanceiro(container, 'receber'); break;
+        case 'tarefas': renderTarefas(container); break;
+        case 'licitacoes': renderLicitacoes(container); break;
+        case 'pmi': renderPmi(container); break;
+        case 'os': renderOrdensServico(container); break;
+        case 'estudo': renderEstudo(container); break;
+        case 'relatorios': renderRelatorios(container); break;
+        case 'administracao': renderAdministracao(container); break;
+        default: renderDashboard(container); break;
+      }
+
+      if (focusId) {
+        const restored = document.getElementById(focusId);
+        if (restored) {
+          restored.focus();
+          if (selStart !== null && typeof restored.setSelectionRange === 'function') {
+            try {
+              restored.setSelectionRange(selStart, selEnd ?? selStart);
+            } catch (e) {}
+          }
+        }
       }
     }
 
     function renderDashboard(container) {
-      const totalContabeis = (AppState.clientesContabeis || []).length;
-      const allClients = [...(AppState.clientesContabeis || []), ...(AppState.clientesGerais || [])];
-      const certsComData = allClients
-        .filter((c) => c.certificadoVencimento)
-        .map((c) => ({ ...c, diff: daysUntil(c.certificadoVencimento) }));
-      const totalCerts = certsComData.length;
-      const vencidosCount = certsComData.filter((c) => c.diff < 0).length;
-      const pctVencidos = totalCerts > 0 ? Math.round((vencidosCount / totalCerts) * 100) : 0;
-      const certsAlerta = certsComData
-        .filter((c) => c.diff <= 30)
-        .sort((a, b) => a.diff - b.diff);
+      const receber = AppState.contasReceber || [];
+      const pagar = AppState.contasPagar || [];
 
-      const recAberto = (AppState.contasReceber || []).filter((r) => r.status !== 'Recebido').reduce((s, r) => s + Number(r.valor || 0), 0);
-      const recPago = (AppState.contasReceber || []).filter((r) => r.status === 'Recebido').reduce((s, r) => s + Number(r.valor || 0), 0);
-      const pagAberto = (AppState.contasPagar || []).filter((p) => p.status !== 'Pago').reduce((s, p) => s + Number(p.valor || 0), 0);
-      const pagPago = (AppState.contasPagar || []).filter((p) => p.status === 'Pago').reduce((s, p) => s + Number(p.valor || 0), 0);
+      const recTotal = receber.reduce((s, x) => s + Number(x.valor || 0), 0);
+      const recRecebido = receber.filter((x) => x.status === 'Recebido').reduce((s, x) => s + Number(x.valor || 0), 0);
+      const recPendente = Math.max(0, recTotal - recRecebido);
+      const recPctRecebido = recTotal > 0 ? Math.round((recRecebido / recTotal) * 100) : 0;
+      const recPctPendente = recTotal > 0 ? 100 - recPctRecebido : 0;
+
+      const pagTotal = pagar.reduce((s, x) => s + Number(x.valor || 0), 0);
+      const pagPago = pagar.filter((x) => x.status === 'Pago').reduce((s, x) => s + Number(x.valor || 0), 0);
+      const pagPendente = Math.max(0, pagTotal - pagPago);
+      const pagPctPago = pagTotal > 0 ? Math.round((pagPago / pagTotal) * 100) : 0;
+      const pagPctPendente = pagTotal > 0 ? 100 - pagPctPago : 0;
+
+      const certs = [
+        ...(AppState.clientesContabeis || []),
+        ...(AppState.clientesGerais || [])
+      ].filter((c) => c.certificadoVencimento);
+      const certsVencidos = certs.filter((c) => daysUntil(c.certificadoVencimento) < 0).length;
+      const certsTotal = certs.length;
+      const certsVencidosPct = certsTotal > 0 ? Math.round((certsVencidos / certsTotal) * 100) : 0;
+
       const pmiList = AppState.servicosPmi || [];
-      const pmiTotalCount = pmiList.length;
-      const pmiPendentesCount = pmiList.filter((p) => p.status !== 'Pago').length;
-      const pmiPctPendente = pmiTotalCount > 0 ? Math.round((pmiPendentesCount / pmiTotalCount) * 100) : 0;
-      const pmiAberto = pmiList.filter((p) => p.status !== 'Pago').reduce((s, p) => s + Number(p.valor || 0), 0);
+      const pmiPendentes = pmiList.filter((p) => p.status !== 'Pago').length;
+      const pmiTotal = pmiList.length;
+      const pmiPct = pmiTotal > 0 ? Math.round((pmiPendentes / pmiTotal) * 100) : 0;
+
+      const estudoList = AppState.atividadesEstudo || [];
+      const estudoPendentes = estudoList.filter((a) => a.status !== 'Concluída').length;
+      const estudoTotal = estudoList.length;
+      const estudoPct = estudoTotal > 0 ? Math.round((estudoPendentes / estudoTotal) * 100) : 0;
 
       const tarefasList = AppState.tarefas || [];
-      const tarefasTotalCount = tarefasList.length;
-      const tarefasPendentesCount = tarefasList.filter((t) => t.status !== 'Concluído').length;
-      const tarefasPctPendente = tarefasTotalCount > 0 ? Math.round((tarefasPendentesCount / tarefasTotalCount) * 100) : 0;
+      const tarefasPendentes = tarefasList.filter((t) => t.status !== 'Concluído').length;
+      const tarefasTotal = tarefasList.length;
+      const tarefasPct = tarefasTotal > 0 ? Math.round((tarefasPendentes / tarefasTotal) * 100) : 0;
 
-      const estudosList = AppState.atividadesEstudo || [];
-      const estudosTotalCount = estudosList.length;
-      const estudosPendentesCount = estudosList.filter((a) => a.status !== 'Concluída').length;
-      const estudosPctPendente = estudosTotalCount > 0 ? Math.round((estudosPendentesCount / estudosTotalCount) * 100) : 0;
-
-      const totalRec = (recAberto + recPago);
-      const pctRecebido = totalRec > 0 ? Math.round((recPago / totalRec) * 100) : 0;
-      const pctRecPendente = totalRec > 0 ? 100 - pctRecebido : 0;
-
-      const totalPag = (pagAberto + pagPago);
-      const pctPago = totalPag > 0 ? Math.round((pagPago / totalPag) * 100) : 0;
-      const pctPagPendente = totalPag > 0 ? 100 - pctPago : 0;
+      const renderProgressCard = (title, subtitle, num, den, pct, barColor, badgeClass, route) => `
+        <div onclick="navigateTo('${route}')" class="bg-white rounded-2xl p-4 border shadow-sm hover:border-navy-800 transition cursor-pointer space-y-2.5">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-navy-900">${title}</div>
+              <div class="text-[11px] text-slate-500">${subtitle}</div>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-black ${badgeClass}">${pct}%</span>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <span class="text-2xl font-black text-navy-900">${num} <span class="text-sm font-bold text-slate-400">/ ${den}</span></span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div class="h-full ${barColor} rounded-full transition-all" style="width: ${pct}%"></div>
+          </div>
+        </div>
+      `;
 
       container.innerHTML = `
-        <div>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Painel Executivo</h2>
-          <p class="text-xs sm:text-sm text-slate-600">Visão consolidada da CONTECH Contabilidade &amp; Informática (Itaporanga - PB).</p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div onclick="navigateTo('contabeis')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-navy-800">
-            <div class="text-[11px] font-bold text-slate-500 uppercase">Clientes Contábeis</div>
-            <div class="text-2xl font-black text-navy-900 mt-1">${totalContabeis}</div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">Painel Executivo</h2>
+            <p class="text-xs sm:text-sm text-slate-600">Visão consolidada de indicadores financeiros, certificados digitais e demandas operacionais.</p>
           </div>
-          <div onclick="navigateTo('certificados')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-amber-500">
-            <div class="text-[11px] font-bold text-slate-500 uppercase">Certificados (≤ 30d / Venc.)</div>
-            <div class="text-2xl font-black text-amber-600 mt-1">${certsAlerta.length}</div>
-          </div>
-          <div onclick="navigateTo('receber')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-emerald-600">
-            <div class="text-[11px] font-bold text-slate-500 uppercase">A Receber (Em Aberto)</div>
-            <div class="text-xl font-black text-emerald-700 mt-1">${formatCurrency(recAberto)}</div>
-          </div>
-          <div onclick="navigateTo('pagar')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-red-600">
-            <div class="text-[11px] font-bold text-slate-500 uppercase">A Pagar (Em Aberto)</div>
-            <div class="text-xl font-black text-red-600 mt-1">${formatCurrency(pagAberto)}</div>
-          </div>
-          <div onclick="navigateTo('pmi')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-accent-500">
-            <div class="text-[11px] font-bold text-slate-500 uppercase">Serviços PMI (Aberto)</div>
-            <div class="text-xl font-black text-accent-600 mt-1">${formatCurrency(pmiAberto)}</div>
-            <div class="text-[11px] font-bold text-slate-600 mt-1">${pmiPendentesCount} / ${pmiTotalCount} pendentes (${pmiPctPendente}%)</div>
-          </div>
+          <div class="text-xs text-slate-500 font-semibold">Atualizado em ${formatDateBR(new Date().toISOString().slice(0, 10))}</div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div onclick="navigateTo('certificados')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-red-500 space-y-2">
-            <div class="flex items-center justify-between text-xs">
-              <span class="font-extrabold text-navy-900">Certificados Digitais</span>
-              <span class="px-2 py-0.5 rounded-full ${vencidosCount > 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'} font-extrabold text-[11px]">${pctVencidos}% vencidos</span>
-            </div>
-            <div class="text-xs font-bold text-slate-700">Vencidos: <strong class="text-red-600">${vencidosCount}</strong> / <strong>${totalCerts}</strong> certificados</div>
-            <div class="w-full h-2 rounded-full bg-emerald-200 overflow-hidden">
-              <div class="h-full bg-red-600 transition-all" style="width:${pctVencidos}%"></div>
-            </div>
-          </div>
-
-          <div onclick="navigateTo('pmi')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-accent-500 space-y-2">
-            <div class="flex items-center justify-between text-xs">
-              <span class="font-extrabold text-navy-900">Serviços PMI</span>
-              <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[11px]">${pmiPctPendente}% pendentes</span>
-            </div>
-            <div class="text-xs font-bold text-slate-700">Pendentes: <strong class="text-amber-700">${pmiPendentesCount}</strong> / <strong>${pmiTotalCount}</strong> serviços</div>
-            <div class="w-full h-2 rounded-full bg-emerald-200 overflow-hidden">
-              <div class="h-full bg-accent-500 transition-all" style="width:${pmiPctPendente}%"></div>
-            </div>
-          </div>
-
-          <div onclick="navigateTo('estudo')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-navy-800 space-y-2">
-            <div class="flex items-center justify-between text-xs">
-              <span class="font-extrabold text-navy-900">Estudo e Cursos</span>
-              <span class="px-2 py-0.5 rounded-full bg-blue-100 text-navy-800 font-extrabold text-[11px]">${estudosPctPendente}% pendentes</span>
-            </div>
-            <div class="text-xs font-bold text-slate-700">Pendentes: <strong class="text-navy-800">${estudosPendentesCount}</strong> / <strong>${estudosTotalCount}</strong> atividades</div>
-            <div class="w-full h-2 rounded-full bg-emerald-200 overflow-hidden">
-              <div class="h-full bg-navy-800 transition-all" style="width:${estudosPctPendente}%"></div>
-            </div>
-          </div>
-
-          <div onclick="navigateTo('tarefas')" class="bg-white rounded-2xl p-4 border shadow-sm cursor-pointer hover:border-amber-500 space-y-2">
-            <div class="flex items-center justify-between text-xs">
-              <span class="font-extrabold text-navy-900">Tarefas e Prazos</span>
-              <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[11px]">${tarefasPctPendente}% pendentes</span>
-            </div>
-            <div class="text-xs font-bold text-slate-700">Pendentes: <strong class="text-amber-700">${tarefasPendentesCount}</strong> / <strong>${tarefasTotalCount}</strong> tarefas</div>
-            <div class="w-full h-2 rounded-full bg-emerald-200 overflow-hidden">
-              <div class="h-full bg-amber-500 transition-all" style="width:${tarefasPctPendente}%"></div>
-            </div>
-          </div>
+          ${renderProgressCard('Radar de Certificados Digitais', 'Vencidos / Total cadastrados', certsVencidos, certsTotal, certsVencidosPct, 'bg-red-500', 'bg-red-100 text-red-700', 'certificados')}
+          ${renderProgressCard('Serviços PMI', 'Pendentes / Total de serviços', pmiPendentes, pmiTotal, pmiPct, 'bg-amber-500', 'bg-amber-100 text-amber-800', 'pmi')}
+          ${renderProgressCard('Estudo e Cursos', 'Atividades pendentes / Total', estudoPendentes, estudoTotal, estudoPct, 'bg-blue-600', 'bg-blue-100 text-blue-800', 'estudo')}
+          ${renderProgressCard('Tarefas e Prazos', 'Pendentes / Total de tarefas', tarefasPendentes, tarefasTotal, tarefasPct, 'bg-accent-500', 'bg-orange-100 text-orange-800', 'tarefas')}
         </div>
 
-        <div class="bg-white rounded-2xl p-5 border shadow-sm space-y-4 text-xs">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-extrabold text-navy-900">Indicadores Financeiros (Contas a Receber &amp; a Pagar)</h3>
-            <span class="text-[11px] font-bold ${recPago - pagPago >= 0 ? 'text-emerald-700' : 'text-red-600'}">
-              Saldo Realizado: ${formatCurrency(recPago - pagPago)}
-            </span>
+        <div class="bg-white rounded-2xl p-5 border shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b pb-3">
+            <div>
+              <h3 class="text-sm font-extrabold text-navy-900">Indicadores Financeiros</h3>
+              <p class="text-xs text-slate-500">Resumo percentual de Contas a Receber e Contas a Pagar.</p>
+            </div>
+            <div class="text-xs font-extrabold text-navy-900">
+              Saldo Realizado: <span class="${recRecebido - pagPago >= 0 ? 'text-emerald-700' : 'text-red-600'}">${formatCurrency(recRecebido - pagPago)}</span>
+            </div>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 space-y-1.5">
+            <div onclick="navigateTo('receber')" class="p-4 rounded-2xl border bg-slate-50/70 hover:border-emerald-500 transition cursor-pointer space-y-3">
               <div class="flex items-center justify-between">
-                <span class="font-extrabold text-navy-900">Contas a Receber</span>
-                <span class="text-[11px] font-bold text-slate-600">Total: ${formatCurrency(totalRec)}</span>
-              </div>
-              <div class="flex justify-between font-semibold text-[11px]">
-                <span class="text-emerald-700">Recebido: ${formatCurrency(recPago)} (${pctRecebido}%)</span>
-                <span class="text-amber-700">Pendente: ${formatCurrency(recAberto)} (${pctRecPendente}%)</span>
+                <span class="text-xs font-extrabold uppercase text-emerald-800">Contas a Receber</span>
+                <span class="text-sm font-black text-navy-900">${formatCurrency(recTotal)}</span>
               </div>
               <div class="w-full h-3 rounded-full bg-amber-200 overflow-hidden flex">
-                <div class="h-full bg-emerald-600 transition-all" style="width:${pctRecebido}%"></div>
+                <div class="h-full bg-emerald-600" style="width: ${recPctRecebido}%"></div>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="p-2.5 rounded-xl bg-white border">
+                  <div class="text-[11px] text-slate-500">Recebido (${recPctRecebido}%)</div>
+                  <div class="font-black text-emerald-700 mt-0.5">${formatCurrency(recRecebido)}</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white border">
+                  <div class="text-[11px] text-slate-500">Pendente (${recPctPendente}%)</div>
+                  <div class="font-black text-amber-600 mt-0.5">${formatCurrency(recPendente)}</div>
+                </div>
               </div>
             </div>
 
-            <div class="p-3 rounded-xl bg-red-50/50 border border-red-100 space-y-1.5">
+            <div onclick="navigateTo('pagar')" class="p-4 rounded-2xl border bg-slate-50/70 hover:border-red-400 transition cursor-pointer space-y-3">
               <div class="flex items-center justify-between">
-                <span class="font-extrabold text-navy-900">Contas a Pagar</span>
-                <span class="text-[11px] font-bold text-slate-600">Total: ${formatCurrency(totalPag)}</span>
+                <span class="text-xs font-extrabold uppercase text-red-800">Contas a Pagar</span>
+                <span class="text-sm font-black text-navy-900">${formatCurrency(pagTotal)}</span>
               </div>
-              <div class="flex justify-between font-semibold text-[11px]">
-                <span class="text-navy-800">Pago: ${formatCurrency(pagPago)} (${pctPago}%)</span>
-                <span class="text-red-600">Pendente: ${formatCurrency(pagAberto)} (${pctPagPendente}%)</span>
+              <div class="w-full h-3 rounded-full bg-amber-200 overflow-hidden flex">
+                <div class="h-full bg-emerald-600" style="width: ${pagPctPago}%"></div>
               </div>
-              <div class="w-full h-3 rounded-full bg-red-200 overflow-hidden flex">
-                <div class="h-full bg-navy-800 transition-all" style="width:${pctPago}%"></div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="p-2.5 rounded-xl bg-white border">
+                  <div class="text-[11px] text-slate-500">Pago (${pagPctPago}%)</div>
+                  <div class="font-black text-emerald-700 mt-0.5">${formatCurrency(pagPago)}</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white border">
+                  <div class="text-[11px] text-slate-500">Pendente (${pagPctPendente}%)</div>
+                  <div class="font-black text-amber-600 mt-0.5">${formatCurrency(pagPendente)}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -800,268 +794,136 @@
     }
 
     // =========================================================================
-    // 12. ADMINISTRAÇÃO, USUÁRIOS, BACKUP & GOOGLE SHEETS SYNC BIDIRECIONAL
+    // SINCRONIZAÇÃO BIDIRECIONAL INSTANTÂNEA COM GOOGLE SHEETS
     // =========================================================================
+    function scheduleInstantPush() {
+      const url = AppState.config?.gasUrl?.trim();
+      if (!url || AppState.config?.instantSync === false) return;
+      if (instantPushTimer) clearTimeout(instantPushTimer);
+      updateSyncIndicator('syncing', 'Aguardando envio...');
+      instantPushTimer = setTimeout(() => {
+        instantPushTimer = null;
+        syncAllToGas(true);
+      }, 450);
+    }
+
     function mapClientToSheetRow(c) {
       return {
-        "ID": c.id,
-        "ID ALTERDATA": c.idAlterdata,
-        "NOME": c.nomeRazao,
-        "CPF": c.cpf,
-        "SENHA GOV": c.senhas?.gov || '',
-        "CNPJ": c.cnpj,
-        "IE": c.inscricaoEstadual,
-        "IM": c.inscricaoMunicipal,
-        "DATA ABERTURA": c.dataAbertura,
-        "DATA NASCIMENTO": c.dataNascimento,
-        "VENC CERTIFICADO": c.certificadoVencimento,
-        "REGIME": c.regimeTributario,
-        "CAPITAL SOCIAL": c.capitalSocial,
-        "PROCURACOES": (c.procuracoes || c.producoes || []).join(','),
-        "PARCELAMENTO": (c.parcelamentos || []).join(','),
-        "EFD": c.obrigacoes?.EFD || '',
-        "MIT": c.obrigacoes?.MIT || '',
-        "DEFIS": c.obrigacoes?.DEFIS || '',
-        "DASN": c.obrigacoes?.DASN || '',
-        "CELULAR": c.celular,
-        "RG": c.rg,
-        "CNH": c.cnh,
-        "TITULO": c.tituloEleitor,
-        "EMAIL": c.email,
-        "SENHA NFSE": c.senhas?.nfse || '',
-        "SENHA EMAIL": c.senhas?.email || ''
+        'ID': c.id || '',
+        'ID ALTERDATA': c.idAlterdata || '',
+        'NOME': c.nomeRazao || '',
+        'CPF': c.cpf || '',
+        'SENHA GOV': c.senhas?.gov || '',
+        'CNPJ': c.cnpj || '',
+        'IE': c.inscricaoEstadual || '',
+        'IM': c.inscricaoMunicipal || '',
+        'DATA ABERTURA': c.dataAbertura || '',
+        'DATA NASCIMENTO': c.dataNascimento || '',
+        'VENC CERTIFICADO': c.certificadoVencimento || '',
+        'REGIME': c.regimeTributario || 'Simples Nacional',
+        'CAPITAL SOCIAL': Number(c.capitalSocial || 0),
+        'PROCURACOES': (c.procuracoes || c.producoes || []).join(', '),
+        'PARCELAMENTO': (c.parcelamentos || []).join(', '),
+        'EFD': c.obrigacoes?.EFD || 'N/A',
+        'MIT': c.obrigacoes?.MIT || 'N/A',
+        'DEFIS': c.obrigacoes?.DEFIS || 'N/A',
+        'DASN': c.obrigacoes?.DASN || 'N/A',
+        'CELULAR': c.celular || '',
+        'RG': c.rg || '',
+        'CNH': c.cnh || '',
+        'TITULO': c.tituloEleitor || '',
+        'EMAIL': c.email || '',
+        'SENHA NFSE': c.senhas?.nfse || '',
+        'SENHA EMAIL': c.senhas?.email || ''
+      };
+    }
+
+    function mapSheetRowToClient(r, prefix) {
+      const splitList = (val) => String(val || '').split(',').map((s) => s.trim()).filter(Boolean);
+      return {
+        id: String(r['ID'] || r.id || generateId(prefix)),
+        idAlterdata: String(r['ID ALTERDATA'] || r.id_alterdata || ''),
+        nomeRazao: String(r['NOME'] || r.nome || ''),
+        cpf: String(r['CPF'] || r.cpf || ''),
+        rg: String(r['RG'] || r.rg || ''),
+        cnh: String(r['CNH'] || r.cnh || ''),
+        tituloEleitor: String(r['TITULO'] || r.titulo || ''),
+        dataNascimento: String(r['DATA NASCIMENTO'] || r.data_nascimento || ''),
+        celular: String(r['CELULAR'] || r.celular || ''),
+        email: String(r['EMAIL'] || r.email || ''),
+        cnpj: String(r['CNPJ'] || r.cnpj || ''),
+        inscricaoEstadual: String(r['IE'] || r.inscricao_estadual || ''),
+        inscricaoMunicipal: String(r['IM'] || r.inscricao_municipal || ''),
+        dataAbertura: String(r['DATA ABERTURA'] || r.data_abertura || ''),
+        regimeTributario: String(r['REGIME'] || r.regime || 'Simples Nacional'),
+        capitalSocial: Number(r['CAPITAL SOCIAL'] || r.capital_social || 0),
+        procuracoes: splitList(r['PROCURACOES'] || r.producoes),
+        parcelamentos: splitList(r['PARCELAMENTO'] || r.parcelamento),
+        obrigacoes: {
+          EFD: String(r['EFD'] || r.efd || 'N/A'),
+          MIT: String(r['MIT'] || r.mit || 'N/A'),
+          DEFIS: String(r['DEFIS'] || r.defis || 'N/A'),
+          DASN: String(r['DASN'] || r.dasn || 'N/A')
+        },
+        certificadoVencimento: String(r['VENC CERTIFICADO'] || r.vencimento_certificado || ''),
+        senhas: {
+          gov: String(r['SENHA GOV'] || r.senha_gov || ''),
+          nfse: String(r['SENHA NFSE'] || r.senha_nfse || ''),
+          email: String(r['SENHA EMAIL'] || r.senha_email || '')
+        }
       };
     }
 
     function mapStateToSheetPayload() {
+      const today = new Date().toISOString().slice(0, 10);
       return {
         contabeis: (AppState.clientesContabeis || []).map(mapClientToSheetRow),
         gerais: (AppState.clientesGerais || []).map(mapClientToSheetRow),
         pagar: (AppState.contasPagar || []).map((p) => ({
-          ID: p.id, Data_Lancamento: p.vencimento, Fornecedor_Descricao: p.descricao, Categoria: p.categoria,
-          Parcela: p.parcela, Vencimento: p.vencimento, Valor: p.valor, Status: p.status, Data_Pagamento: p.dataPagamento || '', Observacoes: ''
+          ID: p.id, Data_Lancamento: today, Fornecedor_Descricao: p.descricao, Categoria: p.categoria,
+          Parcela: p.parcela || '1/1', Vencimento: p.vencimento, Valor: Number(p.valor || 0),
+          Status: p.status, Data_Pagamento: p.dataPagamento || '', Observacoes: ''
         })),
         receber: (AppState.contasReceber || []).map((r) => ({
-          ID: r.id, Data_Lancamento: r.vencimento, Cliente: r.cliente, Descricao_Servico: r.descricao,
-          Parcela: r.parcela, Vencimento: r.vencimento, Valor: r.valor, Status: r.status, Data_Recebimento: r.dataRecebimento || '', Observacoes: ''
+          ID: r.id, Data_Lancamento: today, Cliente: r.cliente, Descricao_Servico: r.descricao,
+          Parcela: r.parcela || '1/1', Vencimento: r.vencimento, Valor: Number(r.valor || 0),
+          Status: r.status, Data_Recebimento: r.dataRecebimento || '', Observacoes: ''
         })),
         tarefas: (AppState.tarefas || []).map((t) => ({
-          ID: t.id, Titulo: t.titulo, Area: t.area, Prioridade: t.prioridade, Prazo: t.prazo, Status: t.status, Responsavel: t.responsavel || '', Observacoes: ''
+          ID: t.id, Titulo: t.titulo, Area: t.area, Prioridade: t.prioridade,
+          Prazo: t.prazo, Status: t.status, Responsavel: t.responsavel || '', Observacoes: ''
         })),
         licitacoes: (AppState.licitacoes || []).map((l) => ({
-          ID: l.id, Portal: l.portal, Numero_Edital: l.numeroEdital, Orgao: l.orgao, UF: l.uf,
-          Modalidade: l.modalidade, Objeto: l.objeto, Data_Abertura: l.dataAbertura, Valor_Estimado: l.valorEstimado,
-          Link_Edital: l.link || '', Status_Acompanhamento: 'Monitorado'
+          ID: l.id, Portal: l.portal, Numero_Edital: l.numeroEdital, Orgao: l.orgao,
+          UF: l.uf, Modalidade: l.modalidade, Objeto: l.objeto, Data_Abertura: l.dataAbertura,
+          Valor_Estimado: Number(l.valorEstimado || 0), Link_Edital: l.link || '', Status_Acompanhamento: 'Monitorado'
         })),
         cursos: (AppState.cursos || []).map((c) => ({
           ID: c.id, Curso: c.nome, Instituicao: c.instituicao || '', Carga_Horaria: c.cargaHoraria || '', Status: c.status || 'Em andamento'
         })),
         disciplinas: (AppState.disciplinas || []).map((d) => ({
-          ID: d.id, Curso_ID: d.cursoId || '', Disciplina: d.nome || ''
+          ID: d.id, Curso_ID: d.cursoId, Disciplina: d.nome
         })),
         estudos: (AppState.atividadesEstudo || []).map((a) => {
           const disc = (AppState.disciplinas || []).find((d) => d.id === a.disciplinaId);
           return {
-            ID: a.id, Data: a.data, Curso_ID: a.cursoId || '', Disciplina_ID: a.disciplinaId || '',
+            ID: a.id, Data: a.data, Curso_ID: a.cursoId, Disciplina_ID: a.disciplinaId || '',
             Materia: disc ? disc.nome : '', Atividade: a.titulo, Status: a.status, Observacoes: ''
           };
         }),
         pmi: (AppState.servicosPmi || []).map((p) => ({
           ID: p.id, Data: p.data, Secretaria: p.secretaria, Servico: p.servico, Complemento: p.complemento || '',
-          Valor: p.valor, Status_Pagamento: p.status, Numero_Empenho: p.empenho || '', Numero_NF: p.nf || ''
+          Valor: Number(p.valor || 0), Status_Pagamento: p.status, Numero_Empenho: p.empenho || '', Numero_NF: p.nf || ''
         })),
         os: (AppState.ordensServico || []).map((o) => ({
           Numero_OS: o.id, Data_Abertura: o.data, Cliente: o.clienteNome, Telefone: o.telefone || '',
           Equipamento: o.equipamento, Defeito_Relatado: o.defeito, Servico_Executado: o.servicoExecutado || '',
-          Valor: o.valor, Status: o.status, Data_Conclusao: o.status === 'Concluída' ? o.data : ''
+          Valor: Number(o.valor || 0), Status: o.status, Data_Conclusao: ''
         })),
         usuarios: (AppState.users || []).map((u) => ({
           ID: u.id, Usuario: u.username, Nome_Completo: u.name, Senha_Hash: u.password, Perfil: u.role, Ativo: 'Sim'
         }))
       };
-    }
-
-    function applyCloudPayloadToState(cloudData, cloudVersion) {
-      if (!cloudData || typeof cloudData !== 'object') return;
-      const splitPipe = (v) => String(v || '').split('|').map((s) => s.trim());
-      const parseClientRow = (r, prefix) => {
-        const [nfseLegacy = '', emailLegacy = ''] = splitPipe(r.Senha_NFSe_Email);
-        return {
-          id: String(r["ID"] ?? r.id ?? r['01. ID'] ?? generateId(prefix)),
-          idAlterdata: String(r["ID ALTERDATA"] ?? r.id_alterdata ?? r['02. ID Alterdata'] ?? r.ID_Alterdata ?? ''),
-          nomeRazao: String(r["NOME"] ?? r.nome ?? r['03. Nome / Razão Social'] ?? r.Nome_Razao_Social ?? ''),
-          cpf: String(r["CPF"] ?? r.cpf ?? r['04. CPF'] ?? ''),
-          rg: String(r["RG"] ?? r.rg ?? r['05. RG'] ?? ''),
-          cnh: String(r["CNH"] ?? r.cnh ?? r['06. CNH'] ?? ''),
-          tituloEleitor: String(r["TITULO"] ?? r.titulo ?? r['07. Título Eleitor'] ?? r.Titulo_Eleitor ?? ''),
-          dataNascimento: String(r["DATA NASCIMENTO"] ?? r.data_nascimento ?? r['08. Nascimento'] ?? r.Data_Nascimento ?? ''),
-          celular: String(r["CELULAR"] ?? r.celular ?? r['09. Celular'] ?? ''),
-          email: String(r["EMAIL"] ?? r.email ?? r['10. E-mail'] ?? ''),
-          cnpj: String(r["CNPJ"] ?? r.cnpj ?? r['11. CNPJ'] ?? ''),
-          inscricaoEstadual: String(r["IE"] ?? r.inscricao_estadual ?? r['12. Insc. Estadual'] ?? r.Inscricao_Estadual ?? ''),
-          inscricaoMunicipal: String(r["IM"] ?? r.inscricao_municipal ?? r['13. Insc. Municipal'] ?? r.Inscricao_Municipal ?? ''),
-          dataAbertura: String(r["DATA ABERTURA"] ?? r.data_abertura ?? r['14. Data Abertura'] ?? r.Data_Abertura ?? ''),
-          regimeTributario: String(r["REGIME"] ?? r.regime ?? r['15. Regime Tributário'] ?? r.Regime_Tributario ?? 'Simples Nacional'),
-          capitalSocial: Number(r["CAPITAL SOCIAL"] ?? r.capital_social ?? r['16. Capital Social'] ?? r.Capital_Social ?? 0),
-          procuracoes: String(r["PROCURACOES"] ?? r.procuracoes ?? r.producoes ?? r['17. Procurações'] ?? r['17. Produções'] ?? r.Procuracoes ?? '').split(',').map((s) => s.trim()).filter(Boolean),
-          parcelamentos: String(r["PARCELAMENTO"] ?? r.parcelamento ?? r['18. Parcelamentos'] ?? r.Parcelamentos ?? '').split(',').map((s) => s.trim()).filter(Boolean),
-          obrigacoes: {
-            EFD: String(r["EFD"] ?? r.efd ?? r['19. EFD'] ?? r.Status_EFD ?? 'N/A'),
-            MIT: String(r["MIT"] ?? r.mit ?? r['20. MIT'] ?? r.Status_MIT ?? 'N/A'),
-            DEFIS: String(r["DEFIS"] ?? r.defis ?? r['21. DEFIS'] ?? r.Status_DEFIS ?? 'N/A'),
-            DASN: String(r["DASN"] ?? r.dasn ?? r['22. DASN'] ?? r.Status_DASN ?? 'N/A')
-          },
-          certificadoVencimento: String(r["VENC CERTIFICADO"] ?? r.vencimento_certificado ?? r['23. Venc. Certificado'] ?? r.Vencimento_Certificado ?? ''),
-          senhas: {
-            gov: String(r["SENHA GOV"] ?? r.senha_gov ?? r['24. Senha GOV'] ?? r.Senha_GOV ?? ''),
-            nfse: String(r["SENHA NFSE"] ?? r.senha_nfse ?? r['25. Senha NFSe'] ?? r.Senha_NFSe ?? nfseLegacy ?? ''),
-            email: String(r["SENHA EMAIL"] ?? r.senha_email ?? r['26. Senha E-mail'] ?? r.Senha_Email ?? emailLegacy ?? '')
-          }
-        };
-      };
-
-      if (Array.isArray(cloudData.contabeis)) {
-        AppState.clientesContabeis = cloudData.contabeis.map((r) => parseClientRow(r, 'CC'));
-      }
-
-      if (Array.isArray(cloudData.gerais)) {
-        AppState.clientesGerais = cloudData.gerais.map((r) => parseClientRow(r, 'CG'));
-      }
-
-      if (Array.isArray(cloudData.pagar)) {
-        AppState.contasPagar = cloudData.pagar.map((p) => ({
-          id: String(p.ID || generateId('PAG')),
-          descricao: String(p.Fornecedor_Descricao || ''),
-          categoria: String(p.Categoria || 'Outros'),
-          parcela: String(p.Parcela || '1/1'),
-          vencimento: String(p.Vencimento || ''),
-          valor: Number(p.Valor || 0),
-          status: String(p.Status || 'Pendente'),
-          dataPagamento: String(p.Data_Pagamento || '')
-        }));
-      }
-
-      if (Array.isArray(cloudData.receber)) {
-        AppState.contasReceber = cloudData.receber.map((r) => ({
-          id: String(r.ID || generateId('REC')),
-          cliente: String(r.Cliente || ''),
-          descricao: String(r.Descricao_Servico || ''),
-          parcela: String(r.Parcela || '1/1'),
-          vencimento: String(r.Vencimento || ''),
-          valor: Number(r.Valor || 0),
-          status: String(r.Status || 'Pendente'),
-          dataRecebimento: String(r.Data_Recebimento || '')
-        }));
-      }
-
-      if (Array.isArray(cloudData.tarefas)) {
-        AppState.tarefas = cloudData.tarefas.map((t) => ({
-          id: String(t.ID || generateId('TAR')),
-          titulo: String(t.Titulo || ''),
-          area: String(t.Area || TAREFA_AREAS[0]),
-          prioridade: String(t.Prioridade || 'Média'),
-          prazo: String(t.Prazo || ''),
-          status: String(t.Status || 'Pendente'),
-          responsavel: String(t.Responsavel || '')
-        }));
-      }
-
-      if (Array.isArray(cloudData.licitacoes)) {
-        AppState.licitacoes = cloudData.licitacoes.map((l) => ({
-          id: String(l.ID || generateId('LIC')),
-          portal: String(l.Portal || 'Portal Nacional de Contratações Públicas (PNCP)'),
-          numeroEdital: String(l.Numero_Edital || ''),
-          orgao: String(l.Orgao || ''),
-          uf: String(l.UF || 'PB'),
-          modalidade: String(l.Modalidade || ''),
-          objeto: String(l.Objeto || ''),
-          dataAbertura: String(l.Data_Abertura || ''),
-          valorEstimado: Number(l.Valor_Estimado || 0),
-          link: String(l.Link_Edital || '')
-        }));
-      }
-
-      if (Array.isArray(cloudData.cursos)) {
-        AppState.cursos = cloudData.cursos.map((c) => ({
-          id: String(c.ID || generateId('CUR')),
-          nome: String(c.Curso || ''),
-          instituicao: String(c.Instituicao || ''),
-          cargaHoraria: String(c.Carga_Horaria || ''),
-          status: String(c.Status || 'Em andamento')
-        }));
-      }
-
-      if (Array.isArray(cloudData.disciplinas)) {
-        AppState.disciplinas = cloudData.disciplinas.map((d) => ({
-          id: String(d.ID || generateId('DIS')),
-          cursoId: String(d.Curso_ID || ''),
-          nome: String(d.Disciplina || '')
-        }));
-      }
-
-      if (Array.isArray(cloudData.estudos)) {
-        AppState.atividadesEstudo = cloudData.estudos.map((a) => ({
-          id: String(a.ID || generateId('EST')),
-          data: String(a.Data || ''),
-          cursoId: String(a.Curso_ID || ''),
-          disciplinaId: String(a.Disciplina_ID || ''),
-          titulo: String(a.Atividade || a.Materia || ''),
-          status: String(a.Status || 'Pendente')
-        }));
-      }
-
-      if (Array.isArray(cloudData.pmi)) {
-        AppState.servicosPmi = cloudData.pmi.map((p) => ({
-          id: String(p.ID || generateId('PMI')),
-          data: String(p.Data || ''),
-          secretaria: String(p.Secretaria || ''),
-          servico: String(p.Servico || ''),
-          complemento: String(p.Complemento || ''),
-          valor: Number(p.Valor || 0),
-          status: String(p.Status_Pagamento || 'Pendente'),
-          empenho: String(p.Numero_Empenho || ''),
-          nf: String(p.Numero_NF || '')
-        }));
-      }
-
-      if (Array.isArray(cloudData.os)) {
-        AppState.ordensServico = cloudData.os.map((o) => ({
-          id: String(o.Numero_OS || generateId('OS')),
-          data: String(o.Data_Abertura || ''),
-          clienteNome: String(o.Cliente || ''),
-          telefone: String(o.Telefone || ''),
-          equipamento: String(o.Equipamento || ''),
-          defeito: String(o.Defeito_Relatado || ''),
-          servicoExecutado: String(o.Servico_Executado || ''),
-          valor: Number(o.Valor || 0),
-          status: String(o.Status || 'Aberta')
-        }));
-      }
-
-      if (Array.isArray(cloudData.usuarios) && cloudData.usuarios.length > 0) {
-        AppState.users = cloudData.usuarios.map((u) => ({
-          id: String(u.ID || generateId('USR')),
-          username: String(u.Usuario || ''),
-          name: String(u.Nome_Completo || ''),
-          password: String(u.Senha_Hash || ''),
-          role: String(u.Perfil || 'Operador')
-        }));
-      }
-
-      if (cloudVersion) AppState.config.cloudVersion = String(cloudVersion);
-      AppState.config.lastSyncAt = new Date().toLocaleTimeString('pt-BR');
-      AppState.config.lastSyncMessage = 'Sincronizado bidirecionalmente com Google Sheets';
-      saveState(true);
-    }
-
-    function scheduleInstantPush() {
-      const url = AppState.config?.gasUrl?.trim();
-      if (!url || AppState.config?.instantSync === false) return;
-      updateSyncIndicator('syncing', 'Enviando alterações...');
-      if (instantPushTimer) clearTimeout(instantPushTimer);
-      instantPushTimer = setTimeout(() => {
-        syncAllToGas(true);
-      }, 450);
     }
 
     async function pullFromGas(silent = false) {
@@ -1072,30 +934,105 @@
       }
       if (isSyncBusy) return;
       isSyncBusy = true;
-      updateSyncIndicator('syncing', 'Puxando da planilha...');
+      updateSyncIndicator('syncing', 'Recebendo dados...');
       try {
         const res = await fetch(`${url}?action=readAll&_t=${Date.now()}`);
         const json = await res.json();
-        if (json.success && json.data) {
-          applyCloudPayloadToState(json.data, json.version);
-          updateSyncIndicator('online', `Sheets Ao Vivo • ${AppState.config.lastSyncAt}`);
-          if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA' && document.activeElement?.tagName !== 'SELECT') {
-            renderRoute(ActiveRoute);
-          }
-          if (!silent) showToast('Dados atualizados a partir do Google Sheets!');
-        } else {
-          updateSyncIndicator('error', 'Erro na leitura');
-          if (!silent) showToast(json.error || 'Erro ao puxar dados.', 'error');
+        if (!json.success || !json.data) {
+          throw new Error(json.error || 'Resposta inválida do Google Sheets.');
         }
+        const d = json.data;
+        if (Array.isArray(d.contabeis)) AppState.clientesContabeis = d.contabeis.map((r) => mapSheetRowToClient(r, 'CC'));
+        if (Array.isArray(d.gerais)) AppState.clientesGerais = d.gerais.map((r) => mapSheetRowToClient(r, 'CG'));
+        if (Array.isArray(d.pagar)) {
+          AppState.contasPagar = d.pagar.map((r) => ({
+            id: String(r.ID || generateId('PAG')), descricao: String(r.Fornecedor_Descricao || ''),
+            categoria: String(r.Categoria || 'Outros'), parcela: String(r.Parcela || '1/1'),
+            vencimento: String(r.Vencimento || ''), valor: Number(r.Valor || 0),
+            status: String(r.Status || 'Pendente'), dataPagamento: String(r.Data_Pagamento || '')
+          }));
+        }
+        if (Array.isArray(d.receber)) {
+          AppState.contasReceber = d.receber.map((r) => ({
+            id: String(r.ID || generateId('REC')), cliente: String(r.Cliente || ''),
+            descricao: String(r.Descricao_Servico || ''), parcela: String(r.Parcela || '1/1'),
+            vencimento: String(r.Vencimento || ''), valor: Number(r.Valor || 0),
+            status: String(r.Status || 'Pendente'), dataRecebimento: String(r.Data_Recebimento || '')
+          }));
+        }
+        if (Array.isArray(d.tarefas)) {
+          AppState.tarefas = d.tarefas.map((r) => ({
+            id: String(r.ID || generateId('TAR')), titulo: String(r.Titulo || ''),
+            area: String(r.Area || TAREFA_AREAS[0]), prioridade: String(r.Prioridade || 'Média'),
+            prazo: String(r.Prazo || ''), status: String(r.Status || 'Pendente'), responsavel: String(r.Responsavel || '')
+          }));
+        }
+        if (Array.isArray(d.licitacoes)) {
+          AppState.licitacoes = d.licitacoes.map((r) => ({
+            id: String(r.ID || generateId('LIC')), portal: String(r.Portal || TENDER_PORTALS_20[0].name),
+            numeroEdital: String(r.Numero_Edital || ''), orgao: String(r.Orgao || ''), uf: String(r.UF || 'PB'),
+            modalidade: String(r.Modalidade || 'Pregão Eletrônico'), objeto: String(r.Objeto || ''),
+            dataAbertura: String(r.Data_Abertura || ''), valorEstimado: Number(r.Valor_Estimado || 0),
+            link: String(r.Link_Edital || '')
+          }));
+        }
+        if (Array.isArray(d.cursos)) {
+          AppState.cursos = d.cursos.map((r) => ({
+            id: String(r.ID || generateId('CUR')), nome: String(r.Curso || ''),
+            instituicao: String(r.Instituicao || ''), cargaHoraria: String(r.Carga_Horaria || ''),
+            status: String(r.Status || 'Em andamento')
+          }));
+        }
+        if (Array.isArray(d.disciplinas)) {
+          AppState.disciplinas = d.disciplinas.map((r) => ({
+            id: String(r.ID || generateId('DIS')), cursoId: String(r.Curso_ID || ''), nome: String(r.Disciplina || '')
+          }));
+        }
+        if (Array.isArray(d.estudos)) {
+          AppState.atividadesEstudo = d.estudos.map((r) => ({
+            id: String(r.ID || generateId('EST')), data: String(r.Data || ''),
+            cursoId: String(r.Curso_ID || ''), disciplinaId: String(r.Disciplina_ID || ''),
+            titulo: String(r.Atividade || ''), status: String(r.Status || 'Pendente')
+          }));
+        }
+        if (Array.isArray(d.pmi)) {
+          AppState.servicosPmi = d.pmi.map((r) => ({
+            id: String(r.ID || generateId('PMI')), data: String(r.Data || ''),
+            secretaria: String(r.Secretaria || ''), servico: String(r.Servico || ''),
+            complemento: String(r.Complemento || ''), valor: Number(r.Valor || 0),
+            status: String(r.Status_Pagamento || 'Pendente'), empenho: String(r.Numero_Empenho || ''),
+            nf: String(r.Numero_NF || '')
+          }));
+        }
+        if (Array.isArray(d.os)) {
+          AppState.ordensServico = d.os.map((r) => ({
+            id: String(r.Numero_OS || generateId('OS')), data: String(r.Data_Abertura || ''),
+            clienteNome: String(r.Cliente || ''), telefone: String(r.Telefone || ''),
+            equipamento: String(r.Equipamento || ''), defeito: String(r.Defeito_Relatado || ''),
+            servicoExecutado: String(r.Servico_Executado || ''), valor: Number(r.Valor || 0),
+            status: String(r.Status || 'Aberta')
+          }));
+        }
+        if (Array.isArray(d.usuarios) && d.usuarios.length > 0) {
+          AppState.users = d.usuarios.map((r) => ({
+            id: String(r.ID || generateId('USR')), username: String(r.Usuario || ''),
+            name: String(r.Nome_Completo || ''), password: String(r.Senha_Hash || ''),
+            role: String(r.Perfil || 'Operador')
+          }));
+        }
+
+        if (json.version) AppState.config.cloudVersion = String(json.version);
+        AppState.config.lastSyncAt = new Date().toLocaleTimeString('pt-BR');
+        AppState.config.lastSyncMessage = 'Dados atualizados a partir do Google Sheets.';
+        saveState(true);
+        updateSyncIndicator('online', `Sheets Ao Vivo • ${AppState.config.lastSyncAt}`);
+        renderRoute(ActiveRoute);
+        if (!silent) showToast('Dados puxados do Google Sheets com sucesso!');
       } catch (e) {
-        updateSyncIndicator('error', 'Offline / Erro CORS');
-        if (!silent) showToast('Falha de conexão com o Google Sheets.', 'error');
+        updateSyncIndicator('error', 'Erro ao receber');
+        if (!silent) showToast(e.message || 'Falha ao puxar dados do Google Sheets.', 'error');
       } finally {
         isSyncBusy = false;
-        if (pendingPushAfterSync) {
-          pendingPushAfterSync = false;
-          syncAllToGas(true);
-        }
       }
     }
 
@@ -1407,7 +1344,7 @@
         </div>
 
         <div class="bg-white rounded-2xl p-4 border shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-          <input type="text" value="${escapeHTML(ClientSearch)}" oninput="ClientSearch = this.value; renderRoute('${kind}');" placeholder="Pesquisar por Nome/Razão Social, CNPJ, CPF, ID ou Alterdata..." class="lg:col-span-2 px-3 py-2 rounded-xl border" />
+          <input id="search-clientes-${kind}" type="text" value="${escapeHTML(ClientSearch)}" oninput="ClientSearch = this.value; renderRoute('${kind}');" placeholder="Pesquisar por Nome/Razão Social, CNPJ, CPF, ID ou Alterdata..." class="lg:col-span-2 px-3 py-2 rounded-xl border" />
           <select onchange="ClientRegimeFilter = this.value; renderRoute('${kind}');" class="px-3 py-2 rounded-xl border bg-white">
             <option value="">Todos os Regimes Tributários</option>
             ${REGIMES.map((r) => `<option value="${r}" ${ClientRegimeFilter === r ? 'selected' : ''}>${r}</option>`).join('')}
@@ -2040,7 +1977,7 @@
         </div>
 
         <div class="bg-white rounded-2xl p-4 border shadow-sm flex flex-col sm:flex-row gap-3 text-xs">
-          <input type="text" value="${escapeHTML(TarefaSearch)}" oninput="TarefaSearch = this.value; renderRoute('tarefas');" placeholder="Buscar tarefa por título, área, prioridade, prazo ou status..." class="flex-1 px-3 py-2 rounded-xl border" />
+          <input id="search-tarefas" type="text" value="${escapeHTML(TarefaSearch)}" oninput="TarefaSearch = this.value; renderRoute('tarefas');" placeholder="Buscar tarefa por título, área, prioridade, prazo ou status..." class="flex-1 px-3 py-2 rounded-xl border" />
           <select onchange="TarefaAreaFilter = this.value; renderRoute('tarefas');" class="px-3 py-2 rounded-xl border bg-white">
             <option value="">Todas as Áreas</option>
             ${TAREFA_AREAS.map((a) => `<option value="${a}" ${TarefaAreaFilter === a ? 'selected' : ''}>${a}</option>`).join('')}
@@ -2451,7 +2388,7 @@
 
         <div class="bg-white rounded-2xl p-4 border shadow-sm space-y-3 text-xs">
           <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
-            <input type="text" value="${escapeHTML(TenderFilter.q)}" oninput="TenderFilter.q = this.value; renderRoute('licitacoes');" placeholder="Palavra-chave / Objeto..." class="sm:col-span-2 px-3 py-2 rounded-xl border" />
+            <input id="search-licitacoes" type="text" value="${escapeHTML(TenderFilter.q)}" oninput="TenderFilter.q = this.value; renderRoute('licitacoes');" placeholder="Palavra-chave / Objeto..." class="sm:col-span-2 px-3 py-2 rounded-xl border" />
             <select onchange="TenderFilter.uf = this.value; renderRoute('licitacoes');" class="px-3 py-2 rounded-xl border bg-white">
               <option value="" ${TenderFilter.uf === '' ? 'selected' : ''}>Todos os Estados (Brasil)</option>
               ${ESTADOS_BR.map((st) => `<option value="${st.uf}" ${TenderFilter.uf === st.uf ? 'selected' : ''}>${st.nome}</option>`).join('')}
@@ -2577,7 +2514,7 @@
         </div>
 
         <div class="bg-white rounded-2xl p-4 border shadow-sm text-xs">
-          <input type="text" value="${escapeHTML(EstudoSearch)}" oninput="EstudoSearch = this.value; renderRoute('estudo');" placeholder="Buscar por atividade, curso, disciplina ou data..." class="w-full px-3 py-2 rounded-xl border" />
+          <input id="search-estudo" type="text" value="${escapeHTML(EstudoSearch)}" oninput="EstudoSearch = this.value; renderRoute('estudo');" placeholder="Buscar por atividade, curso, disciplina ou data..." class="w-full px-3 py-2 rounded-xl border" />
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -2873,7 +2810,7 @@
         </div>
 
         <div class="bg-white rounded-2xl p-4 border shadow-sm flex flex-col sm:flex-row gap-3 text-xs">
-          <input type="text" value="${escapeHTML(PmiSearch)}" oninput="PmiSearch = this.value; renderRoute('pmi');" placeholder="Buscar por secretaria, serviço, complemento, empenho, NF ou data..." class="flex-1 px-3 py-2 rounded-xl border" />
+          <input id="search-pmi" type="text" value="${escapeHTML(PmiSearch)}" oninput="PmiSearch = this.value; renderRoute('pmi');" placeholder="Buscar por secretaria, serviço, complemento, empenho, NF ou data..." class="flex-1 px-3 py-2 rounded-xl border" />
           <select onchange="PmiStatusFilter = this.value; renderRoute('pmi');" class="px-3 py-2 rounded-xl border bg-white">
             <option value="">Todos os Status</option>
             ${PMI_STATUSES.map((st) => `<option value="${st}" ${PmiStatusFilter === st ? 'selected' : ''}>${st}</option>`).join('')}
@@ -3003,7 +2940,7 @@
         </div>
 
         <div class="bg-white rounded-2xl p-4 border shadow-sm flex flex-col sm:flex-row gap-3 text-xs">
-          <input type="text" value="${escapeHTML(OsSearch)}" oninput="OsSearch = this.value; renderRoute('os');" placeholder="Pesquisar por Nº OS, Cliente, Equipamento, Defeito ou Serviço..." class="flex-1 px-3 py-2 rounded-xl border" />
+          <input id="search-os" type="text" value="${escapeHTML(OsSearch)}" oninput="OsSearch = this.value; renderRoute('os');" placeholder="Pesquisar por Nº OS, Cliente, Equipamento, Defeito ou Serviço..." class="flex-1 px-3 py-2 rounded-xl border" />
           <select onchange="OsStatusFilter = this.value; renderRoute('os');" class="px-3 py-2 rounded-xl border bg-white">
             <option value="">Todos os Status</option>
             ${OS_STATUSES.map((st) => `<option value="${st}" ${OsStatusFilter === st ? 'selected' : ''}>${st}</option>`).join('')}
@@ -3250,7 +3187,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div class="${type === 'pmi' ? 'sm:col-span-2' : 'sm:col-span-3'}">
               <label class="font-bold block mb-1 text-slate-700">Busca Textual no Relatório</label>
-              <input type="text" value="${escapeHTML(q)}" oninput="ReportFilter.q = this.value; renderRoute('relatorios');" placeholder="Filtrar por nome, cliente, descrição, documento, equipamento..." class="w-full px-3 py-2 rounded-xl border" />
+              <input id="search-relatorios" type="text" value="${escapeHTML(q)}" oninput="ReportFilter.q = this.value; renderRoute('relatorios');" placeholder="Filtrar por nome, cliente, descrição, documento, equipamento..." class="w-full px-3 py-2 rounded-xl border" />
             </div>
             ${type === 'pmi' ? `
               <div>
